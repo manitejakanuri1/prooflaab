@@ -1,6 +1,5 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import "./lib/monaco";
 import App from "./App";
 import { installStaleChunkReload } from "./lib/staleChunkReload";
 import "./index.css";

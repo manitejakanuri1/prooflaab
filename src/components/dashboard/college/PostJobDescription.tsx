@@ -86,19 +86,19 @@ const PostJobDescription = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Role</Label>
-                <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g., Backend Developer" />
+                <Label htmlFor="pjd-role">Role</Label>
+                <Input id="pjd-role" value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g., Backend Developer" />
               </div>
               <div className="space-y-2">
-                <Label>Company</Label>
-                <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="e.g., Acme Corp" />
+                <Label htmlFor="pjd-company">Company</Label>
+                <Input id="pjd-company" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="e.g., Acme Corp" />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Location</Label>
-                <Input value={location} onChange={(e) => setLocation(e.target.value)} />
+                <Label htmlFor="pjd-location">Location</Label>
+                <Input id="pjd-location" value={location} onChange={(e) => setLocation(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Type</Label>
@@ -112,13 +112,13 @@ const PostJobDescription = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Apply link</Label>
-              <Input value={applyLink} onChange={(e) => setApplyLink(e.target.value)} placeholder="https://..." />
+              <Label htmlFor="pjd-apply-link">Apply link</Label>
+              <Input id="pjd-apply-link" value={applyLink} onChange={(e) => setApplyLink(e.target.value)} placeholder="https://..." />
             </div>
 
             <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea
+              <Label htmlFor="pjd-description">Description</Label>
+              <Textarea id="pjd-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={6}

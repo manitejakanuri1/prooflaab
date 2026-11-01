@@ -115,12 +115,22 @@ const StudentSquadPage = () => {
   const load = useCallback(async () => {
     if (!profile?.id) return;
 
-    const { data: membership } = await supabase
+    const { data: current } = await supabase
       .from("squad_members")
       .select("squad_id")
       .eq("student_id", profile.id)
       .is("left_at", null)   // a student who moved squads also has their old, closed membership rows
       .maybeSingle();
+    // E2E-4: close_season sets left_at on everyone, so with no current squad fall back to the
+    // most recent membership - last season's final and result still show.
+    const membership = current ?? (await supabase
+      .from("squad_members")
+      .select("squad_id")
+      .eq("student_id", profile.id)
+      .order("left_at", { ascending: false, nullsFirst: false })
+      .order("joined_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()).data;
 
     if (!membership) { setLoading(false); return; }
 

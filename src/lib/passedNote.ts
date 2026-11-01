@@ -1,9 +1,16 @@
 /**
- * MF-128 (owner 31 Oct 2026): a Lot whose code or answer passed keeps "Passed", but when the spoken
- * explanation or "matches your work" is low the student gets one kind, specific note: what went wrong
- * and how to do better next time. Uses only the stored scores; null when nothing needs saying.
+ * Owner decision 1 Nov 2026 (replaces the 31 Oct MF-128 rule that kept "Passed" whatever the voice):
+ * the green "Passed" shows only when the work passed AND the spoken explanation scored LOW_SCORE (50)
+ * or more. Otherwise the badge reads "Code passed · voice needs redo" ("Answer passed · ..." for a
+ * written task). A missing voice score counts as not 50+. passedNote() still gives the kind, specific
+ * note on what went wrong and how to do better. Uses only the stored scores.
  */
 export const LOW_SCORE = 50;
+
+export function passedLabel(kind: string | null | undefined, voice: number | null | undefined): string {
+  if (voice != null && voice >= LOW_SCORE) return "Passed";
+  return `${kind === "written" ? "Answer" : "Code"} passed · voice needs redo`;
+}
 
 export function passedNote(voice: number | null | undefined, match: number | null | undefined): string | null {
   const lowVoice = voice != null && voice < LOW_SCORE;

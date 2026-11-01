@@ -64,7 +64,7 @@ export function StartupJobsPage() {
   const [editingJob, setEditingJob] = useState<JobOpportunity | null>(null);
   const [formData, setFormData] = useState<JobFormData>(initialFormData);
   // MF-087: each field says what is wrong, under the field, instead of the browser's popup.
-  const [errors, setErrors] = useState<Partial<Record<"role" | "location" | "apply_link" | "deadline", string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<"role" | "location" | "job_type" | "apply_link" | "deadline", string>>>({});
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
   const [confirmBox, ask] = useConfirm(); // MF-087: in-app confirm, not the browser popup
@@ -108,6 +108,7 @@ export function StartupJobsPage() {
     const found: typeof errors = {};
     if (!formData.role.trim()) found.role = "Add the job title.";
     if (!formData.location.trim()) found.location = "Add where the job is, or 'Remote'.";
+    if (!formData.job_type) found.job_type = "Pick the job type.";
     if (!/^https?:\/\/\S+\.\S+/.test(formData.apply_link.trim())) found.apply_link = "Add a full link that starts with https://";
     if (!formData.deadline) found.deadline = "Pick the last day to apply.";
     else if (formData.deadline < new Date(new Date().toDateString())) found.deadline = "The last day to apply can't be in the past.";
@@ -302,6 +303,7 @@ export function StartupJobsPage() {
           <h1 className="text-2xl font-bold text-foreground">💼 Job Opportunities</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage and post job opportunities for students.</p>
         </div>
+        <span title={isVerified ? undefined : "Your company account is awaiting approval"}>
         <Button 
           onClick={openAddDialog}
           disabled={!isVerified}
@@ -310,6 +312,7 @@ export function StartupJobsPage() {
           <Plus className="h-4 w-4 mr-2" />
           Add New
         </Button>
+        </span>
       </div>
 
       <Card className="border-0 shadow-sm">
@@ -356,10 +359,12 @@ export function StartupJobsPage() {
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
+                          <div title={isVerified ? undefined : "Your company account is awaiting approval"}>
                           <DropdownMenuItem onClick={() => openEditDialog(job)} disabled={!isVerified}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
+                          </div>
                           <DropdownMenuItem 
                             onClick={() => handleDelete(job.id)}
                             className="text-alert focus:text-alert"
@@ -438,6 +443,7 @@ export function StartupJobsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.job_type && <p className="text-xs text-alert">{errors.job_type}</p>}
               </div>
             </div>
 

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, NotebookPen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBuildLog, voiceInProgress, type BuildLogEntry } from "@/hooks/useBuildLog";
-import { passedNote } from "@/lib/passedNote";
+import { passedLabel, passedNote } from "@/lib/passedNote";
 
 const STATUS: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
   passed: { label: "Passed", variant: "default" },
@@ -97,10 +97,13 @@ const BuildLogEntries = () => {
 };
 
 const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: string) => Label | undefined }) => {
-  const st = STATUS[e.status] ?? { label: e.status, variant: "outline" as const };
   const v = e.voice;
   const busy = voiceInProgress(v);
   const scored = v?.status === "scored";
+  // Owner 1 Nov 2026: green "Passed" needs the voice at 50+ too (passedLabel).
+  const passLabel = e.status === "passed" ? passedLabel(e.kind, scored ? v!.communication_score : null) : null;
+  const st = passLabel && passLabel !== "Passed" ? { label: passLabel, variant: "outline" as const }
+    : STATUS[e.status] ?? { label: e.status, variant: "outline" as const };
   const match = v?.evaluation?.content_match;
   const gate = v?.evaluation?.transcription?.gate;
   const breakdown = (e.kind === "written" ? e.feedback ?? [] : []).map((f) => {

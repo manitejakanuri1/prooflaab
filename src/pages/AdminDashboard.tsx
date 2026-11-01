@@ -45,7 +45,15 @@ const AdminDashboard = () => {
 
   // The page is in the URL (?tab=), so refresh, Back/Forward and pasted links work.
   // /admin/dashboard/user-management/<type> is an older address for the People lists.
-  const [tabParam, setTabParam] = useUrlTab("tab", "dashboard");
+  const [rawTabParam, setTabParam] = useUrlTab("tab", "dashboard");
+  // E2E-13: old ?tab= links open the page that replaced them, not the Overview.
+  const OLD_TABS: Record<string, string> = {
+    "proof-submissions": "submissions",
+    "startup-oversight": "startups",
+    "task-packs": "task-oversight",
+    "xp-moderation": "students",
+  };
+  const tabParam = OLD_TABS[rawTabParam] ?? rawTabParam;
   const onUserManagement = location.pathname.includes('/user-management/');
   const activeTab = onUserManagement
     ? (['students', 'startups', 'colleges'].includes(userType ?? '') ? userType! : 'students')

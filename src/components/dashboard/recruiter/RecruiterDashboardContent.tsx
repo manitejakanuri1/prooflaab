@@ -304,7 +304,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                       <th className="pb-2 pr-3">Role</th>
                       {sortHead("skills", "Skills proven")}
                       {sortHead("work", "Verified work")}
-                      {sortHead("speaking", "Speaking (of 100)", "Average score of their spoken explanations, out of 100")}
+                      {sortHead("speaking", "Communication (of 100)", "Average score of their spoken explanations, out of 100")}
                       <th className="pb-2">Last active</th>
                     </tr>
                   </thead>
@@ -412,6 +412,10 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                 Hiring, Shortlist — it lands on their Daily Card on their next free day.
               </p>
             ) : (
+              <>
+              <p className="text-xs text-muted-foreground mb-3">
+                You can only send a task to a student on your shortlist. This keeps students safe from unwanted work.
+              </p>
               <table className="w-full text-sm min-w-[620px]">
                 <thead>
                   <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -454,6 +458,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                   ))}
                 </tbody>
               </table>
+              </>
             )}
           </CardContent>
         </Card>

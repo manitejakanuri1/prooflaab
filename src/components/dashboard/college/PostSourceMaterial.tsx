@@ -68,13 +68,13 @@ const PostSourceMaterial = () => {
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Title</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., TCS technical round — hash maps" />
+              <Label htmlFor="psm-title">Title</Label>
+              <Input id="psm-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., TCS technical round — hash maps" />
             </div>
 
             <div className="space-y-2">
-              <Label>Content</Label>
-              <Textarea
+              <Label htmlFor="psm-content">Content</Label>
+              <Textarea id="psm-content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={8}

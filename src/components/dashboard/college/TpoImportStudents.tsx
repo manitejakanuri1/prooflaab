@@ -185,7 +185,10 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
           // A section on its own means nothing; it is the branch it belongs to
           // that makes it a cohort. No section column at all and the whole
           // branch is one cohort, which is how it behaved before sections.
-          cohort: section ? `${rowBranch}-${section}` : rowBranch,
+          // E2E-1: a section already written as "CSE-B" is used as is, not "CSE-CSE-B".
+          cohort: !section ? rowBranch
+            : rowBranch && section.startsWith(`${rowBranch.trim().toUpperCase()}-`) ? section
+            : `${rowBranch}-${section}`,
           batch:  iBatch  === -1 ? "" : cells[iBatch]  ?? "",
           validation_status: status, error_message: err, raw,
         };

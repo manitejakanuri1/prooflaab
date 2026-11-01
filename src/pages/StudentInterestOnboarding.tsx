@@ -252,6 +252,7 @@ const StudentInterestOnboarding = () => {
             source={{ student_interest_id: interestId }}
             questions={questions}
             onGraded={setResult}
+            parentShowsResults
           />
         )}
       </div>

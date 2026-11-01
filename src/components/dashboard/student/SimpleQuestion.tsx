@@ -24,11 +24,13 @@ function useSimpleBrief(taskId: string) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    // E2E-26c: never wait forever - after 15 s show the original wording, as if the explainer failed.
+    const giveUp = setTimeout(() => { cancelled = true; setLoading(false); }, 15000);
     supabase.functions.invoke("task-explain", { body: { task_id: taskId } }).then(
-      ({ data }) => { if (!cancelled) { setBrief((data as { brief: Brief | null } | null)?.brief ?? null); setLoading(false); } },
-      () => { if (!cancelled) setLoading(false); },
+      ({ data }) => { if (!cancelled) { clearTimeout(giveUp); setBrief((data as { brief: Brief | null } | null)?.brief ?? null); setLoading(false); } },
+      () => { if (!cancelled) { clearTimeout(giveUp); setLoading(false); } },
     );
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(giveUp); };
   }, [taskId]);
   return { brief, loading };
 }

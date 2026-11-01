@@ -352,7 +352,7 @@ export function StartupSettingsPage() {
           <div>
             <div className="font-medium">Delete Account</div>
             <div className="text-sm text-muted-foreground mb-4">
-              Deleting a startup account removes its jobs and sponsored work as well, so it is
+              Deleting a company account removes its jobs and sponsored work as well, so it is
               handled by an administrator rather than from this screen. Email support and the
               account will be closed.
             </div>

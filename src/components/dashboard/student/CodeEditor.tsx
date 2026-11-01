@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Editor, { type BeforeMount, type OnMount } from "@monaco-editor/react";
+// E2E-31: Monaco is set up (local package, no CDN) only by modules that show the editor.
+import "@/lib/monaco";
 
 /**
  * The editor for the lesson boxes: Monaco, the engine VS Code is built on. Colours, line numbers,

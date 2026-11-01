@@ -121,8 +121,9 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
   const remind = async () => {
     if (!data) return;
     setSending(true);
-    const reason = data.days_quiet >= 7
-      ? `No activity for ${data.days_quiet} days`
+    // E2E-3: 999 means never active - say so instead of "999 days".
+    const reason = data.days_quiet >= 999 ? "Has not started yet"
+      : data.days_quiet >= 7 ? `No activity for ${data.days_quiet} days`
       : `Onboarding not finished (${data.onboarding.status})`;
     const { error: err } = await supabase.rpc("tpo_send_reminder" as never, {
       _student_id: data.id, _reason: reason,

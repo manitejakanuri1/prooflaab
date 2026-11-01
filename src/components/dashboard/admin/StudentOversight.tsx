@@ -443,7 +443,7 @@ const StudentOversight = () => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {new Date(student.created_at).toLocaleDateString('en-GB')}
+                    {new Date(student.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -655,7 +655,7 @@ function AdminReadiness({ student }: { student: { id: string; onboarding_status?
       {card === undefined ? <p className="text-muted-foreground">Loading scores...</p>
         : card === null ? <p className="text-muted-foreground">No resume check yet.</p>
         : <p>Resume score <b>{n(card.resume_quality_score)}</b> · Interview readiness <b>{n(card.interview_readiness_score)}</b>
-            <span className="text-muted-foreground"> ({new Date(card.created_at).toLocaleDateString('en-GB')})</span></p>}
+            <span className="text-muted-foreground"> ({new Date(card.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })})</span></p>}
     </div>
   );
 }

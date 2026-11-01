@@ -32,6 +32,7 @@ const AdminHeader = () => {
           variant="ghost"
           size="icon"
           className="relative"
+          aria-label="Notifications"
           onClick={() => setShowNotifications(!showNotifications)}
         >
           <Bell className="h-5 w-5" />

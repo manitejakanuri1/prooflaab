@@ -19,6 +19,7 @@ import { SimpleQuestionShort } from "./SimpleQuestion";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 import { tidyTitle } from "@/lib/utils";
 import { fmtMark, loadLotState, loadWeekMarks, SKIP_WARNING, type LotState, type WeekMarks } from "@/lib/lotMarks";
+import { LOW_SCORE, passedLabel } from "@/lib/passedNote";
 
 interface Lot {
   id: string;
@@ -372,7 +373,10 @@ const StudentDailyCard = () => {
             {lot.status === "completed" && (
               <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-verified/15 px-2.5 py-1 text-xs font-semibold text-verified"
                  data-testid="lot-done">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Done{doneScore != null ? ` · ${doneScore}%` : ""}
+                <CheckCircle2 className="h-3.5 w-3.5" />{" "}
+                {/* Owner 1 Nov 2026: a scored voice under 50 means the voice needs redoing. */}
+                {voiceScore != null && voiceScore < LOW_SCORE ? passedLabel(lot.sandbox_config_id ? "code" : "written", voiceScore) : "Done"}
+                {doneScore != null ? ` · ${doneScore}%` : ""}
                 {voiceScore != null ? ` · Voice ${voiceScore}/100` : ""}
               </p>
             )}
@@ -558,7 +562,7 @@ const StudentDailyCard = () => {
                   <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
                     {squad.cohort ? `${squad.cohort} · ` : ""}
                     {squad.points ?? 0} pts
-                    {squad.rank ? ` · rank #${squad.rank}` : ""}
+                    {squad.rank && (squad.points ?? 0) > 0 ? ` · rank #${squad.rank}` : ""}
                   </p>
                 </>
               ) : (

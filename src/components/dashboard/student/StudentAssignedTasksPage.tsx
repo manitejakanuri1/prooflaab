@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAllStudentTasks } from "@/hooks/useAllStudentTasks";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import {
   Calendar,
   Award,
@@ -248,7 +248,7 @@ const StudentAssignedTasksPage = () => {
             <ClipboardList className="h-5 w-5" />
             All your tasks
             <Badge variant="outline" className="ml-auto">
-              {filteredAndSortedTasks.length} tasks
+              {filteredAndSortedTasks.length} {filteredAndSortedTasks.length === 1 ? "task" : "tasks"}
             </Badge>
           </CardTitle>
         </CardHeader>
@@ -365,7 +365,17 @@ const StudentAssignedTasksPage = () => {
                         <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm">
                           <div className="flex items-center gap-1.5 text-muted-foreground">
                             <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-                            <span>{formatDueDate(task.deadline)}</span>
+                            {task.lot_date ? (
+                              // E2E-22: a Lot belongs to its own day; the due date is secondary.
+                              <span>
+                                Lot day: {format(parseISO(task.lot_date), "EEE d MMM")}
+                                {task.deadline && task.deadline.slice(0, 10) !== task.lot_date && (
+                                  <span className="ml-1.5 text-[11px] opacity-80">· due {formatDueDate(task.deadline)}</span>
+                                )}
+                              </span>
+                            ) : (
+                              <span>{formatDueDate(task.deadline)}</span>
+                            )}
                           </div>
                           <div className="flex items-center gap-1.5 text-compete font-medium">
                             <Award className="h-3 w-3 sm:h-4 sm:w-4" />

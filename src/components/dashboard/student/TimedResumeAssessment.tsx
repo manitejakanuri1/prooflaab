@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Clock, Play, Code2, CheckCircle2, XCircle, Sparkles, Dices, AlertTriangle, RotateCcw } from "lucide-react";
 import Editor from "@monaco-editor/react";
+// E2E-31: Monaco is set up (local package, no CDN) only by modules that show the editor.
+import "@/lib/monaco";
 import { supabase } from "@/integrations/supabase/client";
 import CodingBreakdown from "./CodingBreakdown";
 import { codingErrorMessage, retryAllowance } from "@/lib/codingRoundRetry";
@@ -17,6 +19,7 @@ import {
 } from "@/lib/functionSignature";
 import { verdictLabel, type Verdict } from "@/lib/codingVerdicts";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/useConfirm";
 import { RoadmapStages } from "./RoadmapStages";
 import { QuestionMarks, ScoreExplainer } from "./ScoreExplainer";
 
@@ -140,6 +143,8 @@ interface TimedResumeAssessmentProps {
   fromInterests?: boolean;
   questions: Question[];
   onGraded: (result: ResumeScoreResult) => void;
+  /** E2E-26a: the parent shows the results itself, so close instead of showing "Assessment complete" too. */
+  parentShowsResults?: boolean;
 }
 
 interface RecordedAnswer {
@@ -212,7 +217,8 @@ const CONFIDENCE_OPTIONS: { value: ConfidenceLevel; label: string }[] = [
 
 type Phase = "quiz" | "coding-loading" | "coding" | "coding-analyzing" | "results";
 
-const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, questions, onGraded, fromInterests = false }: TimedResumeAssessmentProps) => {
+const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, questions, onGraded, fromInterests = false, parentShowsResults = false }: TimedResumeAssessmentProps) => {
+  const [confirmBox, ask] = useConfirm();
   const { toast } = useToast();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(() => secondsFor(questions[0]));
@@ -625,6 +631,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
         setPendingResult(finalResult);
         onGraded(finalResult);
         setPhase("results");
+        if (parentShowsResults) onOpenChange(false);
         return;
       }
 
@@ -648,7 +655,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
       setSubmittingCode(false);
       codingAdvancingRef.current = false;
     }
-  }, [assessmentId, code, codingIndex, codingQuestions, currentCodingQuestion, isLastCodingQuestion, onGraded, pendingResult, toast]);
+  }, [assessmentId, code, codingIndex, codingQuestions, currentCodingQuestion, isLastCodingQuestion, onGraded, onOpenChange, parentShowsResults, pendingResult, toast]);
 
   useEffect(() => {
     if (!open || phase !== "coding" || submittingCode || !codingClockReady) return;
@@ -809,7 +816,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                     </p>
                   )}
                   {pendingResult && (
-                    <Button variant="outline" onClick={() => { onGraded(pendingResult); setPhase("results"); }}>
+                    <Button variant="outline" onClick={() => { onGraded(pendingResult); setPhase("results"); if (parentShowsResults) onOpenChange(false); }}>
                       See my results without the coding round
                     </Button>
                   )}
@@ -986,8 +993,8 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
                   student who could not get code to run had to wait out the timer. */}
               <Button
                 variant="ghost"
-                onClick={() => {
-                  if (window.confirm("Skip this question? It will score 0.")) void advanceCoding("skip");
+                onClick={async () => {
+                  if (await ask({ title: "Skip this question?", points: ["It will score 0."], action: "Skip" })) void advanceCoding("skip");
                 }}
                 disabled={submittingCode}
               >
@@ -1114,6 +1121,7 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
           </>
         )}
       </DialogContent>
+      {confirmBox}
     </Dialog>
   );
 };

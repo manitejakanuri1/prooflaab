@@ -66,7 +66,8 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
     if (err) { setError(err.message); return; }
     const snap = res as unknown as HomeSnapshot;
     if (snap?.error) { setError(snap.error); return; }
-    setData(snap);
+    // E2E-7a: the snapshot is shown only after season and standings arrive (setData below),
+    // so the skeleton stays up instead of flashing "No squads yet." first.
 
     // Standings are read straight from the squads table rather than folded into
     // tpo_home: it is a plain list a rule already permits, and putting it in the
@@ -85,6 +86,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
     } else {
       setStandings([]);
     }
+    setData(snap);
   }, []);
 
   useEffect(() => { void load(); }, [load]);
@@ -113,7 +115,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
       tone: "good" as const, action: () => onFilterStudents?.("active_today") },
     { key: "attention", label: "Needs attention", value: data.needs_attention, icon: AlertTriangle,
       note: data.needs_attention > 0 ? "tap to see who" : "nobody, for once",
-      tone: "hot" as const, action: () => onFilterStudents?.("all") },
+      tone: "hot" as const, action: () => onFilterStudents?.("attention") }, // E2E-7b
     { key: "squads", label: "Squads", value: data.squads, icon: Shield,
       note: `${data.reserves} in reserve · open standings`,
       action: () => onNavigate?.("squads") },

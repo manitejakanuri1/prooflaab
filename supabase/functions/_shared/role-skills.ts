@@ -28,12 +28,16 @@ interface SkillGap {
 const normalize = (s: string) => s.trim().toLowerCase();
 
 // Loose match — resume skills are free text ("Spring", "spring boot framework"),
-// so containment either direction beats requiring an exact string match.
-function skillPresent(resumeSkills: string[], required: string): boolean {
+// so containment either direction beats requiring an exact string match. Whole words only
+// (E2E-25): "java" must not count as "javascript", nor "c" as anything with a c in it.
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const containsWord = (text: string, word: string) =>
+  word.length > 0 && new RegExp(`(^|[^a-z0-9+#])${escapeRe(word)}($|[^a-z0-9+#])`).test(text);
+export function skillPresent(resumeSkills: string[], required: string): boolean {
   const req = normalize(required);
   return resumeSkills.some((s) => {
     const skill = normalize(s);
-    return skill === req || skill.includes(req) || req.includes(skill);
+    return skill === req || containsWord(skill, req) || containsWord(req, skill);
   });
 }
 

@@ -160,10 +160,13 @@ export const StandingsKey = () => (
 
 /** Says in plain words why a squad level on points with another sits where it does. */
 export const tieNote = (
-  list: { id: string; points: number; wins?: number | null }[],
-  s: { id: string; points: number; wins?: number | null },
+  list: { id: string; points: number; wins?: number | null; cohort?: string | null }[],
+  s: { id: string; points: number; wins?: number | null; cohort?: string | null },
 ) => {
-  const level = list.filter((o) => o.id !== s.id && o.points === s.points);
+  // E2E-7c: no note at 0 points, and only squads in the same section are compared.
+  if (!(s.points > 0)) return null;
+  const level = list.filter((o) => o.id !== s.id && o.points === s.points
+    && (o.cohort ?? null) === (s.cohort ?? null));
   if (level.length === 0) return null;
   return level.some((o) => (o.wins ?? 0) !== (s.wins ?? 0))
     ? "Same points - placed by number of wins"

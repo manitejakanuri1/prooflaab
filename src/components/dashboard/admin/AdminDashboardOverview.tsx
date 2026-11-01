@@ -147,7 +147,7 @@ const AdminDashboardOverview = ({
     subtitle: `${stats?.totalProofs || 0} total submitted`,
     icon: ClipboardCheck,
     color: "text-compete",
-    onClick: () => onNavigate?.("proof-submissions")
+    onClick: () => onNavigate?.("submissions")
   }, {
     title: "Active Tasks",
     value: stats?.activeTasks || 0,

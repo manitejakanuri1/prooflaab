@@ -40,7 +40,17 @@ async function errorMessage(
     const body =
       (await response.json()) as {
         error?: unknown;
+        retry_after_seconds?: unknown;
       };
+
+    // E2E-27: a lockout says how long it lasts; keep that number for the student.
+    if (
+      typeof body.retry_after_seconds === "number" &&
+      body.retry_after_seconds > 0
+    ) {
+      const minutes = Math.ceil(body.retry_after_seconds / 60);
+      return `Too many tries. Try again in ${minutes} ${minutes === 1 ? "minute" : "minutes"}.`;
+    }
 
     if (
       typeof body.error === "string" &&

@@ -146,11 +146,18 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     if (list.length === 0) { setMembers([]); setMatches([]); return; }
     const ids = list.map((s) => s.id);
 
+    // E2E-2: close_season sets left_at on everyone, so a finished season counts the members who
+    // were still in the squad when it closed (left within a minute of completed_at), not 0.
+    const status = (st ?? null) as unknown as SeasonStatus | null;
+    const finished = status?.state === "complete" && !status.season_id;
+    const closedAt = finished ? status?.last_season?.completed_at : null;
+    const memQuery = supabase.from("squad_members")
+      .select("student_id, squad_id, contribution, membership_type, student_profiles(full_name, roll_number, last_active)")
+      .in("squad_id", ids);
     const [mem, mat, perf, ach, rules, themes, res] = await Promise.all([
-      supabase.from("squad_members")
-        .select("student_id, squad_id, contribution, membership_type, student_profiles(full_name, roll_number, last_active)")
-        .in("squad_id", ids)
-        .is("left_at", null),
+      closedAt
+        ? memQuery.or(`left_at.is.null,left_at.gte.${new Date(new Date(closedAt).getTime() - 60_000).toISOString()}`)
+        : finished ? memQuery : memQuery.is("left_at", null),
       supabase.from("squad_matches").select("*")
         .or(`home_squad.in.(${ids.join(",")}),away_squad.in.(${ids.join(",")})`)
         .order("scheduled_at", { ascending: false }).limit(200),

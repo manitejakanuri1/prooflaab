@@ -124,6 +124,7 @@ const App = () => (
                 <Route path="/login" element={<Navigate to="/auth" replace />} />
                 <Route path="/settings" element={<Navigate to="/student/dashboard?tab=profile&view=settings" replace />} />
                 <Route path="/student/settings" element={<Navigate to="/student/dashboard?tab=profile&view=settings" replace />} />
+                <Route path="/student/squad" element={<Navigate to="/student/dashboard?tab=squad" replace />} />
                 <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
                 <Route path="/portfolio/:slug" element={<Portfolio />} />
                 

@@ -99,6 +99,16 @@ serve(async (req) => {
 
   console.log(`scheduled-job ${job} (${fn}) ok in ${ms}ms`, JSON.stringify(data ?? null).slice(0, 500));
 
+  // Migration 210 (E2E-5): a season whose days off are over opens now, at the time students were shown,
+  // not only at the next 05:35 squad job. A failure here is logged; the season run itself already worked.
+  if (job === 'weekly-seasons') {
+    const { data: opened, error: openError } = await db.rpc('open_due_seasons');
+    if (openError) console.error(`scheduled-job weekly-seasons: open_due_seasons failed: ${openError.message}`);
+    else if (Number((opened as { colleges?: number } | null)?.colleges ?? 0) > 0) {
+      console.log(`scheduled-job weekly-seasons: opened the next season for ${(opened as { colleges: number }).colleges} college(s)`);
+    }
+  }
+
   // The job can succeed (no thrown error) while doing nothing useful - that is exactly how this
   // broke before Cloud Scheduler existed (see the comment at the top). These checks catch that:
   // a distinct log line, watched by its own alert, rather than folding into the job's own success/fail.

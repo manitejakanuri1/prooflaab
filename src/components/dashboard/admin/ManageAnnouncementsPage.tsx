@@ -35,6 +35,7 @@ interface Announcement {
   created_at: string;
   created_by_admin: string;
   audience: Audience;
+  college_id: string | null;
   expiry_date: string | null;
 }
 
@@ -43,6 +44,7 @@ interface AnnouncementFormData {
   description: string;
   status: 'draft' | 'published' | 'scheduled';
   audience: Audience;
+  college_id: string | null;
   expiry_date?: Date;
 }
 
@@ -51,6 +53,7 @@ const initialFormData: AnnouncementFormData = {
   description: "",
   status: 'draft',
   audience: 'all',
+  college_id: null,
   expiry_date: undefined,
 };
 
@@ -62,10 +65,15 @@ const ManageAnnouncementsPage = () => {
   const [formData, setFormData] = useState<AnnouncementFormData>(initialFormData);
   const [submitting, setSubmitting] = useState(false);
   const [viewing, setViewing] = useState<Announcement | null>(null);
+  // E2E-16: an announcement can be limited to one college (college_id null = every college).
+  const [colleges, setColleges] = useState<{ id: string; name: string }[]>([]);
   const { toast } = useToast();
+  const collegeName = (id: string | null) => colleges.find((c) => c.id === id)?.name;
+  const showCollege = formData.audience !== 'companies';
 
   useEffect(() => {
     fetchAnnouncements();
+    supabase.from("colleges").select("id, name").order("name").then(({ data }) => setColleges(data || []));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -100,6 +108,7 @@ const ManageAnnouncementsPage = () => {
         description: formData.description,
         status: formData.status,
         audience: formData.audience,
+        college_id: formData.audience === 'companies' ? null : formData.college_id,
         expiry_date: formData.expiry_date ? formData.expiry_date.toISOString() : null,
       };
       const submitData = { ...fields, created_by_admin: (await supabase.auth.getUser()).data.user?.id };
@@ -177,6 +186,7 @@ const ManageAnnouncementsPage = () => {
       description: announcement.description || "",
       status: announcement.status,
       audience: announcement.audience ?? 'all',
+      college_id: announcement.college_id ?? null,
       expiry_date: announcement.expiry_date ? new Date(announcement.expiry_date) : undefined,
     });
     setIsDialogOpen(true);
@@ -273,7 +283,7 @@ const ManageAnnouncementsPage = () => {
                     </TableCell>
                     <TableCell>
                       {getStatusBadge(announcement.status)}
-                      <div className="text-xs text-muted-foreground mt-1">{AUDIENCES[announcement.audience] ?? "Everyone"}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{AUDIENCES[announcement.audience] ?? "Everyone"}{announcement.college_id ? ` · ${collegeName(announcement.college_id) ?? "One college"}` : ""}</div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {new Date(announcement.created_at).toLocaleDateString()}
@@ -381,6 +391,19 @@ const ManageAnnouncementsPage = () => {
                 </Select>
               </div>
             </div>
+
+            {showCollege && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-foreground">College</Label>
+                <Select value={formData.college_id ?? "all"} onValueChange={(v) => setFormData({ ...formData, college_id: v === "all" ? null : v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All colleges</SelectItem>
+                    {colleges.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label className="text-sm font-medium text-foreground">Expiry Date (Optional)</Label>

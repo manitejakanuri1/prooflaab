@@ -8,6 +8,8 @@ interface StudentTask {
   title: string;
   description: string | null;
   deadline: string;
+  // E2E-22: a Lot's own day (YYYY-MM-DD); shown instead of due_date.
+  lot_date?: string | null;
   status: 'Applied' | 'In Progress' | 'Completed' | 'Under Review';
   source: string;
   created_by_type?: string;
@@ -58,7 +60,8 @@ export const useAllStudentTasks = () => {
             created_by_admin_id,
             sandbox_config_id,
             rubric_config_id,
-            is_sandbox_task
+            is_sandbox_task,
+            lot_date
           )
         `)
         .eq('student_id', profile.id)
@@ -129,6 +132,7 @@ export const useAllStudentTasks = () => {
           title: task.lot_date ? tidyTitle(task.title) : task.title,
           description: task.description,
           deadline: task.due_date,
+          lot_date: task.lot_date,
           status,
           source: taskSource,
           created_by_type: task.created_by_type || taskSource.toLowerCase(),
@@ -174,6 +178,7 @@ export const useAllStudentTasks = () => {
           title: task.title,
           description: task.description,
           deadline: task.due_date,
+          lot_date: task.lot_date,
           status,
           source: taskSource,
           created_by_type: task.created_by_type || taskSource.toLowerCase(),

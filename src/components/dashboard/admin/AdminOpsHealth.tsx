@@ -20,12 +20,12 @@ const count = async (table: string, build: (q: any) => any = (q) => q) => {
 interface JobRow { job: string; what: string; schedule: string; next_run: string; last_run: string | null; proof: string }
 
 const when = (iso: string | null) => iso
-  ? new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })
+  ? new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })
   : "—";
 
 const AdminOpsHealth = () => {
   // MF-036 (migration 188): each scheduled job with its last and next run.
-  const { data: jobs } = useQuery({
+  const { data: jobs, error: jobsError, isLoading: jobsLoading } = useQuery({
     queryKey: ["admin-job-status"],
     refetchInterval: 60_000,
     queryFn: async () => {
@@ -84,6 +84,8 @@ const AdminOpsHealth = () => {
             ))}
           </tbody>
         </table>
+        {jobsError && <p className="mt-5 text-sm text-alert">Could not load jobs: {(jobsError as Error).message}</p>}
+        {!jobsError && !jobsLoading && !jobs?.length && <p className="mt-5 text-sm text-muted-foreground">No jobs recorded yet</p>}
         {!!jobs?.length && (
           <table className="w-full text-sm mt-5">
             <thead>

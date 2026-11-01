@@ -10,7 +10,10 @@ export function signInProblem(error: unknown): string {
   const lower = reason.toLowerCase();
   if (lower.includes("invalid login credentials")) return "That email and password do not match. Try again, or reset your password.";
   if (lower.includes("email not confirmed") || lower.includes("confirm your email")) return "Confirm your email first. The link is in your inbox.";
-  if (lower.includes("too many") || lower.includes("rate limit")) return "Too many tries. Wait a few minutes, then try again.";
+  if (lower.includes("too many") || lower.includes("rate limit")) {
+    // E2E-27: bffSession already turned retry_after_seconds into "Try again in N minutes." - keep it.
+    return /try again in \d+ minutes?\./i.test(reason) ? reason : "Too many tries. Wait a few minutes, then try again.";
+  }
   if (error instanceof TypeError || lower.includes("failed to fetch") || lower.includes("networkerror") || lower.includes("network")) {
     return "No connection. Check your internet and try again.";
   }

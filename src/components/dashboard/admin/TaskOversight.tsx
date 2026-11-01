@@ -26,6 +26,7 @@ import { ViewAssignedStudentsModal } from "./ViewAssignedStudentsModal";
 import { EditTaskModal } from "./EditTaskModal";
 import { ReassignTaskModal } from "./ReassignTaskModal";
 import { TaskDetailsModal } from "./TaskDetailsModal";
+import { systemCreatorLabel } from "./systemCreatorLabel";
 import { ADMIN_LIST_CAP } from "@/lib/listCaps";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -117,9 +118,12 @@ const TaskOversight = () => {
       const uniq = (xs: (string | null | undefined)[]) => [...new Set(xs.filter((x): x is string => !!x))];
       // The generated types do not know the student_contact relation, so rows are typed here, not inferred.
       const inBatches = async <T,>(ids: string[], fetchBatch: (batch: string[]) => PromiseLike<{ data: unknown; error: unknown }>) => {
+        const slices: string[][] = [];
+        for (let i = 0; i < ids.length; i += 100) slices.push(ids.slice(i, i + 100));
+        // Batches run in parallel, not one after another.
+        const results = await Promise.all(slices.map((s) => fetchBatch(s)));
         const out: T[] = [];
-        for (let i = 0; i < ids.length; i += 100) {
-          const { data, error: batchError } = await fetchBatch(ids.slice(i, i + 100));
+        for (const { data, error: batchError } of results) {
           if (batchError) throw batchError;
           out.push(...((data as T[] | null) || []));
         }
@@ -327,7 +331,12 @@ const TaskOversight = () => {
       );
     }
     
-    return <Badge variant="outline">Unknown</Badge>;
+    return (
+      <Badge variant="outline" className="gap-1 border-border text-muted-foreground">
+        <User className="h-3 w-3" />
+        {systemCreatorLabel(task)}
+      </Badge>
+    );
   };
 
   const getStudentProgress = (task: AdminTask) => {
@@ -368,6 +377,7 @@ const TaskOversight = () => {
   if (isLoading) {
     return (
       <div className="space-y-4">
+        <p className="text-sm text-muted-foreground" role="status">Loading tasks...</p>
         <div className="animate-pulse">
           <div className="h-8 bg-muted rounded w-1/4 mb-4"></div>
           <div className="h-10 bg-muted rounded mb-4"></div>
@@ -516,7 +526,7 @@ const TaskOversight = () => {
                       {/* MF-091: a Lot can repeat a title on another day; the date tells the rows apart. */}
                       {task.lot_date && (
                         <span className="block text-[11px] font-normal text-muted-foreground">
-                          Daily Lot · {new Date(task.lot_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                          Daily Lot · {new Date(task.lot_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                         </span>
                       )}
                     </TableCell>
@@ -525,7 +535,7 @@ const TaskOversight = () => {
                       <Badge variant="outline">{task.category || 'General'}</Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {new Date(task.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {new Date(task.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -655,7 +665,7 @@ const TaskOversight = () => {
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        <span>{new Date(task.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                        <span>{new Date(task.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Star className="h-3 w-3 fill-primary text-primary" />

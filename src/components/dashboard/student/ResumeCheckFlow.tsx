@@ -983,6 +983,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
           source={{ resume_claims_id: claim.id }}
           questions={assessmentQuestions}
           onGraded={handleGraded}
+          parentShowsResults
         />
       )}
     </div>

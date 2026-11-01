@@ -19,7 +19,7 @@ export function VerificationBanner({ verificationStatus }: VerificationBannerPro
           Account Verification Rejected
         </AlertTitle>
         <AlertDescription className="text-alert/90">
-          Your startup account was not approved. Please contact our support team for more information.
+          Your company account was not approved. Please contact our support team for more information.
           <div className="mt-3">
             <Button 
               variant="outline" 
@@ -46,7 +46,7 @@ export function VerificationBanner({ verificationStatus }: VerificationBannerPro
         Account Verification Pending
       </AlertTitle>
       <AlertDescription className="text-compete">
-        Your startup account is under review by the ProofLab team. You'll be able to post tasks and access student submissions once verification is complete.
+        Your company account is under review by the ProofLab team. You'll be able to post tasks and access student submissions once verification is complete.
         <div className="mt-3">
           <Button 
             variant="outline" 

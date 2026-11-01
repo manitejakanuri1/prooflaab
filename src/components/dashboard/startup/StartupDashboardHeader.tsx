@@ -31,7 +31,7 @@ export function StartupDashboardHeader({ onNavigate }: { onNavigate?: (tab: stri
               </span>
             </div>
             <div className="text-sm">
-              <div className="font-medium">{profile?.startup_name || 'Startup Admin'}</div>
+              <div className="font-medium">{profile?.startup_name || 'Company admin'}</div>
               <div className="text-muted-foreground">
                 {profile?.domain_industry}
               </div>

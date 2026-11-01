@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Star, Tag, Clock, Shield, Building2, Briefcase, User } from "lucide-react";
+import { systemCreatorLabel } from "./systemCreatorLabel";
 
 interface TaskDetailsModalProps {
   task: any;
@@ -43,7 +44,7 @@ export function TaskDetailsModal({ task, open, onClose }: TaskDetailsModalProps)
     // MF-091: Lots written by the AI or the system have no human creator.
     return {
       icon: <User className="h-4 w-4" />,
-      label: task.is_ai_generated || task.lot_date ? "ProofLab (AI)" : "ProofLab",
+      label: systemCreatorLabel(task),
       className: "border-border text-muted-foreground"
     };
   };

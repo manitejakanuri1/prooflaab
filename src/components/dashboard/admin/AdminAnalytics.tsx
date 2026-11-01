@@ -203,7 +203,7 @@ const AdminAnalytics = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Tasks Fill Rate</p>
+                <p className="text-sm font-medium text-muted-foreground">Tasks completed (%)</p>
                 <p className="text-3xl font-bold text-accent">{kpiStats?.taskFillRate || 0}%</p>
               </div>
               <div className="p-3 rounded-full bg-accent/10">

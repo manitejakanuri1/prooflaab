@@ -233,7 +233,10 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
     id: String(p.id),
     name,
     branch: String(p.branch ?? ""),
-    education: [p.branch, p.batch, p.year_of_study && `year ${p.year_of_study}`]
+    // E2E-18: batch and year_of_study often hold the same text ("4th Year"); show it once.
+    education: [p.branch, p.batch,
+      p.year_of_study && String(p.year_of_study) !== String(p.batch ?? "") &&
+        (/year/i.test(String(p.year_of_study)) ? String(p.year_of_study) : `year ${p.year_of_study}`)]
       .filter(Boolean).join(" · "),
     initials: initialsOf(name),
     avatarColor: colourFor(String(p.id)),

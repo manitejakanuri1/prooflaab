@@ -56,7 +56,7 @@ function ProofProfile({ candidate }: { candidate: Candidate }) {
                 <div>
                   <div className='section-label'>proof profile</div>
                   <CardTitle className='mt-1 text-xl'>{candidate.name}</CardTitle>
-                  <div className='mt-1 text-sm text-muted-foreground'>{candidate.branch} · {candidate.education}</div>
+                  <div className='mt-1 text-sm text-muted-foreground'>{candidate.education}</div>
                   <div className='mt-3 flex flex-wrap gap-2'>{candidate.roleFit.map(role => <Badge key={role} variant='outline'>{role}</Badge>)}</div>
                 </div>
               </div>

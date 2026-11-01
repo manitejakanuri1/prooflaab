@@ -29,6 +29,42 @@ function TestSeasonForward() {
   );
 }
 
+// TEST website only (migration 209): a test date for daily Lots, the rest day, streaks and due dates.
+function TestClock() {
+  const [at, setAt] = useState("");
+  const [now, setNow] = useState("");
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const show = (d: { test_now?: string; set?: boolean } | null) =>
+    setNow(d?.test_now ? `${d.set ? "Test time" : "Real time"}: ${format(new Date(d.test_now), "EEE d MMM, h:mm a")}` : "");
+  useEffect(() => {
+    supabase.rpc("admin_test_clock" as never).then(({ data }) => show(data as never), () => {});
+  }, []);
+  const run = async (fn: string, args?: Record<string, unknown>) => {
+    setBusy(true);
+    const { data, error } = await supabase.rpc(fn as never, args as never);
+    setBusy(false);
+    if (error) { setMsg(`Not done: ${error.message}`); return; }
+    if (fn === "admin_test_make_lots") {
+      const d = data as { date: string; made: number; already_had: number; none: number };
+      setMsg(`${d.date}: ${d.made} Lots made, ${d.already_had} already had one, ${d.none} got none`);
+    } else { show(data as never); setMsg(""); }
+  };
+  return (
+    <Card>
+      <CardContent className="flex flex-wrap items-center gap-3 pt-5">
+        <span className="text-sm font-medium">TEST clock</span>
+        <input type="datetime-local" className="h-9 rounded-md border bg-background px-2 text-sm" value={at}
+          onChange={(e) => setAt(e.target.value)} aria-label="Test date and time (India time)" />
+        <Button size="sm" disabled={busy || !at} onClick={() => void run("admin_test_clock_set", { _at: `${at}:00+05:30` })}>Set test date</Button>
+        <Button size="sm" variant="outline" disabled={busy} onClick={() => void run("admin_test_clock_set", { _at: null })}>Reset to real time</Button>
+        <Button size="sm" variant="outline" disabled={busy} onClick={() => void run("admin_test_make_lots")}>Make today's Lots now</Button>
+        <span className="text-sm text-muted-foreground">{busy ? "Working..." : msg || now}</span>
+      </CardContent>
+    </Card>
+  );
+}
+
 // Admin: every college's current squads (members, points, secret swap codes) and every squad swap
 // (migration 143, owner decision 24 Oct 2026).
 
@@ -76,6 +112,7 @@ export default function AdminSquads() {
         <h1 className="text-2xl font-bold tracking-tight">Squads</h1>
         <p className="text-sm text-muted-foreground">Every college's squads this season, their secret swap codes, and every squad swap.</p>
       </div>
+      {FAST_WEEK && <TestClock />}
       {FAST_WEEK && <TestSeasonForward />}
       {error && <p className="text-sm text-alert">{error}</p>}
 

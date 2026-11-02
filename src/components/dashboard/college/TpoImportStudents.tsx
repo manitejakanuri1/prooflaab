@@ -78,6 +78,12 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
   const effectiveBranch = (branch === "__other__" ? otherBranch : branch).trim();
 
   const parse = async (file: File) => {
+    // F8 (round 3): the file can reach here without the Import button (its own guard), so check again.
+    if (!effectiveBranch) {
+      toast({ title: "Pick a branch first", description: "Choose which branch this file is for, above.", variant: "destructive" });
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
     setBusy(true);
     setFileName(file.name);
     try {
@@ -278,7 +284,7 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
       const moved = (set as unknown as { students?: number } | null)?.students ?? 0;
       const formed = (sq as unknown as { squads_created?: number } | null)?.squads_created ?? 0;
       toast({
-        title: setError ? "Sections not saved" : `Sections saved for ${moved} students`,
+        title: setError ? "Sections not saved" : `Sections saved for ${moved} ${moved === 1 ? "student" : "students"}`,
         description: setError
           ? setError.message
           : formed > 0 ? `${formed} squads formed` : "No section has five waiting students yet, so no squads were formed",
@@ -520,7 +526,7 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
                           <td className="p-2 font-mono text-xs text-muted-foreground">#{r.row_number}</td>
                           <td className="p-2">{r.name || <span className="text-muted-foreground">—</span>}</td>
                           <td className="p-2 text-muted-foreground text-xs">{r.email}</td>
-                          <td className="p-2 text-muted-foreground text-xs">{r.cohort || "—"}</td>
+                          <td className="p-2 text-muted-foreground text-xs">Section {r.cohort || "—"}</td>
                           <td className="p-2 text-right">
                             <Badge variant={r.validation_status === "invalid" ? "destructive" : "outline"}>
                               {r.error_message}
@@ -546,8 +552,8 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
               {busy
                 ? "Saving…"
                 : counts?.valid
-                  ? `Import ${counts.valid} students`
-                  : `Save sections for ${sectionsToSet} students`}
+                  ? `Import ${counts.valid} ${counts.valid === 1 ? "student" : "students"}`
+                  : `Save sections for ${sectionsToSet} ${sectionsToSet === 1 ? "student" : "students"}`}
             </Button>
           </DialogFooter>
         </DialogContent>

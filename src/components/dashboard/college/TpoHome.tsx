@@ -257,7 +257,8 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
                     <Trophy className="h-4 w-4 text-primary" />
                     {/* B4 (212): one line per section */}
                     {season.last_season?.champions?.length
-                      ? season.last_season.champions.map((c) => `${c.bracket}: ${c.champion ?? "No champion"}`).join(" · ")
+                      ? <span className="flex flex-col">{season.last_season.champions.map((c) => (
+                          <span key={c.bracket}>{c.bracket}: {c.champion ?? "No champion"}</span>))}</span>
                       : season.last_season?.champion ?? "No champion"}
                   </p>
                 ) : data.leader ? (

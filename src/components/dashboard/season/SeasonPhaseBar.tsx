@@ -111,7 +111,7 @@ export const SeasonCompleteCard = ({ status }: { status: SeasonStatus | null }) 
           </span>
           {s.my_bracket && (
             <span className="font-semibold">
-              {mine?.champion ? `${s.my_bracket} Champion: ${mine.champion}` : `No champion in ${s.my_bracket} - no squad played in your section`}
+              {mine?.champion ? `${s.my_bracket} Champion: ${mine.champion}` : `No champion in ${s.my_bracket} - no league match was played in your section`}
               {mine?.champion && mine.decided_by === "higher_seed" && (
                 <span className="font-normal text-muted-foreground"> – drawn final, {SEED_WIN}</span>
               )}

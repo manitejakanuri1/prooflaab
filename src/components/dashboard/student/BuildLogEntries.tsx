@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Loader2, NotebookPen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBuildLog, voiceInProgress, type BuildLogEntry } from "@/hooks/useBuildLog";
 import { passedLabel, passedNote } from "@/lib/passedNote";
+import { loadLotState } from "@/lib/lotMarks";
 
 const STATUS: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
   passed: { label: "Passed", variant: "default" },
@@ -100,9 +101,18 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
   const v = e.voice;
   const busy = voiceInProgress(v);
   const scored = v?.status === "scored";
+  // F1 (round 3): a Daily Lot whose spoken part is closed (two bad recordings) says so, as the Lot page
+  // does, instead of the stored "record again" note of the last recording. The server decides (my_lot_state).
+  const [closed, setClosed] = useState(false);
+  useEffect(() => {
+    if (!e.lot_date || v?.status !== "failed") return;
+    loadLotState(e.task_id).then((s) => setClosed(Boolean(s?.voice_closed)), () => {});
+  }, [e.task_id, e.lot_date, v?.status]);
   // Owner 1 Nov 2026: green "Passed" needs the voice at 50+ too (passedLabel).
   const passLabel = e.status === "passed" ? passedLabel(e.kind, scored ? v!.communication_score : null) : null;
-  const st = passLabel && passLabel !== "Passed" ? { label: passLabel, variant: "outline" as const }
+  const st = closed && e.status === "passed"
+    ? { label: `${e.kind === "written" ? "Answer" : "Code"} passed · spoken part closed`, variant: "outline" as const }
+    : passLabel && passLabel !== "Passed" ? { label: passLabel, variant: "outline" as const }
     : STATUS[e.status] ?? { label: e.status, variant: "outline" as const };
   const match = v?.evaluation?.content_match;
   const gate = v?.evaluation?.transcription?.gate;
@@ -138,7 +148,7 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
                    : e.kind === "written" ? "Written answer" : undefined} />
           <Score label="Voice explanation"
                  value={scored ? `${v!.communication_score}/100` : "—"}
-                 sub={!v ? "Not recorded yet" : busy ? undefined : scored ? undefined : "Not scored"} />
+                 sub={!v ? "Not recorded yet" : busy ? undefined : scored ? undefined : closed ? "Closed" : "Not scored"} />
           {scored && match != null && <Score label="Matches your work" value={`${match}/100`} />}
         </div>
         {e.status === "passed" && scored && passedNote(v!.communication_score, match) && (
@@ -153,8 +163,10 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
             Spoken explanation: {v!.transcription_status === "completed" ? "Evaluating" : v!.transcription_status === "processing" ? "Transcribing" : "Queued"}…
           </p>
         )}
-        {v && !busy && !scored && v.communication_notes && (
-          <p className="text-sm text-compete">{v.communication_notes}</p>
+        {v && !busy && !scored && (closed || v.communication_notes) && (
+          <p className="text-sm text-compete">
+            {closed ? "The spoken part of this Lot is closed. Your coding mark is saved." : v.communication_notes}
+          </p>
         )}
         {scored && gate && (
           <p className="text-xs text-muted-foreground">Language: {gate === "english" ? "English" : "accepted"}</p>

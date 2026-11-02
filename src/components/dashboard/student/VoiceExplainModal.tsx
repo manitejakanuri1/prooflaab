@@ -1079,7 +1079,7 @@ const VoiceExplainModal = ({
       if (seconds < MIN_SECONDS) {
         giveUp();
         if (isCurrent()) {
-          setError(`Your recording was only ${Math.round(seconds)} seconds. Please explain for at least ${MIN_SECONDS} seconds and record again.`);
+          setError("Your recording was too short or silent. Please record again.");   // MF-018
           setPhase("error");
         }
         return;

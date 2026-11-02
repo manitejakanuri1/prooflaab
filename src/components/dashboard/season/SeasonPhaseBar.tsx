@@ -21,7 +21,9 @@ export interface SeasonStatus {
     id: string; name: string; completed_at: string | null;
     champion: string | null; runner_up: string | null; third: string | null;
     /** Migration 184: one champion per section (or per pooled group of sections). */
-    champions?: { bracket: string; champion: string; decided_by?: string | null }[];
+    champions?: { bracket: string; champion: string | null; decided_by?: string | null }[];
+    /** Migration 212 (B4): the viewer's own section in that season; null for a college or admin. */
+    my_bracket?: string | null;
     /** Migration 203 (MF-097): 'higher_seed' when the final was drawn and the higher seed won. */
     final_decided_by?: string | null;
   };
@@ -96,7 +98,9 @@ export const SeasonCompleteCard = ({ status }: { status: SeasonStatus | null }) 
     { place: "Runner-up", name: s.runner_up },
     { place: "Third", name: s.third },
   ].filter((p) => p.name);
-  const champions = s.champions ?? [];
+  // 212 (B4): a student sees only their own section's result
+  const mine = s.my_bracket ? (s.champions ?? []).find((c) => c.bracket === s.my_bracket) : undefined;
+  const champions = s.my_bracket ? [] : (s.champions ?? []).filter((c) => c.champion);
 
   return (
     <Card>
@@ -105,7 +109,15 @@ export const SeasonCompleteCard = ({ status }: { status: SeasonStatus | null }) 
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             {status.year_group_label ? `${status.year_group_label} - ` : ""}{s.name} complete
           </span>
-          {champions.length <= 1 && (
+          {s.my_bracket && (
+            <span className="font-semibold">
+              {mine?.champion ? `${s.my_bracket} Champion: ${mine.champion}` : `No champion in ${s.my_bracket} - no squad played in your section`}
+              {mine?.champion && mine.decided_by === "higher_seed" && (
+                <span className="font-normal text-muted-foreground"> – drawn final, {SEED_WIN}</span>
+              )}
+            </span>
+          )}
+          {!s.my_bracket && champions.length <= 1 && (
             <span className="font-semibold">
               {s.champion ? `Champion: ${s.champion}` : "No champion - no squad played this season"}
               {s.champion && s.final_decided_by === "higher_seed" && (
@@ -127,7 +139,7 @@ export const SeasonCompleteCard = ({ status }: { status: SeasonStatus | null }) 
             ))}
           </div>
         )}
-        {champions.length <= 1 && podium.length > 0 && (
+        {!s.my_bracket && champions.length <= 1 && podium.length > 0 && (
           <div className="mt-3 grid gap-2 sm:grid-cols-3">
             {podium.map((p) => (
               <div key={p.place} className={cn("rounded-md border px-3 py-2", p.place === "Champion" && "border-primary bg-primary/10")}>

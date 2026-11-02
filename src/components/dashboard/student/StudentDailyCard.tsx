@@ -20,6 +20,7 @@ import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 import { tidyTitle } from "@/lib/utils";
 import { fmtMark, loadLotState, loadWeekMarks, SKIP_WARNING, type LotState, type WeekMarks } from "@/lib/lotMarks";
 import { LOW_SCORE, passedLabel } from "@/lib/passedNote";
+import { FAST_WEEK } from "@/lib/testClock";
 
 interface Lot {
   id: string;
@@ -115,10 +116,17 @@ const StudentDailyCard = () => {
   // Migration 184: the days off between two seasons - no Lot, the roadmap stays open.
   const [nextSeasonAt, setNextSeasonAt] = useState<string | null>(null);
 
+  // B5: "today" on the TEST website follows the admin's test clock (migration 209); REAL uses the device date.
+  const [now, setNow] = useState(() => new Date());
+
   const load = useCallback(async () => {
     if (!profile?.id) return;
 
-    const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const clock = FAST_WEEK
+      ? await supabase.rpc("test_now" as never).then(({ data }) => (data ? new Date(data as string) : new Date()), () => new Date())
+      : new Date();
+    setNow(clock);
+    const monday = startOfWeek(clock, { weekStartsOn: 1 });
 
     const [lotRes, streakRes, weekRes, squadRes] = await Promise.all([
       supabase.rpc("my_todays_lot"),
@@ -234,7 +242,7 @@ const StudentDailyCard = () => {
   }, 15_000);
 
   const recency = lastActive
-    ? isSameDay(new Date(lastActive), new Date()) ? "active" : "idle"
+    ? isSameDay(new Date(lastActive), now) ? "active" : "idle"
     : "new";
 
   if (loading) {
@@ -315,7 +323,7 @@ const StudentDailyCard = () => {
           PROOF<span className="text-primary">LAB</span>
         </h1>
         <span className="ml-auto font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          {format(new Date(), "EEE · dd MMM")}
+          {format(now, "EEE · dd MMM")}
         </span>
       </div>
 
@@ -521,7 +529,7 @@ const StudentDailyCard = () => {
             </p>
             <div className="mt-3 flex justify-between">
               {week.map(({ date, kind, done }) => {
-                const today = isSameDay(date, new Date());
+                const today = isSameDay(date, now);
                 // Filled = the Lot was done; ring = it was given and is still open; grey = no Lot.
                 // Full class names, so Tailwind keeps them in the build.
                 const DOT = {

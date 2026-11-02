@@ -184,7 +184,9 @@ const StudentSquadPage = () => {
         ? await supabase.from("season_champions" as never).select("bracket, champion_squad_id").eq("season_id", mySquad.season_id)
         : { data: null };
       const champions = ((champs ?? []) as unknown as { bracket: string; champion_squad_id: string }[])
-        .map((c) => ({ bracket: c.bracket, champion: allSquads.find((q) => q.id === c.champion_squad_id)?.name ?? "" }));
+        .map((c) => ({ bracket: c.bracket, champion: allSquads.find((q) => q.id === c.champion_squad_id)?.name ?? "" }))
+        // B4: only the student's own section
+        .filter((c) => c.bracket === (mySquad.bracket ?? mySquad.cohort));
       setEnded(s?.status === "complete" ? { champion: champ, champions } : null);
     }
     setLoading(false);
@@ -267,7 +269,7 @@ const StudentSquadPage = () => {
               <span className="text-muted-foreground">
                 {ended.champions.length > 0
                   ? ended.champions.map((c) => `${c.bracket} Champion: ${c.champion}. `).join("")
-                  : ended.champion ? `Champion: ${ended.champion}. ` : ""}
+                  : "No champion in your section - no squad played. "}
                 {squad.rank ? `${squad.name} finished #${squad.rank} in the college.` : ""}
               </span>
             </p>

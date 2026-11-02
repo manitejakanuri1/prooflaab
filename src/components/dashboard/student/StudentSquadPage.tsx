@@ -269,7 +269,7 @@ const StudentSquadPage = () => {
               <span className="text-muted-foreground">
                 {ended.champions.length > 0
                   ? ended.champions.map((c) => `${c.bracket} Champion: ${c.champion}. `).join("")
-                  : "No champion in your section - no squad played. "}
+                  : "No champion in your section - no league match was played. "}
                 {squad.rank ? `${squad.name} finished #${squad.rank} in the college.` : ""}
               </span>
             </p>

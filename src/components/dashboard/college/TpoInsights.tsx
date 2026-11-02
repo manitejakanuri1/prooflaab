@@ -484,7 +484,7 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
                     <p className="text-xs text-muted-foreground mt-1">
                       {s.is_current
                         ? "Still running. The podium is filled in when the season closes."
-                        : "Finished with no champion: no squad played in the league."}
+                        : "Finished with no champion: no league match was played."}
                     </p>
                   )}
                 </div>

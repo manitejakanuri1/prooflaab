@@ -27,7 +27,7 @@ interface Season {
   champion: string | null; runner_up: string | null; third: string | null; squads: number;
   // MF-062 (migration 194): the year group and one podium per section since migration 184.
   year_group_label?: string;
-  champions?: { bracket: string; champion: string | null; runner_up: string | null; third: string | null }[];
+  champions?: { bracket: string; champion: string | null; runner_up: string | null; third: string | null; decided_by?: string | null }[];
 }
 interface AtRisk {
   student_id: string; full_name: string; attention: string; cohort: string | null;
@@ -449,15 +449,17 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
                       {s.squads} squads
                     </span>
                     <span className="ml-auto font-mono text-[10px] text-muted-foreground">
-                      {s.starts_on} → {s.ends_on}
+                      {s.starts_on} → {s.completed_at ? new Date(s.completed_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : s.ends_on}
                     </span>
                   </div>
-                  {s.champions && s.champions.length > 0 ? (
+                  {s.status === "complete" && s.champions && s.champions.length > 0 ? (
                     <div className="mt-2 space-y-1">
                       {s.champions.map((c) => (
                         <p key={c.bracket} className="text-sm">
                           <span className="font-medium">{c.bracket}:</span>{" "}
-                          Champion {c.champion ?? "—"}
+                          {/* E2E O8 (migration 211): every section, and how its final was decided */}
+                          {c.champion ? `Champion ${c.champion}` : "No champion: no league match was played"}
+                          {c.champion && c.decided_by === "higher_seed" ? " (final drawn, won as higher seed)" : ""}
                           {c.runner_up ? ` · Runner-up ${c.runner_up}` : ""}
                           {c.third ? ` · Third ${c.third}` : ""}
                         </p>

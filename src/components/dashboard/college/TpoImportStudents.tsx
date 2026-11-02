@@ -126,13 +126,18 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
       // MF-123: a roll number is one student per college; whose it already is, by roll.
       const normRoll = (v: string) => v.replace(/\s/g, "").toUpperCase();
       const rollOwner = new Map<string, string>();
+      // E2E O7: the message names the student who has the roll number; rollOwner (emails) does the matching
+      const rollName = new Map<string, string>();
       if (iSection !== -1 || iRoll !== -1) {
         for (;;) {
           const { data: page } = await supabase.rpc("tpo_students" as never, { _limit: 200, _offset: mySection.size } as never);
           const got = (page ?? []) as unknown as { email: string | null; full_name: string | null; roll_number: string | null; cohort: string | null; total_count: number }[];
           got.forEach((r, k) => {
             mySection.set((r.email ?? `#${mySection.size + k}`).toLowerCase(), r.cohort ?? "");
-            if (r.roll_number) rollOwner.set(normRoll(r.roll_number), r.email ?? r.full_name ?? "another student");
+            if (r.roll_number) {
+              rollOwner.set(normRoll(r.roll_number), r.email ?? r.full_name ?? "another student");
+              rollName.set(normRoll(r.roll_number), r.full_name || r.email || "another student");
+            }
           });
           if (got.length === 0 || mySection.size >= Number(got[0]?.total_count ?? 0)) break;
         }
@@ -168,10 +173,10 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
         const rollKey = normRoll(roll);
         const rollTaken = rollKey ? rollOwner.get(rollKey) : undefined;
         if (status === "valid" && rollTaken && rollTaken !== email) {
-          status = "invalid"; err = `Roll number ${roll.trim()} already belongs to ${rollTaken}`;
+          status = "invalid"; err = `Roll number ${roll.trim()} already belongs to ${rollName.get(rollKey!) ?? rollTaken}`;
         }
 
-        if (status === "valid") { seen.add(email); if (rollKey) rollOwner.set(rollKey, email); }
+        if (status === "valid") { seen.add(email); if (rollKey) { rollOwner.set(rollKey, email); rollName.set(rollKey, name || email); } }
 
         const rowBranch = effectiveBranch || (iBranch === -1 ? "" : cells[iBranch] ?? "");
         const section = (iSection === -1 ? "" : cells[iSection] ?? "").trim().toUpperCase();
@@ -515,6 +520,7 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
                           <td className="p-2 font-mono text-xs text-muted-foreground">#{r.row_number}</td>
                           <td className="p-2">{r.name || <span className="text-muted-foreground">—</span>}</td>
                           <td className="p-2 text-muted-foreground text-xs">{r.email}</td>
+                          <td className="p-2 text-muted-foreground text-xs">{r.cohort || "—"}</td>
                           <td className="p-2 text-right">
                             <Badge variant={r.validation_status === "invalid" ? "destructive" : "outline"}>
                               {r.error_message}

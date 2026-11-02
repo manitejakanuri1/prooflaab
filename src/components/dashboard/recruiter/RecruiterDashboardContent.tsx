@@ -435,7 +435,8 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                         </button>
                       </td>
                       <td className="py-2.5 pr-3 font-mono text-xs text-muted-foreground">
-                        {String(l.due_date ?? "").slice(0, 10)}
+                        {/* E2E O5: India date, as the student sees it */}
+                        {l.due_date ? new Date(String(l.due_date)).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }) : ""}
                       </td>
                       <td className="py-2.5 pr-3">
                         {/* recruiter_lots() reads task_submissions since migration 54 (it read the retired upload table, so nothing ever showed). */}

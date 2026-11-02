@@ -8,13 +8,14 @@ import SquadSwapsList from "@/components/dashboard/season/SquadSwapsList";
 import { Button } from "@/components/ui/button";
 
 // TEST website only (migration 208): move every open PRAGATI season forward one fast week (20 minutes).
-function TestSeasonForward() {
+function TestSeasonForward({ onMoved }: { onMoved: () => void }) {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const go = async () => {
     setBusy(true);
     const { data, error } = await supabase.rpc("admin_test_advance_season" as never, { _weeks: 1 } as never);
     setBusy(false);
+    onMoved();   // E2E O3: reload the season list so its week moves too
     const seasons = ((data as { seasons?: { week_before: number; week_now: number }[] } | null)?.seasons ?? []);
     setMsg(error ? `Not moved: ${error.message}`
       : seasons.length ? seasons.map((s) => `Week ${s.week_before} -> ${s.week_now}`).join(", ") : "No open PRAGATI season.");
@@ -87,13 +88,14 @@ export default function AdminSquads() {
   const [squads, setSquads] = useState<SquadRow[] | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     supabase.rpc("admin_squads" as never, {} as never).then(({ data, error }) => {
       setError(error?.message ?? null);
       setColleges((data as CollegeRow[]) ?? []);
     });
-  }, []);
+  }, [reload]);
 
   useEffect(() => {
     setSquads(null);
@@ -102,7 +104,7 @@ export default function AdminSquads() {
       setError(error?.message ?? null);
       setSquads((data as SquadRow[]) ?? []);
     });
-  }, [collegeId]);
+  }, [collegeId, reload]);
 
   const closes = squads?.find((s) => s.swap_closes)?.swap_closes;
 
@@ -113,7 +115,7 @@ export default function AdminSquads() {
         <p className="text-sm text-muted-foreground">Every college's squads this season, their secret swap codes, and every squad swap.</p>
       </div>
       {FAST_WEEK && <TestClock />}
-      {FAST_WEEK && <TestSeasonForward />}
+      {FAST_WEEK && <TestSeasonForward onMoved={() => setReload((n) => n + 1)} />}
       {error && <p className="text-sm text-alert">{error}</p>}
 
       <Card>

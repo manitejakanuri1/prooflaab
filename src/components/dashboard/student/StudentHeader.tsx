@@ -66,7 +66,8 @@ const StudentHeader = ({
           <ThemeToggle />
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className="relative p-1.5 sm:p-2 hover:bg-accent">
+              <Button variant="ghost" size="sm" className="relative p-1.5 sm:p-2 hover:bg-accent"
+                aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}>
                 <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                 {unreadCount > 0 && (
                   <Badge 

@@ -57,7 +57,9 @@ export const EVALUATOR_VERSION = 'voice-eval-3';
 export const CONTENT_MATCH_FLOOR = 30;
 export const OFF_TOPIC_CAP = 30;
 /** Daily Lots (migration 165): what the student reads when a recording cannot be used. */
-export const OFF_TOPIC_NOTE = 'This talk was about something else. Explain THIS task: what you did and why. You can record once more.';
+export const OFF_TOPIC_NOTE = 'This talk was about something else. Explain THIS task: what you did and why.';
+/** MF-018: the approved wording for a recording that is too short to use. */
+export const TOO_SHORT_NOTE = 'Your recording was too short or silent. Please record again.';
 export const CLOSED_NOTE = 'The spoken part of this Lot is closed, so this recording was not scored.';
 
 /**
@@ -71,7 +73,7 @@ export function transcriptQuality(transcript: string | null, wordCount: number |
   // MF-019: Whisper can invent words for a near-silent recording. The transcriber's voice detector
   // measured the real speech; under MIN_SPEECH_SECONDS of it, any transcript is not the student talking.
   if (n === 0 || (speechSeconds != null && speechSeconds < MIN_SPEECH_SECONDS)) return { flags: ['silence'], note: 'We could not hear any speech. Check your microphone and record again.' };
-  if (n < MIN_WORDS || (wordCount ?? n) < MIN_WORDS) return { flags: ['too_few_words'], note: 'Too short. Please explain your work for longer and record again.' };
+  if (n < MIN_WORDS || (wordCount ?? n) < MIN_WORDS) return { flags: ['too_few_words'], note: TOO_SHORT_NOTE };
   if (new Set(words).size / n < 0.3) {
     return { flags: ['repetitive'], note: 'The recording repeats the same few words. Explain what you did, in your own words.' };
   }
@@ -218,7 +220,7 @@ export async function scoreRecording(
   if (rec.duration_seconds != null && rec.duration_seconds < MIN_VOICE_SECONDS) {
     console.log(`VOICE-SCORE: too short ${voice_id} (${rec.duration_seconds}s)`);
     return await failUnderClaim(
-      `This recording is only ${Math.round(rec.duration_seconds)} seconds. Please explain for at least ${MIN_VOICE_SECONDS} seconds and record again.`,
+      TOO_SHORT_NOTE,
       'too_short', 200, { success: false, reason: 'recording too short', seconds: rec.duration_seconds }, 'too_short');
   }
 

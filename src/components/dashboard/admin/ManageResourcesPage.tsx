@@ -135,7 +135,8 @@ const ManageResourcesPage = () => {
         category: formData.category,
         branch: 'ALL',
         is_premium: false,
-        status: 'approved'
+        // E2E O2: the table allows draft / published / archived; students read 'published'
+        status: 'published'
       };
 
       if (editingResource) {
@@ -231,13 +232,14 @@ const ManageResourcesPage = () => {
     return (
       <Badge
         className={
-          status === 'approved' ? 'bg-verified/10 text-verified hover:bg-verified/10' :
+          status === 'approved' || status === 'published' ? 'bg-verified/10 text-verified hover:bg-verified/10' :
           status === 'pending' ? 'bg-compete/10 text-compete hover:bg-compete/10' :
           status === 'rejected' ? 'bg-alert/10 text-alert hover:bg-alert/10' :
           'bg-muted text-foreground hover:bg-muted'
         }
       >
-        {status === 'approved' ? '✅ Approved' :
+        {status === 'published' ? '✅ Published' :
+         status === 'approved' ? '✅ Approved' :
          status === 'pending' ? '⚠️ Pending' :
          status === 'rejected' ? '🔴 Rejected' : status}
       </Badge>

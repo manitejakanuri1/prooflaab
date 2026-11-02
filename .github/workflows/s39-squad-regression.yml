@@ -276,9 +276,9 @@ jobs:
         #   Frozen again here at 1a6f652.
         # 31 Oct 2026 (night): owner's go to change student + college screens for the open audit items
         #   (MF-040/041/042/117 voice, MF-060/097 matches, MF-013 company Lot, MF-111 delete confirm). Frozen again here at 7ef026e.
-        # 1 Nov 2026: owner's go for Grok's end-to-end fixes on student + college screens (E2E-1..33). Frozen again here at ca5cbfb. 2 Nov 2026: owner's "B, yes" for B3/B4/B5; frozen again at c435c5d.
+        # 1 Nov 2026: owner's go for Grok's end-to-end fixes on student + college screens (E2E-1..33). Frozen again here at ca5cbfb. 2 Nov 2026: owner's "B, yes" for B3/B4/B5; frozen again at c435c5d. 2 Nov 2026: owner approved F3 (recruiter data.ts); frozen again at face0af.
         run: |
-          git diff --quiet c435c5d3868dd7e7a92580c8044e92b381e308c3 -- \
+          git diff --quiet face0af79a7364939cf9bddd41734544673c53bd -- \
             src/components/dashboard/college/TpoSquads.tsx \
             src/components/dashboard/student/SandboxTaskPanel.tsx src/components/dashboard/student/StudentDailyCard.tsx \
             src/components/dashboard/student/StudentSquadPage.tsx src/components/dashboard/student/TaskVoicePanel.tsx \
@@ -290,7 +290,7 @@ jobs:
             src/components/dashboard/student/StudentPrivacy.tsx src/components/dashboard/student/StudentPortfolioPage.tsx \
             src/components/dashboard/student/StudentSettingsPage.tsx src/components/dashboard/recruiter/ProofProfile.tsx \
             src/recruiter/data.ts src/recruiter/types.ts \
-            || { echo "::error::a graded-marks screen changed after the 2 Nov e2e re-freeze (c435c5d)"; exit 1; }
+            || { echo "::error::a graded-marks screen changed after the 2 Nov e2e re-freeze (face0af)"; exit 1; }
 
       - name: UI freeze - the college controls by name
         run: node --test scripts/dev-tools/sidhu_s39_ui_contract.test.mjs

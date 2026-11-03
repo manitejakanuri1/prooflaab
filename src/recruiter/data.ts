@@ -164,7 +164,10 @@ export async function loadHome() {
 /** Shape of recruiter_proof_profile's JSON, as this file reads it (types only, no runtime effect). */
 type ProfileSkill = Parameters<typeof skillProof>[0];
 interface ProfileCert { name: string; issuer?: string | null; issued_on?: string | null; url?: string | null }
-interface ProfileWork { submitted_at?: string | null; title?: string | null; status?: string | null; ai_score?: number | null }
+interface ProfileWork {
+  submitted_at?: string | null; title?: string | null; status?: string | null; ai_score?: number | null;
+  kind?: 'code' | 'written' | null; voice_score?: number | null; // migration 215
+}
 interface ProfileExplanation {
   id: string; about?: string | null; duration_seconds?: number | null;
   created_at?: string | null; communication_notes?: string | null;
@@ -283,6 +286,8 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
       task: w.title ?? "Submitted work",
       status: /verified/i.test(w.status ?? "") ? "completed" as const : "pending" as const,
       score: w.ai_score ?? undefined,
+      kind: w.kind ?? undefined,
+      voiceScore: w.voice_score ?? null,
     })),
     answers: p.answers ?? [],
     voiceExplanations: (p.explanations ?? []).map((v) => ({

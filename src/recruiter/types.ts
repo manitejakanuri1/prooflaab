@@ -29,7 +29,8 @@ export interface Candidate {
   projects: { name: string; description: string; tech: string[]; stars: number; url: string }[]
   skills: SkillScore[]
   assessmentScores: { category: string; score: number; proof: ProofItem[] }[]
-  dailyTasks: { date: string; task: string; status: 'completed' | 'pending' | 'missed'; score?: number }[]
+  /** kind + voiceScore (migration 215) let the profile follow owner rule B: "Passed" only with a voice of 50+. */
+  dailyTasks: { date: string; task: string; status: 'completed' | 'pending' | 'missed'; score?: number; kind?: 'code' | 'written'; voiceScore?: number | null }[]
   /** Every finished task with the answer, only on the full profile (migration 168). */
   answers?: FinishedWorkItem[]
   voiceExplanations: { id: string; topic: string; duration: string; date: string; transcript: string; audioShared: boolean }[]

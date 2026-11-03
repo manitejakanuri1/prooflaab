@@ -4,6 +4,7 @@ import { CheckCircle2, Code2, Mic, PenLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { tidyTitle } from "@/lib/utils";
+import { passedLabel } from "@/lib/passedNote";
 
 interface Row {
   task_id: string;
@@ -60,7 +61,8 @@ export default function ProvenWork({ studentId, rows, emptyText }: { studentId?:
         <li key={w.task_id} className="rounded-xl border bg-card p-4">
           <div className="flex items-start justify-between gap-3">
             <p className="font-medium leading-snug">{tidyTitle(w.title)}</p>
-            <Badge className="shrink-0">Passed{w.score != null ? ` · ${w.score}/100` : ""}</Badge>
+            {/* Owner rule B: "Passed" only with a spoken explanation of 50+. */}
+            <Badge className="shrink-0">{passedLabel(w.kind, w.explanation_score)}{w.score != null ? ` · ${w.score}/100` : ""}</Badge>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">

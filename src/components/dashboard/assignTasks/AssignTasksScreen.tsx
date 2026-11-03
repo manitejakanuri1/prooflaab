@@ -102,6 +102,8 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
 
   // Core state
   const [students, setStudents] = useState<Student[]>([]);
+  // E2E A6: "No students found" showed for a second while the list was still loading.
+  const [studentsLoading, setStudentsLoading] = useState(true);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [colleges, setColleges] = useState<College[]>([]);
   const [loading, setLoading] = useState(false);
@@ -148,7 +150,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
 
   useEffect(() => {
     if (isAdmin) fetchColleges();
-    fetchStudents();
+    fetchStudents().finally(() => setStudentsLoading(false));
     fetchTemplates();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1771,7 +1773,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
 
                   <div className="max-h-96 overflow-y-auto space-y-2 border rounded-md p-3">
                     {filteredStudents.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-8">No students found</p>
+                      <p className="text-sm text-muted-foreground text-center py-8">{studentsLoading ? "Loading students…" : "No students found"}</p>
                     ) : (
                       filteredStudents.map(student => (
                         <div key={student.id} className="flex items-start space-x-2 p-2 hover:bg-muted rounded">

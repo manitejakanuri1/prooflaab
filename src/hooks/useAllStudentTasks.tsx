@@ -107,7 +107,8 @@ export const useAllStudentTasks = () => {
         // stage69/70: record_task_submission sets tasks.status = 'completed' on a pass.
         if (task.sandbox_config_id || task.rubric_config_id) {
           if (task.status === 'completed') status = 'Completed';
-          else if (task.started_at) status = 'In Progress';
+          // E2E C10: work passed, the 60-second explanation is still owed (127) - never "Not started".
+          else if (task.started_at || task.status === 'pending_voice') status = 'In Progress';
         } else if (task.started_at) {
           status = 'In Progress'; // started, not passed yet
         }

@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import {
   useStartupSubmissions, useReviewSubmission, type CompanySubmission, type ReviewDecision,
 } from "@/hooks/useStartupSubmissions";
+import { passedLabel } from "@/lib/passedNote";
 
 const DECISION_LABEL: Record<ReviewDecision, string> = {
   accepted: "Accepted", needs_work: "Needs work", rejected: "Rejected",
@@ -20,6 +21,11 @@ const DECISION_LABEL: Record<ReviewDecision, string> = {
 const GRADE_LABEL: Record<string, string> = {
   passed: "Passed", failed: "Not passed", needs_review: "Needs review",
 };
+
+// Owner rule B (1 Nov 2026): "Passed" only when the work passed AND the spoken explanation scored 50+.
+const grade = (s: CompanySubmission) => s.status === "passed"
+  ? passedLabel(s.kind, s.voice_status === "scored" ? s.voice_score : null)
+  : GRADE_LABEL[s.status] ?? s.status;
 
 /** The student's work on this company's posted and sponsored tasks (task_submissions). */
 export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilter?: string } = {}) {
@@ -116,8 +122,8 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <Badge variant={s.status === "passed" ? "default" : "secondary"}>
-                      {GRADE_LABEL[s.status] ?? s.status}{s.score != null ? ` · ${s.score}/100` : ""}
+                    <Badge variant={grade(s) === "Passed" ? "default" : "secondary"}>
+                      {grade(s)}{s.score != null ? ` · ${s.score}/100` : ""}
                     </Badge>
                     {s.review_decision && (
                       <Badge variant={s.review_decision === "rejected" ? "destructive" : "outline"}>

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Candidate, ProofItem, SkillScore } from "./types";
+import { passedLabel } from "@/lib/passedNote";
 
 /**
  * The seam between the screens and the database.
@@ -193,13 +194,23 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
 
   // F3 (round 3): this company's Lots for this student, from the same list as the Lots tab (recruiter_lots).
   const day = (d: unknown) => d ? new Date(String(d)).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }) : "";
-  const sponsoredTasks: Candidate["sponsoredTasks"] = (await loadLots().catch(() => []))
+  // Owner rule B: "Passed" only with a voice of 50+. recruiter_lots() has no voice score; company_submissions() does.
+  const [lots, subs] = await Promise.all([
+    loadLots().catch(() => []),
+    supabase.rpc("company_submissions" as never).then(({ data: d }) => (d as unknown as Record<string, unknown>[]) ?? [], () => []),
+  ]);
+  const grade = (l: Record<string, unknown>) => {
+    if (l.submission_status !== "passed") return "Not passed yet";
+    const s = subs.find((x) => x.task_id === l.task_id && x.student_id === l.student_id);
+    return passedLabel(s?.kind as "code" | "written" | undefined, s?.voice_status === "scored" ? (s.voice_score as number) : null);
+  };
+  const sponsoredTasks: Candidate["sponsoredTasks"] = lots
     .filter((l) => l.student_id === studentId)
     .map((l) => ({
       id: String(l.task_id),
       title: String(l.title ?? "Lot"),
       description: l.score != null
-        ? `Score ${l.score}/100 · ${l.submission_status === "passed" ? "Passed" : "Not passed yet"}`
+        ? `Score ${l.score}/100 · ${grade(l)}`
         : l.task_status === "pending" ? "Not started yet" : "In progress",
       status: l.submission_status === "passed" || l.submission_status === "failed" ? "reviewed"
         : l.submitted_at ? "submitted" : "pending",

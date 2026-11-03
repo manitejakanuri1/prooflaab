@@ -255,7 +255,9 @@ jobs:
                    ':(exclude)src/components/dashboard/student/CodeEditor.tsx'
                    ':(exclude)src/components/dashboard/student/CodeSnapshot.tsx'
                    ':(exclude)src/integrations/google/bffSession.ts'
-                   ':(exclude)src/main.tsx')
+                   ':(exclude)src/main.tsx'
+                   ':(exclude)src/components/portfolio/ProvenWork.tsx'
+                   ':(exclude)src/components/dashboard/assignTasks/AssignTasksScreen.tsx')
           git diff --stat 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}"
           git diff --quiet 74c3a127773e5d6fbd66498191185095de9562d9 -- src index.html public "${ALLOWED[@]}" \
             || { echo "::error::a frontend file changed: the S39 architecture freeze forbids it"; exit 1; }
@@ -276,9 +278,9 @@ jobs:
         #   Frozen again here at 1a6f652.
         # 31 Oct 2026 (night): owner's go to change student + college screens for the open audit items
         #   (MF-040/041/042/117 voice, MF-060/097 matches, MF-013 company Lot, MF-111 delete confirm). Frozen again here at 7ef026e.
-        # 1 Nov 2026: owner's go for Grok's end-to-end fixes on student + college screens (E2E-1..33). Frozen again here at ca5cbfb. 2 Nov 2026: owner's "B, yes" for B3/B4/B5; frozen again at c435c5d. 2 Nov 2026: owner approved F3 (recruiter data.ts); frozen again at face0af. F2b wording; frozen again at 48ac9b3. 3 Nov 2026: owner OK'd TpoSquads (no 0/12 flash on first load); frozen again at 47e389b.
+        # 1 Nov 2026: owner's go for Grok's end-to-end fixes on student + college screens (E2E-1..33). Frozen again here at ca5cbfb. 2 Nov 2026: owner's "B, yes" for B3/B4/B5; frozen again at c435c5d. 2 Nov 2026: owner approved F3 (recruiter data.ts); frozen again at face0af. F2b wording; frozen again at 48ac9b3. 3 Nov 2026: owner OK'd TpoSquads (no 0/12 flash on first load); frozen again at 47e389b. 3 Nov 2026: owner OK'd final-E2E fixes in ProvenWork, recruiter data.ts and AssignTasksScreen (rule B, loading text); frozen again at b6e5809.
         run: |
-          git diff --quiet 47e389b3519c4c3e0cee095ed0414a14d12fae33 -- \
+          git diff --quiet b6e58097292fe98da8666419b1e963b3b769914f -- \
             src/components/dashboard/college/TpoSquads.tsx \
             src/components/dashboard/student/SandboxTaskPanel.tsx src/components/dashboard/student/StudentDailyCard.tsx \
             src/components/dashboard/student/StudentSquadPage.tsx src/components/dashboard/student/TaskVoicePanel.tsx \
@@ -290,7 +292,8 @@ jobs:
             src/components/dashboard/student/StudentPrivacy.tsx src/components/dashboard/student/StudentPortfolioPage.tsx \
             src/components/dashboard/student/StudentSettingsPage.tsx src/components/dashboard/recruiter/ProofProfile.tsx \
             src/recruiter/data.ts src/recruiter/types.ts \
-            || { echo "::error::a graded-marks screen changed after the 3 Nov e2e re-freeze (47e389b)"; exit 1; }
+            src/components/portfolio/ProvenWork.tsx src/components/dashboard/assignTasks/AssignTasksScreen.tsx \
+            || { echo "::error::a graded-marks screen changed after the 3 Nov final-E2E re-freeze (b6e5809)"; exit 1; }
 
       - name: UI freeze - the college controls by name
         run: node --test scripts/dev-tools/sidhu_s39_ui_contract.test.mjs

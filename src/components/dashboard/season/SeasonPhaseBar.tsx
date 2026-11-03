@@ -204,7 +204,7 @@ const SeasonPhaseBar = ({ status }: { status: SeasonStatus | null }) => {
           <span className="font-semibold">
             Week {week} of {total}
           </span>
-          <span className="text-sm text-muted-foreground">{status.label}</span>
+          {status.plan_version !== 2 && <span className="text-sm text-muted-foreground">{status.label}</span>}
           {status.decided && (
             <Badge variant="secondary" className="ml-auto">
               {status.qualified} of {status.squads} squads through

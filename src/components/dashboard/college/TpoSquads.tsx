@@ -141,9 +141,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
       .order("points", { ascending: false });
 
     const list = (sqData ?? []) as unknown as Squad[];
-    setSquads(list);
 
-    if (list.length === 0) { setMembers([]); setMatches([]); return; }
+    if (list.length === 0) { setSquads(list); setMembers([]); setMatches([]); return; }
     const ids = list.map((s) => s.id);
 
     // E2E-2: close_season sets left_at on everyone, so a finished season counts the members who
@@ -168,6 +167,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
       supabase.rpc("tpo_reserves"),
     ]);
 
+    // E2E: show the squads together with their members, never 0/12 while members are still loading.
+    setSquads(list);
     setMembers((mem.data ?? []) as unknown as Member[]);
     setMatches((mat.data ?? []) as unknown as Match[]);
     setPerformance((perf.data ?? []) as unknown as Performance[]);

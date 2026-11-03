@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { FAST_WEEK, FAST_WEEK_MINUTES } from "@/lib/testClock";
 
 // Squad swaps (migration 143). A college sees its own finished swaps; the admin also sees waiting,
 // declined, cancelled and expired requests, for one college or all of them.
@@ -26,7 +27,7 @@ export default function SquadSwapsList({ collegeId, showCollege = false }: { col
 
   if (error) return <p className="text-sm text-alert">{error}</p>;
   if (!rows) return <p className="text-sm text-muted-foreground">Loading…</p>;
-  if (!rows.length) return <p className="text-sm text-muted-foreground">No squad swaps yet. Students can swap in the first 7 days of a season.</p>;
+  if (!rows.length) return <p className="text-sm text-muted-foreground">No squad swaps yet. Students can swap in the first {FAST_WEEK ? `${FAST_WEEK_MINUTES} minutes` : "7 days"} of a season.</p>;
 
   return (
     <div className="overflow-x-auto">

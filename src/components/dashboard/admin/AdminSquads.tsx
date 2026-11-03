@@ -87,7 +87,7 @@ export default function AdminSquads() {
               <p className="text-xs text-muted-foreground">
                 {closes && new Date(closes) > new Date()
                   ? `Swaps are open until ${FAST_WEEK ? "" : "the end of "}${format(new Date(closes).getTime() - 60000, WHEN_FORMAT)}.`
-                  : "Swaps are closed for this season (first 7 days only)."}
+                  : `Swaps are closed for this season (first ${FAST_WEEK ? `${FAST_WEEK_MINUTES} minutes` : "7 days"} only).`}
               </p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[640px]" data-testid="admin-squads">

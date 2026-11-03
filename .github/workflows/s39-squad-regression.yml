@@ -276,9 +276,9 @@ jobs:
         #   Frozen again here at 1a6f652.
         # 31 Oct 2026 (night): owner's go to change student + college screens for the open audit items
         #   (MF-040/041/042/117 voice, MF-060/097 matches, MF-013 company Lot, MF-111 delete confirm). Frozen again here at 7ef026e.
-        # 1 Nov 2026: owner's go for Grok's end-to-end fixes on student + college screens (E2E-1..33). Frozen again here at ca5cbfb. 2 Nov 2026: owner's "B, yes" for B3/B4/B5; frozen again at c435c5d. 2 Nov 2026: owner approved F3 (recruiter data.ts); frozen again at face0af. F2b wording; frozen again at 48ac9b3.
+        # 1 Nov 2026: owner's go for Grok's end-to-end fixes on student + college screens (E2E-1..33). Frozen again here at ca5cbfb. 2 Nov 2026: owner's "B, yes" for B3/B4/B5; frozen again at c435c5d. 2 Nov 2026: owner approved F3 (recruiter data.ts); frozen again at face0af. F2b wording; frozen again at 48ac9b3. 3 Nov 2026: owner OK'd TpoSquads (no 0/12 flash on first load); frozen again at 47e389b.
         run: |
-          git diff --quiet 48ac9b384bd1779573e1eb3d3ce63ea8b9a2b5fc -- \
+          git diff --quiet 47e389b3519c4c3e0cee095ed0414a14d12fae33 -- \
             src/components/dashboard/college/TpoSquads.tsx \
             src/components/dashboard/student/SandboxTaskPanel.tsx src/components/dashboard/student/StudentDailyCard.tsx \
             src/components/dashboard/student/StudentSquadPage.tsx src/components/dashboard/student/TaskVoicePanel.tsx \
@@ -290,7 +290,7 @@ jobs:
             src/components/dashboard/student/StudentPrivacy.tsx src/components/dashboard/student/StudentPortfolioPage.tsx \
             src/components/dashboard/student/StudentSettingsPage.tsx src/components/dashboard/recruiter/ProofProfile.tsx \
             src/recruiter/data.ts src/recruiter/types.ts \
-            || { echo "::error::a graded-marks screen changed after the 2 Nov e2e re-freeze (48ac9b3)"; exit 1; }
+            || { echo "::error::a graded-marks screen changed after the 3 Nov e2e re-freeze (47e389b)"; exit 1; }
 
       - name: UI freeze - the college controls by name
         run: node --test scripts/dev-tools/sidhu_s39_ui_contract.test.mjs

@@ -72,11 +72,11 @@ def arr(xs):
     return "array[" + ",".join(q(x) for x in xs) + "]::text[]"
 
 
-def student_sql(n, uid, email, name):
+def student_sql(n, uid, email, name, cohort=None, roll=None, phone=None):
     role = list(ROLES)[(n - 1) % len(ROLES)]
     skills = ROLES[role]
-    cohort = "CSE-A" if n <= 22 else "CSE-B"
-    roll = f"22PR1A05{n:02d}"
+    cohort = cohort or ("CSE-A" if n <= 22 else "CSE-B")
+    roll = roll or f"22PR1A05{n:02d}"
     onboarded = n not in NOT_ONBOARDED
     resume = (f"{name}\nB.Tech CSE, PRAGATI Engineering College, 2027\nTarget role: {role}\n"
               f"Skills: {', '.join(skills)}\n"
@@ -86,7 +86,7 @@ def student_sql(n, uid, email, name):
 do $s$ declare uid uuid; pid uuid; cid uuid; aid uuid; begin
   uid := public.record_account({q(uid)}, {q(email)}, {q(name)}, true);
   pid := public.import_student_record(uid, {q(COLLEGE)}, {q(email)}, {q(name)}, 'CSE', '4th Year',
-           {arr(skills[:3])}, '{{}}', {q('Become a ' + role)}, {q(roll)}, '4th Year', {q(f'98480{n:05d}')}, null);
+           {arr(skills[:3])}, '{{}}', {q('Become a ' + role)}, {q(roll)}, '4th Year', {q(phone or f'98480{n:05d}')}, null);
   update public.student_profiles set cohort = {q(cohort)}, target_role = {q(role)} where id = pid;"""
     if onboarded:
         gap = {"verified": skills[:3], "needs_improvement": skills[3:4], "missing": skills[4:]}

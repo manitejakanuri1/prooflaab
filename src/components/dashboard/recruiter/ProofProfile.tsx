@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import type { Candidate, ProofItem } from "@/recruiter/types";
 import VoicePlayButton from "./VoicePlayButton";
 import FinishedWork from "../FinishedWork";
+import { passedLabel } from "@/lib/passedNote";
 
 /**
  * The Proof Profile, as delivered — screens built against mock data, now fed
@@ -124,18 +125,22 @@ function ProofProfile({ candidate }: { candidate: Candidate }) {
           <CardContent className='grid gap-4 md:grid-cols-2'>
             <div className='space-y-2'>
               <div className='section-label'>Lots solved</div>
-              {candidate.dailyTasks.map((task, i) => (
+              {candidate.dailyTasks.map((task, i) => {
+                // Owner rule B: "Passed" only with a voice of 50+ (migration 215 sends the voice score).
+                const label = task.status === 'completed' ? passedLabel(task.kind, task.voiceScore) : task.status;
+                return (
                 <div key={i} className='flex items-center justify-between rounded-lg border border-border bg-secondary/30 px-3 py-2'>
                   <div>
                     <div className='text-sm'>{task.task}</div>
                     <div className='text-[11px] text-muted-foreground'>{task.date}</div>
                   </div>
                   <div className='text-right text-xs font-mono'>
-                    <div className={task.status === 'completed' ? 'text-verified' : task.status === 'pending' ? 'text-compete' : 'text-muted-foreground'}>{task.status === 'completed' ? 'Passed' : task.status}</div>
+                    <div className={label === 'Passed' ? 'text-verified' : task.status === 'missed' ? 'text-muted-foreground' : 'text-compete'}>{label}</div>
                     <div className='tabular text-muted-foreground'>{task.score != null ? `${task.score}/100` : '—'}</div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
             <div className='space-y-2'>
               <div className='section-label'>60-second explanations</div>

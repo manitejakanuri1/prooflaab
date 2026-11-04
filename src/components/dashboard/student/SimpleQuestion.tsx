@@ -44,7 +44,9 @@ function useSimpleBrief(taskId: string) {
 function missingRules(original: string | null, shown: string): string[] {
   if (!original) return [];
   const have = new Set(shown.match(/\d+/g) ?? []);
-  const sentences = original.split(/(?<=[.!?])\s+|\n+/).map((x) => x.trim()).filter(Boolean);
+  // Cut at a sentence end, a blank line, or before a labelled line ("Output:", "Why:"), so an example's
+  // answer lines stay with their label (3 Nov 2026: "Output: 85000" lost its "Yes").
+  const sentences = original.split(/(?<=[.!?])\s+|\n{2,}|\n(?=[A-Z][A-Za-z ]{0,30}:)/).map((x) => x.trim()).filter(Boolean);
   return sentences.filter((x) => (x.match(/\d+/g) ?? []).some((n) => !have.has(n))).slice(0, 4);
 }
 

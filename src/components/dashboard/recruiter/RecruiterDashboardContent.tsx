@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronRight, Mail, Lock, Search } from "lucide-react";
 import ProofProfile from "./ProofProfile";
+import { useStartupSubmissions } from "@/hooks/useStartupSubmissions";
+import { passedLabel } from "@/lib/passedNote";
 import type { Candidate } from "@/recruiter/types";
 import {
   loadHome, loadTalent, loadFilters, loadProfile, loadShortlist, loadLots,
@@ -46,6 +48,14 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
   const [filters, setFilters] = useState<Record<string, any> | null>(null);
   const [saved, setSaved] = useState<Record<string, any>[]>([]);
   const [lots, setLots] = useState<Record<string, any>[]>([]);
+  // Owner rule B: a Lot reads "Passed" only with a voice of 50+. recruiter_lots() has no voice score; the
+  // company's own submissions list does.
+  const { data: submissions = [] } = useStartupSubmissions();
+  const lotGrade = (l: (typeof lots)[number]) => {
+    if (l.submission_status !== "passed") return l.submission_status === "needs_review" ? "Needs review" : "Not passed";
+    const sub = submissions.find((x) => x.task_id === l.task_id && x.student_id === l.student_id);
+    return passedLabel(sub?.kind, sub?.voice_status === "scored" ? sub.voice_score : null);
+  };
   // MF-094: Saved and Lots said "nothing yet" while still loading.
   const [listsReady, setListsReady] = useState(false);
 
@@ -441,8 +451,8 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                       <td className="py-2.5 pr-3">
                         {/* recruiter_lots() reads task_submissions since migration 54 (it read the retired upload table, so nothing ever showed). */}
                         {l.submission_id ? (
-                          <span className={l.submission_status === "passed" ? "text-verified" : "text-compete"}>
-                            {l.submission_status === "passed" ? "Passed" : l.submission_status === "needs_review" ? "Needs review" : "Not passed"}
+                          <span className={lotGrade(l) === "Passed" ? "text-verified" : "text-compete"}>
+                            {lotGrade(l)}
                             {l.score != null ? ` · ${String(l.score)}/100` : ""}
                             {l.voice_status === "scored" ? " · explained" : ""}
                           </span>

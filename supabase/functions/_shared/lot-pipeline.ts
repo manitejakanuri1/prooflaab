@@ -180,7 +180,9 @@ export async function writeLotTemplate(supabase: any, sourceContentId: string, a
     }
 
     const title = String(parsed.title ?? contentTitle).slice(0, 90);
-    const scenario = String(parsed.scenario ?? "").trim();
+    // E2E C7: the model sometimes writes a literal backslash-n for a new line ("85000\nYes" on screen).
+    // The scenario is plain text (code lives in code_sample), so turn it into a real new line.
+    const scenario = String(parsed.scenario ?? "").replace(/\\n/g, "\n").trim();
     const lotCategory = CATEGORIES.has(String(parsed.lot_category))
       ? String(parsed.lot_category)
       : (genResult.mode === "rubric" ? "pitch" : "technical");

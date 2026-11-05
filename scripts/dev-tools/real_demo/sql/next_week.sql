@@ -5,7 +5,7 @@
 -- Voice recordings keep their real dates (so the 7-day recording rule is not triggered early).
 select set_config('app.system_write', 'on', true);
 do $w$
-declare cid uuid; s record; wk integer; pw integer; closing boolean;
+declare cid uuid; s record; wk integer; pw integer; closing boolean; lot uuid;
 begin
   select id into strict cid from public.colleges where email = 'college@qa-demo.prooflab.invalid' and name = 'ProofLab QA Demo';
   select * into s from public.seasons where college_id = cid and is_current and status = 'active';
@@ -15,8 +15,12 @@ begin
   update public.squad_matches set scheduled_at = scheduled_at - interval '7 days' where season_id = s.id;
   update public.task_submissions x set created_at = x.created_at - interval '7 days'
     from public.student_profiles p where p.id = x.student_id and p.college_id = cid;
-  update public.tasks x set created_at = x.created_at - interval '7 days', lot_date = x.lot_date - 7
-    from public.student_profiles p where p.id = x.student_id and p.college_id = cid;
+  -- Oldest first, one Lot at a time: tasks_one_lot_per_day is checked after each row, so a single update fails
+  -- when one student has Lots exactly 7 days apart (the newer one can land on the older one before it moves).
+  for lot in select x.id from public.tasks x join public.student_profiles p on p.id = x.student_id
+              where p.college_id = cid order by x.lot_date loop
+    update public.tasks set created_at = created_at - interval '7 days', lot_date = lot_date - 7 where id = lot;
+  end loop;
   update public.daily_marks x set lot_at = x.lot_at - interval '7 days' where x.season_id = s.id;
 
   select * into s from public.seasons where id = s.id;

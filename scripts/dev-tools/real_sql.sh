@@ -18,7 +18,7 @@ set -e
 rm -f /tmp/real_sql_err.$$
 if [ -n "$EX" ]; then
   sleep 20
-  gcloud logging read "resource.type=cloud_run_job AND labels.\"run.googleapis.com/execution_name\"=$EX" --project=$P --freshness=30m --format="value(textPayload)" --order=asc | grep -v '^$' | tail -8 || true
+  gcloud logging read "resource.type=cloud_run_job AND labels.\"run.googleapis.com/execution_name\"=$EX" --project=$P --freshness=30m --format="value(textPayload)" --order=asc | grep -v '^$' | tail -${REAL_SQL_TAIL:-8} || true
 fi
 echo "real_sql exit=$CODE (${EX:-execution unknown})"
 exit $CODE

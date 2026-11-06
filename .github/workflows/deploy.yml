@@ -104,6 +104,9 @@ jobs:
           cmp accounts/apptoken.py transcription-worker/apptoken.py
           cmp accounts/apptoken.py transcriber/apptoken.py
 
+      - name: Helper-file module copies are identical
+        run: cmp src/lib/codeFiles.ts supabase/functions/_shared/codeFiles.ts
+
       - name: Files service tests
         run: PGRST_JWT_SECRET=ci-only-not-a-real-secret deno test --no-lock --allow-env --allow-net --allow-read --allow-write files-service/
 

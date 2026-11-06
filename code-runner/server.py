@@ -72,6 +72,9 @@ MAX_MEMORY_LIMIT_MB = 1024
 
 MAX_OUTPUT = 64 * 1024
 MAX_CODE = 100 * 1024
+# Python helper files beside main.py: simple names only, so nothing can be written outside the run folder.
+MAX_HELPER_FILES = 3
+HELPER_NAME = re.compile(r"[a-z][a-z0-9_]{0,39}\.py")
 
 # These runtimes tolerate a hard address-space ceiling. JVM/V8 reserve large
 # virtual regions and Go manages its heap differently, so those use native
@@ -143,6 +146,27 @@ def plan(language: str, code: str, memory_mb: int, entrypoint: str | None = None
         name = java_file_name(code)
         main_class = entrypoint or java_main_class(code)
         return name, ["javac", "-J-Xmx512m", name], ["java", f"-Xmx{memory_mb}m", "-Xss1m", "-cp", ".", main_class]
+    return None
+
+
+def helper_files_problem(language: str, files) -> str | None:
+    """Why this list of helper files is refused, or None when it may be written."""
+    if not isinstance(files, list) or len(files) > MAX_HELPER_FILES:
+        return f"files must be a list of at most {MAX_HELPER_FILES}"
+    if files and language != "python":
+        return "files are supported only for python"
+    names = set()
+    for f in files:
+        name = f.get("name") if isinstance(f, dict) else None
+        if (
+            not isinstance(name, str)
+            or HELPER_NAME.fullmatch(name) is None
+            or name == "main.py"
+            or name in names
+            or not isinstance(f.get("content"), str)
+        ):
+            return "invalid helper file"
+        names.add(name)
     return None
 
 
@@ -293,6 +317,7 @@ def run(
     time_limit_ms: int = DEFAULT_TIME_LIMIT_MS,
     memory_limit_mb: int = DEFAULT_MEMORY_LIMIT_MB,
     entrypoint: str | None = None,
+    files: list | None = None,
 ) -> dict:
     if not NET_ISOLATION:
         raise OSError("network isolation unavailable")
@@ -324,6 +349,12 @@ def run(
 
         os.chown(work, RUNNER.pw_uid, RUNNER.pw_gid)
         os.chown(path, RUNNER.pw_uid, RUNNER.pw_gid)
+
+        for helper in files or []:
+            helper_path = os.path.join(work, helper["name"])
+            with open(helper_path, "w", encoding="utf-8") as fh:
+                fh.write(helper["content"])
+            os.chown(helper_path, RUNNER.pw_uid, RUNNER.pw_gid)
 
         if compile_cmd:
             (
@@ -456,9 +487,16 @@ class Handler(BaseHTTPRequestHandler):
                 MIN_MEMORY_LIMIT_MB,
                 MAX_MEMORY_LIMIT_MB,
             )
+            files = body.get("files", [])
         except (ValueError, TypeError):
             return self.reply(400, {"error": "bad json"})
         if not code or len(code) > MAX_CODE:
+            return self.reply(400, {"error": "code missing or too long"})
+
+        files_problem = helper_files_problem(language, files)
+        if files_problem:
+            return self.reply(400, {"error": files_problem})
+        if len(code) + sum(len(f["content"]) for f in files) > MAX_CODE:
             return self.reply(400, {"error": "code missing or too long"})
 
         if entrypoint is not None:
@@ -485,6 +523,7 @@ class Handler(BaseHTTPRequestHandler):
                     time_limit_ms,
                     memory_limit_mb,
                     entrypoint,
+                    files,
                 )
             except (OSError, subprocess.SubprocessError) as e:
                 print(f"RUNNER INFRA ERROR: {e}", flush=True)

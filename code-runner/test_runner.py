@@ -10,6 +10,7 @@ import json
 import os
 import sys
 import time
+import urllib.error
 import urllib.request
 
 URL = os.environ["RUNNER_URL"].rstrip("/")
@@ -315,6 +316,53 @@ check(
     result.get("status"),
 )
 
+
+# Python helper files beside main.py (two-file Lots).
+HELPER = {"name": "reportlib.py", "content": "HEADER = 'Report'\ndef summarise(xs):\n    return sum(xs)\n"}
+IMPORTS = "from reportlib import HEADER, summarise\nprint(HEADER, summarise([1, 2]))"
+
+
+def files_post(language: str, code: str, files) -> tuple[int, dict]:
+    """The HTTP status and body, so a refusal can be checked too."""
+    req = urllib.request.Request(
+        f"{URL}/run",
+        method="POST",
+        data=json.dumps({"language": language, "code": code, "stdin": "", "files": files}).encode(),
+        headers=request_headers({"Content-Type": "application/json", "x-runner-secret": SECRET}),
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=90) as res:
+            return res.status, json.loads(res.read().decode())
+    except urllib.error.HTTPError as e:
+        return e.code, json.loads(e.read().decode())
+
+
+status, r = files_post("python", IMPORTS, [HELPER])
+check("helper: a real import works", status == 200 and r.get("status") == "ok" and r.get("stdout", "").strip() == "Report 3", r)
+
+status, r = files_post("python", IMPORTS, [])
+check("helper: without the file the import fails", r.get("status") == "runtime_error" and "ModuleNotFoundError" in r.get("stderr", ""), r)
+
+files_post("python", IMPORTS, [HELPER])
+status, r = files_post("python", "import os\nprint(sorted(f for f in os.listdir('.') if f.endswith('.py')))\nimport reportlib", [])
+check("helper: gone after the run", r.get("status") == "runtime_error" and "['main.py']" in r.get("stdout", ""), r)
+
+for bad in ("../x.py", "a/b.py", "/tmp/x.py", "main.py", "x.txt", "X.py", "__init__.py", ".py", "a b.py", ""):
+    status, _ = files_post("python", "print(1)", [{"name": bad, "content": "x"}])
+    check(f"helper: name refused {bad!r}", status == 400, status)
+
+status, _ = files_post("python", "print(1)", [{"name": f"m{i}.py", "content": ""} for i in range(4)])
+check("helper: a fourth file refused", status == 400, status)
+status, _ = files_post("python", "print(1)", [HELPER, HELPER])
+check("helper: the same name twice refused", status == 400, status)
+status, _ = files_post("python", "print(1)", {"name": "a.py"})
+check("helper: not a list refused", status == 400, status)
+status, _ = files_post("python", "print(1)", [{"name": "a.py"}])
+check("helper: no content refused", status == 400, status)
+status, _ = files_post("javascript", "console.log(1)", [{"name": "a.py", "content": ""}])
+check("helper: other languages refused", status == 400, status)
+status, _ = files_post("python", "print(1)", [{"name": "a.py", "content": "x" * (60 * 1024)}, {"name": "b.py", "content": "x" * (45 * 1024)}])
+check("helper: combined size capped", status == 400, status)
 
 print(f"\n{len(failures)} failure(s)" + (": " + ", ".join(failures) if failures else ""))
 sys.exit(1 if failures else 0)

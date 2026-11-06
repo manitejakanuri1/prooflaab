@@ -7,6 +7,7 @@ import {
   parseFunctionSpec,
   type FunctionSpec,
 } from "./function-mode.ts";
+import { splitCodeFiles, type HelperFile } from "./codeFiles.ts";
 
 import { identityTokenFor } from './googleIdentity.ts';
 // Shared code runner. ProofLab's own runner is the only one used; public runners
@@ -98,6 +99,8 @@ export type RunResult =
 export interface RunOptions {
   /** Trusted Java entrypoint; omitted for historical stdio execution. */
   entrypoint?: string;
+  /** Python helper files written beside the program. */
+  files?: HelperFile[];
 }
 
 /** What a single test case ended up being worth, once compared. */
@@ -208,7 +211,9 @@ export function sanitizeStderr(raw: string): string {
     filtered.push(line);
   }
   // Replace temporary runner directory paths like /tmp/run-xxxxxx/main.js with solution.js
-  const cleaned = filtered.join("\n").replace(/\/tmp\/run-[^/\s]+\/main\.([a-z0-9]+)/g, "solution.$1");
+  const cleaned = filtered.join("\n")
+    .replace(/\/tmp\/run-[^/\s]+\/main\.([a-z0-9]+)/g, "solution.$1")
+    .replace(/\/tmp\/run-[^/\s]+\/([a-z][a-z0-9_]*\.py)/g, "$1");
   return cleaned.trim();
 }
 
@@ -483,6 +488,7 @@ export async function runOnOwnRunner(
         stdin,
         ...(limits ? normalizeRunLimits(limits) : {}),
         ...(options?.entrypoint ? { entrypoint: options.entrypoint } : {}),
+        ...(options?.files?.length ? { files: options.files } : {}),
       }),
       signal: withTimeout(70000),
     });
@@ -865,11 +871,17 @@ export async function gradeSandboxConfig(
   const kind = config.kind ?? "stdio";
 
   if (kind === "stdio") {
+    if (config.language !== "python") {
+      return gradeTests(config.language, code, tests, limits);
+    }
+    const { main, helpers } = splitCodeFiles(code);
     return gradeTests(
       config.language,
-      code,
+      // An empty main program with a helper still gets an honest run and result.
+      main || "\n",
       tests,
       limits,
+      helpers.length ? { files: helpers } : undefined,
     );
   }
 
@@ -903,6 +915,7 @@ export async function gradeTests(
   code: string,
   tests: SandboxTest[],
   limits?: RunLimits,
+  options?: RunOptions,
 ): Promise<Graded> {
   const results: GradedTest[] = [];
   let runner = '';
@@ -918,7 +931,7 @@ export async function gradeTests(
       });
       continue;
     }
-    const run = await runCode(language, code, tc.stdin, limits);
+    const run = await runCode(language, code, tc.stdin, limits, options);
     if (!run.ok) return { ok: false, reason: run.reason }; // never grade a run that did not happen
     runner = run.runner;
     const verdict = verdictFor(

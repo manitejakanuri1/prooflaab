@@ -11,7 +11,8 @@ import { submitScoreLine, verdictText, type Verdict } from "@/lib/codingVerdicts
 import {
   formatArguments, formatReturn, functionSpecOf, hiddenSummaryText, isHiddenSummary, safeResultRows, type HiddenSummary,
 } from "@/lib/functionSignature";
-import { CheckCircle2, Loader2, Play, RotateCcw, Send, XCircle, Mic } from "lucide-react";
+import { CheckCircle2, Loader2, Play, Plus, RotateCcw, Send, X, XCircle, Mic } from "lucide-react";
+import { joinCodeFiles, MAX_HELPER_FILES, splitCodeFiles, validHelperName } from "@/lib/codeFiles";
 import { checkLine, fmtMark, loadLotState, submitLot, type LotState } from "@/lib/lotMarks";
 import { savedResultLine, type SavedRow } from "@/lib/savedAnswer";
 import { loadSavedAnswer } from "@/lib/savedAnswerLoad";
@@ -119,6 +120,8 @@ export default function SandboxTaskPanel({
   // MF-020: a finished task shows the saved answer and result from the server, not an empty draft.
   const [saved, setSaved] = useState<{ row: SavedRow; voice: number | null } | null>(null);
   const [code, setCode] = useState("");
+  // null = the main program; otherwise the name of the helper file open in the editor.
+  const [openFile, setOpenFile] = useState<string | null>(null);
   const [busy, setBusy] = useState<"run" | "submit" | null>(null);
   const [runResults, setRunResults] = useState<TestResult[] | null>(null);
   const [result, setResult] = useState<SubmitResult | null>(null);
@@ -226,6 +229,34 @@ export default function SandboxTaskPanel({
   }
 
   const done = view.completed || result?.passed || (daily && lot?.submitted);
+  // Python whole-program tasks can hold helper files; every other task keeps one plain editor.
+  const helperFiles = view.language === "python" && view.kind !== "function";
+  const files = helperFiles ? splitCodeFiles(code) : { main: code, helpers: [] };
+  const openHelper = files.helpers.find((h) => h.name === openFile);
+  const editFile = (value: string) => {
+    // A finished task is read-only, and loading its saved answer also lands here with an out-of-date file list.
+    if (done) return;
+    if (!helperFiles) return saveDraft(value);
+    saveDraft(joinCodeFiles(openHelper
+      ? { main: files.main, helpers: files.helpers.map((h) => (h === openHelper ? { ...h, content: value } : h)) }
+      : { main: value, helpers: files.helpers }));
+  };
+  const addFile = () => {
+    const name = window.prompt("File name, for example reportlib.py (small letters, numbers and _ only, ending in .py)")?.trim();
+    if (!name) return;
+    // Errors show on the Result tab.
+    setTab("result");
+    if (!validHelperName(name)) return setError("Use a name like reportlib.py: small letters, numbers and _ only, ending in .py.");
+    if (files.helpers.some((h) => h.name === name)) return setError(`You already have ${name}.`);
+    setError(null);
+    saveDraft(joinCodeFiles({ main: files.main, helpers: [...files.helpers, { name, content: "" }] }));
+    setOpenFile(name);
+  };
+  const removeFile = (name: string) => {
+    if (!window.confirm(`Remove ${name}? What you typed in it will be lost.`)) return;
+    saveDraft(joinCodeFiles({ main: files.main, helpers: files.helpers.filter((h) => h.name !== name) }));
+    setOpenFile(null);
+  };
   const totalTests = view.visible_tests.length + view.hidden_test_count;
   const checksLeft = lot?.checks_left ?? 0;
   // Week 2 on: check until every test passes; no Submit this score.
@@ -438,6 +469,7 @@ ${result.hidden_hint.error}` : ""}`}
             onClick={() => {
               if (window.confirm("Reset editor to starter code? Any changes you typed will be replaced.")) {
                 saveDraft(view.starter_code ?? "");
+                setOpenFile(null);
               }
             }}
             className="h-7 text-xs text-muted-foreground hover:text-foreground"
@@ -447,12 +479,43 @@ ${result.hidden_hint.error}` : ""}`}
           </Button>
         </div>
 
+        {helperFiles && (!done || files.helpers.length > 0) && (
+          <div className="flex flex-wrap items-center gap-1 border-b px-3 py-1.5" data-testid="code-file-tabs">
+            <Button type="button" size="sm" variant={openHelper ? "ghost" : "secondary"} className="h-7 text-xs font-mono"
+                    onClick={() => setOpenFile(null)}>
+              Main program
+            </Button>
+            {files.helpers.map((h) => (
+              <span key={h.name} className="inline-flex items-center">
+                <Button type="button" size="sm" variant={openHelper === h ? "secondary" : "ghost"} className="h-7 text-xs font-mono"
+                        onClick={() => setOpenFile(h.name)}>
+                  {h.name}
+                </Button>
+                {!done && (
+                  <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0" disabled={!!busy}
+                          aria-label={`Remove ${h.name}`} onClick={() => removeFile(h.name)}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </span>
+            ))}
+            {!done && files.helpers.length < MAX_HELPER_FILES && (
+              <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" disabled={!!busy}
+                      onClick={addFile} data-testid="code-add-file">
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Add file
+              </Button>
+            )}
+          </div>
+        )}
+
         <div className="h-[360px] shrink-0 lg:h-auto lg:min-h-[200px] lg:flex-1">
           <Editor
             height="100%"
+            path={`${taskId}/${openHelper?.name ?? "main"}`}
             language={view.language === "cpp" || view.language === "c" ? "cpp" : view.language}
-            value={code}
-            onChange={(v) => saveDraft(v ?? "")}
+            value={openHelper ? openHelper.content : files.main}
+            onChange={(v) => editFile(v ?? "")}
             theme="vs-dark"
             options={{ minimap: { enabled: false }, fontSize: 13, readOnly: !!done, scrollBeyondLastLine: false }}
           />

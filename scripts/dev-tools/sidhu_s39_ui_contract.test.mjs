@@ -1,5 +1,5 @@
-// S39 architecture freeze: the college screens keep the controls they had at TEJA 7704a98. OFFLINE, reads source only.
-// The CI workflow also refuses ANY change under src/ against 7704a98; this file says what must stay, by name.
+// The college screens keep these named controls. OFFLINE, reads source only.
+// The UI file freeze was removed by the owner on 6 Nov 2026; this file still says what must stay, by name.
 //
 //   node --test scripts/dev-tools/sidhu_s39_ui_contract.test.mjs
 import test from "node:test";

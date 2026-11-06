@@ -91,8 +91,8 @@ to fill on staging now; vacancies appear after removals. Production could not be
 | `scripts/dev-tools/sidhu_s39_squad_fixture.mjs` | schema slice; functions cut from their real migrations |
 | `scripts/dev-tools/sidhu_s39_squads.test.mjs` | 30 PGlite tests |
 | `scripts/dev-tools/sidhu_s39_squads_concurrency.test.mjs` | 4 tests, real PostgreSQL 16, several sessions |
-| `scripts/dev-tools/sidhu_s39_ui_contract.test.mjs` | 6 freeze tests of the college controls |
-| `.github/workflows/s39-squad-regression.yml` | all of the above in CI, plus `git diff` freeze of `src/` and a psql apply/rollback/re-apply |
+| `scripts/dev-tools/sidhu_s39_ui_contract.test.mjs` | 6 tests of the college controls |
+| `.github/workflows/s39-squad-regression.yml` | all of the above in CI, plus a psql apply/rollback/re-apply. The `git diff` freeze of `src/` was removed by the owner on 6 Nov 2026 |
 | **UI files** | **none** |
 
 ## Tests

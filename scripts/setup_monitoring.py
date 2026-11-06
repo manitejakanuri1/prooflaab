@@ -70,7 +70,8 @@ for dn, host, path, match, status_class in UPTIME:
         "monitoredResource": {"type": "uptime_url", "labels": {"project_id": P, "host": host}},
         "httpCheck": {"path": path, "port": 443, "useSsl": True, "validateSsl": True, "requestMethod": "GET",
                       "acceptedResponseStatusCodes": [{"statusClass": f"STATUS_CLASS_{status_class or '2XX'}"}]},
-        "period": "60s", "timeout": "10s",
+        # 15 minutes: every minute from all regions cost Rs 32,868 in October 2026. Above 1 million runs a month is charged.
+        "period": "900s", "timeout": "10s",
     }
     if match:
         body["contentMatchers"] = [{"content": match, "matcher": "CONTAINS_STRING"}]

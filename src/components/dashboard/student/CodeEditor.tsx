@@ -37,7 +37,7 @@ const WORDS: Record<string, string[]> = {
 let registered = false;
 const beforeMount: BeforeMount = (monaco) => {
   // JavaScript: underline syntax mistakes while typing, but not names the snippet does not define.
-  monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({ noSemanticValidation: true, noSyntaxValidation: false });
+  monaco.typescript.javascriptDefaults.setDiagnosticsOptions({ noSemanticValidation: true, noSyntaxValidation: false });
   if (registered) return;
   registered = true;
   for (const [lang, words] of Object.entries(WORDS)) {

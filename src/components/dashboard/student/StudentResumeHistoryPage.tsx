@@ -246,11 +246,11 @@ const StudentResumeHistoryPage = () => {
                               <Badge variant="secondary">Full</Badge>
                             )}
                           </td>
-                          <td className="py-2 px-3">{h.resume_quality_score ?? "—"}</td>
-                          <td className="py-2 px-3">{h.ats_match_score ?? "—"}</td>
+                          <td className="py-2 px-3">{of10(h.resume_quality_score)}</td>
+                          <td className="py-2 px-3">{of10(h.ats_match_score)}</td>
                           <td className="py-2 px-3">
                             <span className="inline-flex items-center gap-1">
-                              {h.skill_proof_score ?? "—"}
+                              {of10(h.skill_proof_score)}
                               {delta !== null && delta > 0 && (
                                 <span className="inline-flex items-center text-verified" title={`Up ${delta} vs last attempt`}>
                                   <TrendingUp className="h-3.5 w-3.5" />
@@ -268,9 +268,9 @@ const StudentResumeHistoryPage = () => {
                               )}
                             </span>
                           </td>
-                          <td className="py-2 px-3">{h.voice_authenticity_score ?? "—"}</td>
-                          <td className="py-2 px-3">{h.coding_score ?? "—"}</td>
-                          <td className="py-2 px-3">{h.interview_readiness_score ?? "—"}</td>
+                          <td className="py-2 px-3">{of10(h.voice_authenticity_score)}</td>
+                          <td className="py-2 px-3">{of10(h.coding_score)}</td>
+                          <td className="py-2 px-3">{of10(h.interview_readiness_score)}</td>
                           <td className="py-2 pl-3 text-muted-foreground">
                             {h.assessment_id && (isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
                           </td>

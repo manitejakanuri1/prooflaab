@@ -113,8 +113,11 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
   }, [e.task_id, e.lot_date, v?.status]);
   // Owner 1 Nov 2026: green "Passed" needs the voice at 50+ too (passedLabel).
   const passLabel = e.status === "passed" ? passedLabel(e.kind, scored ? v!.communication_score : null) : null;
+  const rejected = v?.status === "failed" && !closed;
   const st = closed && e.status === "passed"
     ? { label: `${e.kind === "written" ? "Answer" : "Code"} passed · spoken part closed`, variant: "outline" as const }
+    : rejected && e.status === "passed"
+    ? { label: `${e.kind === "written" ? "Answer" : "Code"} passed · voice not accepted`, variant: "outline" as const }
     : passLabel && passLabel !== "Passed" ? { label: passLabel, variant: "outline" as const }
     : STATUS[e.status] ?? { label: e.status, variant: "outline" as const };
   const match = v?.evaluation?.content_match;
@@ -152,7 +155,7 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
                    : e.kind === "written" ? "Written answer" : undefined} />
           <Score label="Voice" help={SCORE_HELP.voice}
                  value={scored ? of10(v!.communication_score) : "–"}
-                 sub={!v ? "Not recorded yet" : busy ? undefined : scored ? undefined : closed ? "Closed" : "Not scored"} />
+                 sub={!v ? "Not recorded yet" : busy ? undefined : scored ? undefined : closed ? "Closed" : rejected ? "Not accepted" : "Not scored"} />
           {scored && match != null && <Score label="Talk check" value={talkCheck(match)} help={SCORE_HELP.talk} />}
         </div>
         {e.status === "passed" && scored && passedNote(v!.communication_score, match) && (

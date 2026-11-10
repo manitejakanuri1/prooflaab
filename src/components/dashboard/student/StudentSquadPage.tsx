@@ -370,7 +370,7 @@ const StudentSquadPage = () => {
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Each Daily Lot: coding mark + voice mark, out of 20. A missed day only costs that member.
+                  Each Daily Lot: answer/code mark + voice mark, out of 20. A missed day only costs that member.
                 </p>
                 <table className="mt-3 w-full text-sm">
                   <thead>

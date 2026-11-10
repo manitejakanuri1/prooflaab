@@ -552,8 +552,9 @@ const StudentDailyCard = () => {
                 <div className="cursor-pointer" title="Go to today's Lot"
                      onClick={() => document.getElementById("todays-lot")?.scrollIntoView({ behavior: "smooth", block: "center" })}>
                   <p className="font-mono text-lg font-bold text-primary">
-                    {fmtMark(marks?.days.find((d) => d.task_id === lot?.id)?.day_total
-                      ?? (Number(lotState.best_mark ?? 0) + Number(lotState.voice_state === "scored" ? lotState.voice_mark ?? 0 : 0)))}
+                    {(lotState.checks_used ?? 0) === 0 && lotState.voice_state !== "scored" ? "–"
+                      : fmtMark(marks?.days.find((d) => d.task_id === lot?.id)?.day_total
+                        ?? (Number(lotState.best_mark ?? 0) + Number(lotState.voice_state === "scored" ? lotState.voice_mark ?? 0 : 0)))}
                   </p>
                   <p className="text-[11px] text-muted-foreground">Today /20 <InfoTip text={SCORE_HELP.today} /></p>
                 </div>

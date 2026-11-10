@@ -26,15 +26,15 @@ function ScorePill({ label, score, proof, verified }: { label: string; score: nu
   return (
     <div>
       <button onClick={() => setOpen(v => !v)} className='rounded-lg border border-border bg-secondary/70 px-2.5 py-1 text-left text-xs font-mono hover:border-primary/50'>
-        <span className='text-muted-foreground'>{label} </span><span className={tone}>{score ?? 'not tested'}</span>{verified ? <span className='ml-1 text-primary'>•</span> : null}
+        <span className='text-muted-foreground'>{label} </span><span className={tone}>{score == null ? 'not tested' : of10(score)}</span>{verified ? <span className='ml-1 text-primary'>•</span> : null}
       </button>
       {open && (
         <div className='mt-2 rounded-lg border border-border bg-secondary/40 p-3 animate-slide-down'>
-          <div className='mb-2 flex items-center justify-between'><span className='section-label'>proof · {label}</span><span className='text-xs font-mono tabular text-primary'>{score}</span></div>
+          <div className='mb-2 flex items-center justify-between'><span className='section-label'>proof · {label}</span><span className='text-xs font-mono tabular text-primary'>{of10(score)}</span></div>
           <div className='space-y-2'>
             {proof.map((item, i) => (
               <div key={i} className='rounded-lg border border-border bg-card/80 p-3'>
-                <div className='flex items-center justify-between gap-2'><div className='text-xs font-medium'>{item.title}</div><div className='text-[11px] font-mono tabular text-muted-foreground'>{item.score ?? '—'}</div></div>
+                <div className='flex items-center justify-between gap-2'><div className='text-xs font-medium'>{item.title}</div><div className='text-[11px] font-mono tabular text-muted-foreground'>{of10(item.score)}</div></div>
                 <p className='mt-1 text-xs text-muted-foreground'>{item.detail}</p>
                 <div className='mt-2 flex gap-2 text-[10px] font-mono uppercase tracking-wide text-muted-foreground'><span>{item.type}</span><span>{item.date}</span>{item.url ? <span className='truncate text-primary/80'>{item.url}</span> : null}</div>
               </div>
@@ -85,7 +85,7 @@ function ProofProfile({ candidate }: { candidate: Candidate }) {
               <div className='space-y-2'>
                 {candidate.assessmentScores.map(score => (
                   <div key={score.category} className='rounded-lg border border-border bg-secondary/30 p-3'>
-                    <div className='mb-2 flex items-center justify-between'><span className='text-sm font-medium'>{score.category}</span><span className='text-xs font-mono tabular'>{score.score}</span></div>
+                    <div className='mb-2 flex items-center justify-between'><span className='text-sm font-medium'>{score.category}</span><span className='text-xs font-mono tabular'>{of10(score.score)}</span></div>
                     <Progress value={score.score} />
                     <div className='mt-2'><ScorePill label={score.category} score={score.score} proof={score.proof} /></div>
                   </div>
@@ -171,7 +171,7 @@ function ProofProfile({ candidate }: { candidate: Candidate }) {
           <CardHeader><CardTitle>Consistency · activity · rank</CardTitle></CardHeader>
           <CardContent className='space-y-4'>
             <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>consistency</div><div className='mt-2 flex items-center justify-between'><div className='text-2xl font-semibold tabular'>{candidate.consistency}</div><div className='text-xs text-muted-foreground'>{candidate.lastActive}</div></div><div className='mt-2'><Progress value={candidate.consistency} /></div></div>
-            <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>communication score</div><div className='mt-2'><ScorePill label='Communication' score={candidate.communicationScore} proof={candidate.assessmentScores.find(a => a.category === 'Communication')?.proof ?? []} /></div></div>
+            <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>voice score</div><div className='mt-2'><ScorePill label='Voice' score={candidate.communicationScore} proof={candidate.assessmentScores.find(a => a.category === 'Communication')?.proof ?? []} /></div></div>
             <div className='grid grid-cols-2 gap-3'>
               <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>squad rank</div><div className='mt-2 text-xl font-semibold tabular'>{candidate.squad.rank}/{candidate.squad.totalMembers}</div><div className='mt-1 text-xs text-muted-foreground'>{candidate.squad.squadName}</div></div>
               <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>season rank</div><div className='mt-2 text-xl font-semibold tabular'>#{candidate.seasonRank}</div><div className='mt-1 text-xs text-muted-foreground'>{candidate.squad.seasonPoints} pts</div></div>

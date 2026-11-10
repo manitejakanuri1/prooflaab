@@ -119,12 +119,12 @@ const DailyLots = () => {
                     <>
                       <p>
                         Result: {s.status}{s.score != null ? ` · ${of10(s.score)}` : ""}
-                        {s.total != null ? ` · tests ${s.passed ?? 0}/${s.total}` : ""} · {s.attempts} attempt{s.attempts === 1 ? "" : "s"}
+                        {s.total ? ` · tests ${s.passed ?? 0}/${s.total}` : ""} · {s.attempts} attempt{s.attempts === 1 ? "" : "s"}
                         {s.flags?.length ? ` · flags: ${s.flags.join(", ")}` : ""}
                       </p>
-                      {s.tests && s.tests.length > 0 && (
+                      {s.tests && s.tests.some((t) => t.id) && (
                         <p className="text-muted-foreground">
-                          Tests: {s.tests.map((t) => `${t.id} ${t.passed ? "passed" : (t.verdict ?? "failed")}${t.visible ? "" : " (hidden)"}`).join(" · ")}
+                          Tests: {s.tests.filter((t) => t.id).map((t) => `${t.id} ${t.passed ? "passed" : (t.verdict ?? "failed")}${t.visible ? "" : " (hidden)"}`).join(" · ")}
                         </p>
                       )}
                       {s.rubric && s.rubric.length > 0 && (

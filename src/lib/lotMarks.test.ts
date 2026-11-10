@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { checkLine, fmtMark, of10, talkCheck, voiceLine } from "./lotMarksText.ts";
+import { checkLine, fmtMark, of10, scoreText10, talkCheck, voiceLine } from "./lotMarksText.ts";
 
 test("marks: whole marks show no decimal, others one", () => {
   assert.equal(fmtMark(8), "8");
@@ -10,6 +10,8 @@ test("marks: whole marks show no decimal, others one", () => {
   assert.equal(of10(72), "7.2/10");
   assert.equal(of10(100), "10/10");
   assert.equal(of10(null), "–");
+  assert.equal(scoreText10("readiness 46/100"), "readiness 4.6/10");
+  assert.equal(scoreText10("resume score 61 · ATS 56"), "resume score 6.1/10 · ATS 5.6/10");
   assert.equal(talkCheck(88), "Matched");
   assert.equal(talkCheck(30), "Partly");
   assert.equal(talkCheck(29), "Not matched");

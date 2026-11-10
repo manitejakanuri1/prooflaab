@@ -45,6 +45,13 @@ export function of10(score100: number | null | undefined): string {
   return score100 == null ? "–" : `${fmtMark(Number(score100) / 10)}/10`;
 }
 
+/** Leftover 2: a sentence the server wrote with 0-100 numbers, shown on the 10 scale. */
+export function scoreText10(text: string): string {
+  return text
+    .replace(/\b(score|ATS|readiness)\s+(\d{1,3})(?:\/100)?(?![\d./])/gi, (_, w, n) => `${w} ${of10(Number(n))}`)
+    .replace(/\b(\d{1,3})\/100\b/g, (_, n) => of10(Number(n)));
+}
+
 /** Polish pass A2: the AI's "is this talk about this work" number, in words. */
 export function talkCheck(match: number | null | undefined): string {
   if (match == null) return "–";
@@ -75,6 +82,8 @@ export const SCORE_HELP = {
   share: "Your season points as a share of all members' points.",
   movement: "Change in college rank since last week.",
   xp: "Points for finishing Lots, for badges.",
+  seasonPoints: "Your points for the whole season so far: your Today scores added up.",
+  bestWeek: "Your highest week total this season.",
 } as const;
 
 /** What the student reads after a check: submit or try again, or the final best mark. */

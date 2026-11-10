@@ -1,4 +1,4 @@
-import { of10 } from "@/lib/lotMarks";
+import { of10, scoreText10 } from "@/lib/lotMarks";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -241,7 +241,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                         {s.at && (
                           <span className="font-mono text-[10px] text-muted-foreground"> · {format(new Date(s.at), "d MMM, HH:mm")}</span>
                         )}
-                        {s.detail && <span className="block text-xs text-muted-foreground">{s.detail}</span>}
+                        {s.detail && <span className="block text-xs text-muted-foreground">{scoreText10(s.detail)}</span>}
                       </span>
                     </div>
                   ))}
@@ -348,7 +348,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                           <span className="font-mono text-[10px] text-muted-foreground">{w.attempts} tries</span>
                         )}
                         {w.ai_score != null && (
-                          <span className="font-mono text-xs tabular-nums">{w.ai_score}</span>
+                          <span className="font-mono text-xs tabular-nums">{of10(w.ai_score)}</span>
                         )}
                         <Badge variant={w.status === "passed" ? "default" : "outline"}>
                           {w.status}

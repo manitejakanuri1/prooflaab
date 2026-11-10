@@ -1,3 +1,5 @@
+import { SCORE_HELP } from "@/lib/lotMarks";
+import InfoTip from "@/components/common/InfoTip";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -124,14 +126,14 @@ const StudentSeasonReport = () => {
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {[
               ...(r.rank ? [{ k: "Your place", v: `#${r.rank.place} of ${r.rank.of}` }] : []),
-              { k: "Points", v: r.totals?.points ?? 0 },
+              { k: "Points", v: r.totals?.points ?? 0, help: SCORE_HELP.seasonPoints },
               ...(r.this_week ? [{ k: `Week ${r.this_week.week} so far`, v: `${r.this_week.points} (${r.this_week.lots} Lots)` }] : []),
-              { k: "Best week", v: r.totals?.best_week ?? 0 },
+              { k: "Best week", v: r.totals?.best_week ?? 0, help: SCORE_HELP.bestWeek },
               { k: "Weeks active", v: `${r.totals?.weeks_active ?? 0}/${r.totals?.weeks_total || r.season?.weeks || 0}` },
               { k: "Topics cleared", v: r.ladder?.cleared ?? 0 },
-            ].map(({ k, v }) => (
+            ].map(({ k, v, help }: { k: string; v: string | number; help?: string }) => (
               <div key={k} className="rounded-lg bg-muted/50 p-3">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{k}</span>
+                <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{k}{help && <InfoTip text={help} />}</span>
                 <div className="font-mono text-xl font-semibold tabular-nums mt-1">{v}</div>
               </div>
             ))}

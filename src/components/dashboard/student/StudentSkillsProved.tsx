@@ -198,6 +198,11 @@ const StudentSkillsProved = () => {
             <span className="font-mono text-xl font-semibold tabular-nums">{proven}</span>
             <span className="text-muted-foreground"> of {skills.length} carry evidence.</span>
           </p>
+          {skills.some((s) => s.assessed_score != null) && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Starting test = your overall starting-test average, shown on each skill from your resume. Tap a skill for details.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -224,11 +229,7 @@ const StudentSkillsProved = () => {
                 </div>
 
                 <p className="text-xs text-muted-foreground mt-1">{meta.says}</p>
-                {s.assessed_score != null && (
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    Starting test = your overall starting-test average, shown on each skill from your resume.
-                  </p>
-                )}
+
 
                 {s.topics_total > 0 && (
                   <div className="mt-3">

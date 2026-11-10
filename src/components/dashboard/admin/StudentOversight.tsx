@@ -1,3 +1,4 @@
+import { of10, scoreText10 } from "@/lib/lotMarks";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { removalSummary, removeStudents } from "@/lib/removeStudents";
@@ -654,7 +655,7 @@ function AdminReadiness({ student }: { student: { id: string; onboarding_status?
       <p>Onboarding: <b>{student.onboarding_status ?? '-'}</b></p>
       {card === undefined ? <p className="text-muted-foreground">Loading scores...</p>
         : card === null ? <p className="text-muted-foreground">No resume check yet.</p>
-        : <p>Resume score <b>{n(card.resume_quality_score)}</b> · Interview readiness <b>{n(card.interview_readiness_score)}</b>
+        : <p>Resume score <b>{of10(card.resume_quality_score)}</b> · Interview readiness <b>{of10(card.interview_readiness_score)}</b>
             <span className="text-muted-foreground"> ({new Date(card.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })})</span></p>}
     </div>
   );

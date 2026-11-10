@@ -362,7 +362,6 @@ const StudentSquadPage = () => {
                   </span>
                   <span className="text-sm">
                     Squad total <span className="font-mono font-bold">{fmtMark(weekMarks.squad_total)}</span>{" "}
-                    <InfoTip text={SCORE_HELP.squad} />{" "}
                     <InfoTip text={SCORE_HELP.squad} />
                   </span>
                 </div>

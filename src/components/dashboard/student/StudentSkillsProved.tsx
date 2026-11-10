@@ -85,8 +85,6 @@ const TopicStrengths = () => {
         <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
           Where you stand, topic by topic
         </span>{" "}
-        <InfoTip text="Shows after 3 answers on a topic. 75%+ = Strong, under 50% = Needs work." />{" "}
-        <InfoTip text="Shows after 3 answers on a topic. 75%+ = Strong, under 50% = Needs work." />{" "}
         <InfoTip text="Shows after 3 answers on a topic. 75%+ = Strong, under 50% = Needs work." />
         {strong.length > 0 && (
           <div>
@@ -192,16 +190,6 @@ const StudentSkillsProved = () => {
                 </div>
 
                 <p className="text-xs text-muted-foreground mt-1">{meta.says}</p>
-                {s.assessed_score != null && (
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    Starting test = your overall starting-test average, shown on each skill from your resume.
-                  </p>
-                )}
-                {s.assessed_score != null && (
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    Starting test = your overall starting-test average, shown on each skill from your resume.
-                  </p>
-                )}
                 {s.assessed_score != null && (
                   <p className="text-[11px] text-muted-foreground mt-1">
                     Starting test = your overall starting-test average, shown on each skill from your resume.

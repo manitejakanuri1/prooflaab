@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUrlTab } from "@/hooks/useUrlTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
@@ -191,9 +191,13 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
 
   // Arriving with a squad already chosen means somebody clicked its name, and
   // what they wanted to see is who is in it.
+  // Retest: on first open the reset is skipped, so a direct link (?view=matches) keeps its tab.
+  const firstFocus = useRef(true);
   useEffect(() => {
+    const first = firstFocus.current;
+    firstFocus.current = false;
     if (focusSquad) { setSelected(focusSquad); setTab("members"); }
-    else { setTab("standings"); }
+    else if (!first) { setTab("standings"); }
   }, [focusSquad, focusKey]);
 
   const { status: season } = useSeasonStatus();

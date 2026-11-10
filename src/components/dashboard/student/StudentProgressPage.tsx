@@ -5,7 +5,8 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { supabase } from "@/integrations/supabase/client";
-import { Target, Award, FileCheck } from "lucide-react";
+import { fmtMark, loadWeekMarks, type WeekMarks } from "@/lib/lotMarks";
+import { Target, Award, FileCheck, CalendarDays } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 interface WeekPoint { week: number; points: number }
@@ -43,19 +44,25 @@ const StudentProgressPage = () => {
   const [weeklyPoints, setWeeklyPoints] = useState<WeekPoint[] | null>(null);
   const [badges, setBadges] = useState<EarnedBadge[] | null>(null);
   const [submissions, setSubmissions] = useState<{ total: number; passed: number; review: number } | null>(null);
+  // The running week, from the same source as the dashboard's "This week" (my_marks_week).
+  const [running, setRunning] = useState<WeekMarks | null>(null);
 
   useEffect(() => {
     if (!profile?.id) return;
     (async () => {
-      const [{ data: weekly }, { data: earned }, { data: proofs }] = await Promise.all([
+      // student_weekly_scores holds FINISHED weeks only (written when a week is scored).
+      // The newest 8, shown oldest to newest (it used to load the first 8, so it stopped moving after week 8).
+      const [{ data: weekly }, { data: earned }, { data: proofs }, week] = await Promise.all([
         supabase.from("student_weekly_scores").select("week, points")
-          .eq("student_id", profile.id).order("week", { ascending: true }).limit(8),
+          .eq("student_id", profile.id).order("computed_at", { ascending: false }).limit(8),
         supabase.from("student_badges").select("awarded_at, badges(name, emoji)")
           .eq("student_id", profile.id).order("awarded_at", { ascending: false }).limit(3),
         supabase.from("task_submissions").select("status").eq("student_id", profile.id),
+        loadWeekMarks().catch(() => null),
       ]);
 
-      setWeeklyPoints((weekly ?? []).map((w) => ({ week: w.week as number, points: w.points as number })));
+      setRunning(week);
+      setWeeklyPoints((weekly ?? []).reverse().map((w) => ({ week: w.week as number, points: w.points as number })));
       setBadges((earned ?? []).map((r: any) => ({ name: r.badges?.name ?? "Badge", emoji: r.badges?.emoji ?? "🏅" })));
       setSubmissions({
         total: (proofs ?? []).length,
@@ -78,12 +85,14 @@ const StudentProgressPage = () => {
   }
 
   const passRate = submissions.total > 0 ? Math.round((submissions.passed / submissions.total) * 100) : 0;
-  const thisWeek = weeklyPoints.length > 0 ? weeklyPoints[weeklyPoints.length - 1].points : 0;
-  const lastWeek = weeklyPoints.length > 1 ? weeklyPoints[weeklyPoints.length - 2].points : null;
-  const weekChange = lastWeek != null
-    ? (lastWeek === 0 ? (thisWeek > 0 ? "up from a quiet week" : null)
-       : `${thisWeek >= lastWeek ? "+" : ""}${Math.round(((thisWeek - lastWeek) / lastWeek) * 100)}% vs last week`)
+  // "Last week" = the newest finished week; compared with the finished week before it.
+  const lastWeek = weeklyPoints.length > 0 ? weeklyPoints[weeklyPoints.length - 1].points : 0;
+  const weekBefore = weeklyPoints.length > 1 ? weeklyPoints[weeklyPoints.length - 2].points : null;
+  const weekChange = weekBefore != null
+    ? (weekBefore === 0 ? (lastWeek > 0 ? "up from a quiet week" : null)
+       : `${lastWeek >= weekBefore ? "+" : ""}${Math.round(((lastWeek - weekBefore) / weekBefore) * 100)}% vs the week before`)
     : null;
+  const lotsSoFar = running?.days.length ?? 0;
 
   const submissionData = [
     { name: "Passed", value: submissions.passed, color: "hsl(var(--verified))" },
@@ -92,7 +101,9 @@ const StudentProgressPage = () => {
   ];
 
   const progressCards = [
-    { title: "This Week's Points", value: thisWeek.toString(), icon: Award,
+    { title: "This week (so far)", value: fmtMark(running?.week_total), icon: CalendarDays,
+      color: "text-primary", bgColor: "bg-primary/10", change: `${lotsSoFar} ${lotsSoFar === 1 ? "Lot" : "Lots"} so far` },
+    { title: "Last week", value: lastWeek.toString(), icon: Award,
       color: "text-verified", bgColor: "bg-verified/10", change: weekChange },
     { title: "Pass Rate", value: `${passRate}%`, icon: Target,
       color: "text-primary", bgColor: "bg-primary/10", change: null },
@@ -125,7 +136,8 @@ const StudentProgressPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <Card>
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-base sm:text-lg font-semibold">Points — Recent Weeks</CardTitle>
+            <CardTitle className="text-base sm:text-lg font-semibold">Points — finished weeks</CardTitle>
+            <p className="text-xs text-muted-foreground">One bar per finished week: that week's Lot marks added up (up to 20 per Lot). The running week is in "This week".</p>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
             {weeklyPoints.length > 0 ? (

@@ -61,12 +61,16 @@ const StudentAssignedTasksPage = () => {
 
   // Filter only assigned tasks (from admin/college, not student-created or startup applications)
   const assignedTasks = useMemo(() => {
+    // The newest Daily Lot is today's (the TEST site runs on its own clock, so no calendar date is used).
+    const latestLot = allTasks.filter((t) => t.source?.toLowerCase() === 'daily lot' && t.lot_date)
+      .reduce<string>((m, t) => (t.lot_date! > m ? t.lot_date! : m), '');
     return allTasks.filter(task => {
       const source = task.source?.toLowerCase() || '';
       // Everything the student has to do, except company tasks they applied
-      // to (those have their own flow). QA week 8 retest: an unfinished Daily Lot
-      // is listed too ("0 tasks" beside a Daily Lot read as a bug); finished ones stay in History.
-      if (source === 'daily lot') return task.status !== 'Completed';
+      // to (those have their own flow). QA week 8 retest: today's Daily Lot is listed too
+      // ("0 tasks" beside it read as a bug). Older Daily Lots are closed days, not open work
+      // (they showed as open: 2-6 Nov); History has them.
+      if (source === 'daily lot') return task.lot_date === latestLot;
       return source !== 'company';
     });
   }, [allTasks]);

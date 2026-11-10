@@ -358,7 +358,7 @@ export default function WrittenTaskPanel({
                 {daily ? "Your mark is saved." : "Your written answer passed!"} Record now, or close this and record later from the Daily Card.
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Use the recorder on the right and explain your work in your own words.
+                Use the recorder on this screen (beside your answer, or below it on a phone) to explain your work in your own words.
               </p>
             </div>
           )}

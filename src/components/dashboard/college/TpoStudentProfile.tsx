@@ -241,7 +241,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                         {s.at && (
                           <span className="font-mono text-[10px] text-muted-foreground"> · {format(new Date(s.at), "d MMM, HH:mm")}</span>
                         )}
-                        {s.detail && <span className="block text-xs text-muted-foreground">{scoreText10(s.detail)}</span>}
+                        {s.detail && <span className="block text-xs text-muted-foreground">{scoreText10(s.detail).replace(/^0 questions · /, "")}</span>}
                       </span>
                     </div>
                   ))}

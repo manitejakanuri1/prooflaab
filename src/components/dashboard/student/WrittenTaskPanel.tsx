@@ -127,6 +127,8 @@ export default function WrittenTaskPanel({
   const wordCount = answer.trim().split(/\s+/).filter(Boolean).length;
   const tooShort = view ? wordCount < view.min_words : false;
   const tooLong = view ? wordCount > view.max_words : false;
+  // The task text can name its own range ("100-200 words"); the checker's limits are min/max_words.
+  const aim = view?.prompt_text.match(/(\d{2,4})\s*(?:–|-|to)\s*(\d{2,4})\s*words/i) ?? null;
 
   const submit = async () => {
     setBusy(true); setError(null);
@@ -189,6 +191,11 @@ export default function WrittenTaskPanel({
         <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
           {daily ? (strict ? "one check, its score is final" : `${lot?.checks_max ?? 2} checks, your best counts`) : `pass mark ${view.pass_threshold}%`} · {view.min_words}–{view.max_words} words
         </p>
+        {aim && (aim[1] !== String(view.min_words) || aim[2] !== String(view.max_words)) && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Aim for {aim[1]}–{aim[2]} words, as the task asks. The check accepts {view.min_words}–{view.max_words}.
+          </p>
+        )}
       </div>
 
       <div className="space-y-1">

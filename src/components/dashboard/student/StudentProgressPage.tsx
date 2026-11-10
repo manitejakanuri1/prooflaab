@@ -210,6 +210,7 @@ const StudentProgressPage = () => {
                   {badges.map((b, i) => (
                     <Badge key={i} className="bg-compete/10 text-compete">{b.emoji} {b.name}</Badge>
                   ))}
+                  <Link to="/student/dashboard?tab=profile&view=achievements" className="self-center text-xs underline">See Profile → Badges</Link>
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground">

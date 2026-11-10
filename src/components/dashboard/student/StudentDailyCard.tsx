@@ -61,6 +61,8 @@ interface SquadSummary {
   points: number | null;
   rank: number | null;
   cohort: string | null;
+  /** True when this is last season's squad (no current membership), as the Squad page shows it. */
+  last?: boolean;
 }
 
 /** The small caps line above the Lot title — what kind of task this is. */
@@ -207,9 +209,16 @@ const StudentDailyCard = () => {
     }
     setStreak(liveStreak(streakRes.data?.current_days ?? 0, streakRes.data?.last_active_on ?? null, format(clock, "yyyy-MM-dd")));
     setLastActive(streakRes.data?.last_active_on ?? null);
-    setSquad(
-      ((squadRes.data as unknown as { squads: SquadSummary | null } | null)?.squads) ?? null,
-    );
+    let mySquad = ((squadRes.data as unknown as { squads: SquadSummary | null } | null)?.squads) ?? null;
+    if (!mySquad) {
+      // Same fallback as the Squad page (E2E-4): after close_season everyone's row has left_at set.
+      const { data: past } = await supabase.from("squad_members").select("squads(name, points, rank, cohort)")
+        .eq("student_id", profile.id).order("left_at", { ascending: false, nullsFirst: false })
+        .order("joined_at", { ascending: false }).limit(1).maybeSingle();
+      const p = (past as unknown as { squads: SquadSummary | null } | null)?.squads;
+      mySquad = p ? { ...p, last: true } : null;
+    }
+    setSquad(mySquad);
 
     const todayKey = format(clock, "yyyy-MM-dd");
     setEarlierOpen(((weekRes.data ?? []) as { id: string; lot_date: string; status: string | null }[])
@@ -595,7 +604,8 @@ const StudentDailyCard = () => {
                 const colour = kind ? DOT[kind][done ? 0 : 1] : "bg-muted";
                 return (
                   <Link key={date.toISOString()}
-                        to={taskId ? `/student/dashboard?tab=log&view=entries&task=${encodeURIComponent(taskId)}` : "/student/dashboard?tab=log&view=history"}
+                        to={taskId && done ? `/student/dashboard?tab=log&view=entries&task=${encodeURIComponent(taskId)}`
+                          : taskId ? `/student/tasks/assigned?open=${taskId}` : "/student/dashboard?tab=log&view=history"}
                         className="flex flex-1 flex-col items-center gap-1.5 rounded hover:bg-muted/40">
                     <span
                       className={`h-2.5 w-2.5 rounded-full ${colour} ${today ? "ring-4 ring-verified/20" : ""}`}
@@ -625,7 +635,7 @@ const StudentDailyCard = () => {
                 <>
                   <p className="mt-1 truncate text-sm font-semibold">{squad.name}</p>
                   <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
-                    {squad.cohort ? `${squad.cohort} · ` : ""}
+                    {squad.last ? "Last season · " : ""}{squad.cohort ? `${squad.cohort} · ` : ""}
                     {squad.points ?? 0} pts
                     {squad.rank && (squad.points ?? 0) > 0 ? ` · rank #${squad.rank}` : ""}
                   </p>

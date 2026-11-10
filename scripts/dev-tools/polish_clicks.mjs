@@ -38,14 +38,18 @@ try {
   await check("Daily: Streak goes to Build-log History", async () => { await page.getByRole("link", { name: /Streak/ }).click(); await page.waitForTimeout(1500); return page.url().includes("view=history"); });
   await page.goBack(); await page.waitForTimeout(2000);
   await check("Back returns to the Daily Card", async () => page.url().includes("tab=lab"));
-  await check("Daily: a week dot goes to Build-log", async () => { await page.getByRole("link", { name: /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)$/ }).first().click(); await page.waitForTimeout(1500); return page.url().includes("tab=log"); });
+  await check("Daily: a week dot opens its entry (done) or the Lot (open)", async () => { await page.getByRole("link", { name: /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)$/ }).first().click(); await page.waitForTimeout(1500); return page.url().includes("tab=log") || page.url().includes("tasks/assigned"); });
   await go(page, "/student/dashboard?tab=lab");
+  await check("Daily: squad card names the squad (same as Squad page)", async () => (await page.getByText(/Not in a squad yet/).count()) === 0);
   await check("Daily: squad card goes to Squad", async () => { await page.getByRole("link", { name: /Squad/ }).last().click(); await page.waitForTimeout(1500); return page.url().includes("tab=squad"); });
   await page.waitForTimeout(1500);
   await page.screenshot({ path: `${out}/d-student-squad.png`, fullPage: true });
   await check("Squad: title 'Your squad', no 'THE LAB'", async () => (await page.getByText("Your squad", { exact: true }).count()) > 0 && (await page.getByText(/THE\s*LAB/).count()) === 0);
   await check("Squad: 'seats filled' wording", async () => (await page.getByText(/seats filled/).count()) > 0);
   await check("Squad: Movement shows words not a dash", async () => (await page.getByText(/^(No change|Not ranked yet|▲\d+|▼\d+)$/).count()) > 0);
+  await check("Squad: header never 'Unranked'", async () => (await page.getByText(/^unranked$/i).count()) === 0);
+  await check("Squad: member row reads '(you)'", async () => (await page.getByText("(you)").count()) > 0);
+  await check("Squad: no '? vs ?'", async () => (await page.getByText(/\?\s*vs\s*\?/).count()) === 0);
   await check("Squad: Matches tab in the URL", async () => { await page.getByRole("tab", { name: "Matches" }).click(); await page.waitForTimeout(800); return page.url().includes("view=matches"); });
   await check("Squad: a match row opens the match popup", async () => { const row = page.locator("tbody tr.cursor-pointer").first(); if (!(await row.count())) return true; await row.click(); const ok = await dialogOpen(page); await page.screenshot({ path: `${out}/d-match-popup.png` }); await closeDialog(page); return ok; });
   await go(page, "/student/dashboard?tab=log&view=skills");
@@ -53,7 +57,10 @@ try {
   await check("Skills: a topic chip opens its popup (if any topic shows)", async () => { const chip = page.getByText(/ correct/).first(); if (!(await chip.count())) return true; await chip.click(); const ok = await dialogOpen(page); await page.screenshot({ path: `${out}/d-topic-popup.png` }); await closeDialog(page); return ok; });
   await go(page, "/student/dashboard?tab=log&view=history");
   await check("History: a Lot event opens that Lot in Recent work", async () => { const l = page.getByRole("link", { name: /→$/ }).first(); if (!(await l.count())) return true; await l.click(); await page.waitForTimeout(1500); return page.url().includes("task="); });
+  await go(page, "/student/tasks/assigned");
+  await check("Your Tasks: View Submission shown for earlier work", async () => (await page.getByRole("button", { name: /View Submission/ }).count()) > 0);
   await go(page, "/student/dashboard?tab=log&view=progress");
+  await check("Progress: 'See Profile → Badges' link shown", async () => (await page.getByRole("link", { name: /Profile → Badges/ }).count()) > 0);
   await check("Progress: badges link goes to Profile -> Badges", async () => { const l = page.getByRole("link", { name: /Profile → Badges/ }); if (!(await l.count())) return true; await l.click(); await page.waitForTimeout(1500); return page.url().includes("view=achievements"); });
   await ctx.close();
 

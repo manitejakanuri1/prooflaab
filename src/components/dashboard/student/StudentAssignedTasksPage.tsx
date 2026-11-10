@@ -72,7 +72,8 @@ const StudentAssignedTasksPage = () => {
       // to (those have their own flow). QA week 8 retest: today's Daily Lot is listed too
       // ("0 tasks" beside it read as a bug). Older Daily Lots are closed days, not open work
       // (they showed as open: 2-6 Nov); History has them.
-      if (source === 'daily lot') return task.lot_date === latestLot;
+      // Retest: a finished earlier Lot stays listed so its View Submission button is there.
+      if (source === 'daily lot') return task.lot_date === latestLot || task.status === 'Completed';
       return source !== 'company';
     });
   }, [allTasks]);

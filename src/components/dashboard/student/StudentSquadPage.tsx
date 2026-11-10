@@ -165,7 +165,14 @@ const StudentSquadPage = () => {
     setWeekMarks((wm as unknown as SquadWeekMarks | null) ?? null);
 
     const mySquad = squadRes.data as Squad | null;
-    const allSquads = (standingRes.data ?? []) as Squad[];
+    const read = (standingRes.data ?? []) as Squad[];
+    // The top-60 read can miss this squad and its opponents; add them so no name shows as "?".
+    const allSquads = mySquad && !read.some((s) => s.id === mySquad.id) ? [...read, mySquad] : read;
+    const matchIds = [...new Set(((matchRes.data ?? []) as Match[]).flatMap((m) => [m.home_squad, m.away_squad]))]
+      .filter((id) => id && !allSquads.some((s) => s.id === id));
+    const extra = matchIds.length
+      ? (((await supabase.from("squads").select("id, name").in("id", matchIds)).data ?? []) as { id: string; name: string }[])
+      : [];
     // MF-009: this season only, every section, ordered by the one overall rank (recount_season).
     const league = mySquad
       ? allSquads.filter((s) => s.season_id === mySquad.season_id)
@@ -179,7 +186,7 @@ const StudentSquadPage = () => {
     setStandings(league);
     // Names still come from every squad read, because a championship fixture
     // pairs this squad with one from another cohort.
-    setNames(Object.fromEntries(allSquads.map((s) => [s.id, s.name])));
+    setNames(Object.fromEntries([...allSquads, ...extra].map((s) => [s.id, s.name])));
     setAchievements((achieveRes.data ?? []) as unknown as Achievement[]);
     if (mySquad?.season_id) {
       const { data: s } = await supabase.from("seasons")
@@ -246,6 +253,8 @@ const StudentSquadPage = () => {
   const thisWeek = FAST_WEEK
     ? { start: addMinutes(new Date(), -FAST_WEEK_MINUTES), end: addMinutes(new Date(), FAST_WEEK_MINUTES) }
     : { start: weekStart, end: addDays(weekStart, 7) };
+  // Same number as the standings table below (s.rank ?? place in it).
+  const shownRank = squad.rank ?? (standings.findIndex((s) => s.id === squad.id) + 1 || null);
   const restWeek = !matches.some((m) =>
     isWithinInterval(new Date(m.scheduled_at), thisWeek));
 
@@ -255,9 +264,9 @@ const StudentSquadPage = () => {
         <h1 className="text-2xl font-extrabold tracking-tight">Your squad</h1>
         <span className="ml-auto font-mono text-xs uppercase tracking-widest text-muted-foreground">
           {/* sectionRank = place inside the section; squads.rank = place in the whole college. */}
-          {squad.rank
-            ? `${sectionRank ? `#${sectionRank} in ${squad.cohort ?? "section"} · ` : ""}#${squad.rank} in college`
-            : "Unranked"}
+          {shownRank
+            ? `${sectionRank ? `#${sectionRank} in ${squad.cohort ?? "section"} · ` : ""}#${shownRank} in college`
+            : "Not ranked yet"}
         </span>
       </div>
 
@@ -341,11 +350,11 @@ const StudentSquadPage = () => {
                   </span>
                 </p>
               )}
-              {next ? (
+              {next && !restWeek ? (
                 <button type="button" className="mt-2 block text-left hover:underline" onClick={() => setOpenMatch(next)}>
                   <p className="font-semibold">
-                    {names[next.home_squad] ?? "?"} <span className="text-muted-foreground font-normal">vs</span>{" "}
-                    {names[next.away_squad] ?? "?"}
+                    {names[next.home_squad] ?? "Squad to be set"} <span className="text-muted-foreground font-normal">vs</span>{" "}
+                    {names[next.away_squad] ?? "Squad to be set"}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
                     {format(new Date(next.scheduled_at), "EEEE d MMM, h:mm a")}
@@ -387,7 +396,7 @@ const StudentSquadPage = () => {
                         <td className="py-2 pr-3 font-mono tabular-nums">{i + 1}</td>
                         <td className="py-2 pr-3">
                           {m.full_name}
-                          {m.is_me && <span className="ml-2 font-mono text-[10px] text-muted-foreground">you</span>}
+                          {m.is_me && <span className="ml-1 font-mono text-[10px] text-muted-foreground"> (you)</span>}
                         </td>
                         <td className="py-2 pr-3 font-mono tabular-nums">{m.lots}</td>
                         <td className="py-2 font-mono tabular-nums">{fmtMark(m.week_total)}</td>
@@ -434,7 +443,7 @@ const StudentSquadPage = () => {
                       <td className="py-2.5 pr-3">
                         {m.student_profiles?.full_name ?? "—"}
                         {m.student_id === profile?.id && (
-                          <span className="ml-2 font-mono text-[10px] text-muted-foreground">you</span>
+                          <span className="ml-1 font-mono text-[10px] text-muted-foreground"> (you)</span>
                         )}
                       </td>
                       <td className="py-2.5 pr-3 text-muted-foreground">{m.role === "captain" ? "Captain" : "Member"}</td>
@@ -472,7 +481,7 @@ const StudentSquadPage = () => {
                       return (
                         <tr key={m.id} className="border-t cursor-pointer hover:bg-muted/40" onClick={() => setOpenMatch(m)}>
                           <td className="py-2.5 pr-3">
-                            vs {names[home ? m.away_squad : m.home_squad] ?? "?"}
+                            vs {names[home ? m.away_squad : m.home_squad] ?? "Squad to be set"}
                           </td>
                           <td className="py-2.5 pr-3 text-muted-foreground">
                             {m.round_number ? `Week ${m.round_number} · ` : ""}{format(new Date(m.scheduled_at), WHEN_FORMAT)}
@@ -524,7 +533,7 @@ const StudentSquadPage = () => {
                       <td className="py-2.5 pr-3">
                         {s.name}
                         {s.id === squad.id && (
-                          <span className="ml-2 font-mono text-[10px] text-muted-foreground">you</span>
+                          <span className="ml-1 font-mono text-[10px] text-muted-foreground"> (your squad)</span>
                         )}
                         {tieNote(standings, s) && (
                           <span className="block text-[11px] text-muted-foreground">{tieNote(standings, s)}</span>

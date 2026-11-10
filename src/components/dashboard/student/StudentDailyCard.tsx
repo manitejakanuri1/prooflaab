@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { liveStreak } from "@/lib/streak";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
@@ -202,7 +203,7 @@ const StudentDailyCard = () => {
         .order("created_at", { ascending: false }).limit(1).maybeSingle();
       setVoiceScore((v as { communication_score: number | null } | null)?.communication_score ?? null);
     }
-    setStreak(streakRes.data?.current_days ?? 0);
+    setStreak(liveStreak(streakRes.data?.current_days ?? 0, streakRes.data?.last_active_on ?? null, format(clock, "yyyy-MM-dd")));
     setLastActive(streakRes.data?.last_active_on ?? null);
     setSquad(
       ((squadRes.data as unknown as { squads: SquadSummary | null } | null)?.squads) ?? null,

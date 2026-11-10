@@ -64,9 +64,10 @@ const StudentAssignedTasksPage = () => {
     return allTasks.filter(task => {
       const source = task.source?.toLowerCase() || '';
       // Everything the student has to do, except company tasks they applied
-      // to (those have their own flow) and the Daily Lot, which the Floor card
-      // already shows: the same Lot twice read as two different tasks.
-      return source !== 'company' && source !== 'daily lot';
+      // to (those have their own flow). QA week 8 retest: an unfinished Daily Lot
+      // is listed too ("0 tasks" beside a Daily Lot read as a bug); finished ones stay in History.
+      if (source === 'daily lot') return task.status !== 'Completed';
+      return source !== 'company';
     });
   }, [allTasks]);
 

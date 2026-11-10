@@ -69,7 +69,7 @@ if (typeof window !== "undefined") {
 }
 
 // QA week 8: /college/students, /college/squads, /college/matches were 404s. They open that tab.
-const COLLEGE_TABS: Record<string, string> = { home: "home", students: "students", squads: "squads", matches: "squads", insights: "insights" };
+const COLLEGE_TABS: Record<string, string> = { home: "home", students: "students", squads: "squads", matches: "squads&view=matches", insights: "insights" };
 const CollegeTabRedirect = () => {
   const { tab = "" } = useParams();
   return <Navigate to={`/college/dashboard?tab=${COLLEGE_TABS[tab] ?? "home"}`} replace />;

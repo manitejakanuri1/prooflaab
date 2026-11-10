@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useUrlTab } from "@/hooks/useUrlTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { Card, CardContent } from "@/components/ui/card";
@@ -102,7 +103,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
   const [pickSquad, setPickSquad] = useState("");
   const [when, setWhen] = useState("now");
   const [busy, setBusy] = useState(false);
-  const [tab, setTab] = useState("standings");
+  // QA week 8 retest: the inner tab lives in the address (?view=matches), so /college/matches opens Matches.
+  const [tab, setTab] = useUrlTab("view", "standings");
   const [openStudent, setOpenStudent] = useState<string | null>(null);
   const [performance, setPerformance] = useState<Performance[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -170,14 +172,9 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     // E2E: show the squads together with their members, never 0/12 while members are still loading.
     setSquads(list);
     setMembers((mem.data ?? []) as unknown as Member[]);
-    // QA week 8: week 10 was at the top and week 1 at the bottom. Upcoming matches first (soonest first),
-    // then played ones (most recent first).
-    const allMatches = (mat.data ?? []) as unknown as Match[];
-    const upcoming = allMatches.filter((m) => m.status === "scheduled")
-      .sort((x, y) => new Date(x.scheduled_at).getTime() - new Date(y.scheduled_at).getTime());
-    const played = allMatches.filter((m) => m.status !== "scheduled")
-      .sort((x, y) => new Date(y.scheduled_at).getTime() - new Date(x.scheduled_at).getTime());
-    setMatches([...upcoming, ...played]);
+    // QA week 8 retest: earliest first, week 1 at the top.
+    setMatches(((mat.data ?? []) as unknown as Match[])
+      .sort((x, y) => new Date(x.scheduled_at).getTime() - new Date(y.scheduled_at).getTime()));
     setPerformance((perf.data ?? []) as unknown as Performance[]);
     setAchievements((ach.data ?? []) as unknown as Achievement[]);
     setScoringRules((rules.data ?? []) as unknown as ScoringRule[]);

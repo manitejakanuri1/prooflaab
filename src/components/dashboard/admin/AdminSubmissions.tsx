@@ -1,3 +1,5 @@
+import { of10 } from "@/lib/lotMarks";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -56,6 +58,7 @@ async function voiceRows(status: string): Promise<Row[]> {
  */
 const AdminSubmissions = () => {
   const [status, setStatus] = useState("all");
+  const [open, setOpen] = useState<Row | null>(null);
   const { data = [], isLoading, error } = useQuery({
     queryKey: ["admin-submissions", status],
     queryFn: async (): Promise<Row[]> => {
@@ -100,12 +103,12 @@ const AdminSubmissions = () => {
               </thead>
               <tbody>
                 {data.map((r) => (
-                  <tr key={r.id} className="border-t">
+                  <tr key={r.id} className="border-t cursor-pointer hover:bg-muted/40" onClick={() => setOpen(r)}>
                     <td className="py-2 pr-3 font-mono text-xs">{fmtIST(r.created_at)}</td>
                     <td className="py-2 pr-3">{r.student_profiles?.full_name ?? "—"}</td>
                     <td className="py-2 pr-3">{r.tasks?.title ?? "—"}</td>
                     <td className="py-2 pr-3">{r.voice ? "voice" : r.sandbox_config_id ? `code (${r.passed_count ?? 0}/${r.total_count ?? 0})` : "written"}</td>
-                    <td className="py-2 pr-3"><Badge variant={r.status === "passed" || (r.voice && r.status === "scored") ? "default" : "secondary"}>{r.status}{r.sandbox_score != null ? ` · ${r.sandbox_score}` : ""}</Badge></td>
+                    <td className="py-2 pr-3"><Badge variant={r.status === "passed" || (r.voice && r.status === "scored") ? "default" : "secondary"}>{r.status}{r.sandbox_score != null ? ` · ${of10(r.sandbox_score)}` : ""}</Badge></td>
                     <td className="py-2 text-xs text-muted-foreground">{(r.flags ?? []).join(", ") || "—"}</td>
                   </tr>
                 ))}
@@ -114,6 +117,26 @@ const AdminSubmissions = () => {
           </div>
         )}
       </CardContent>
+      <Dialog open={Boolean(open)} onOpenChange={(v) => !v && setOpen(null)}>
+        <DialogContent className="max-w-md">
+          {open && (
+            <>
+              <DialogHeader><DialogTitle>{open.tasks?.title ?? "Submission"}</DialogTitle></DialogHeader>
+              <div className="space-y-1 text-sm">
+                <p><span className="font-medium">Student:</span> {open.student_profiles?.full_name ?? "—"}</p>
+                <p><span className="font-medium">When:</span> {fmtIST(open.created_at)}</p>
+                <p><span className="font-medium">Source:</span> {open.tasks?.source ?? "—"}</p>
+                <p><span className="font-medium">Kind:</span> {open.voice ? "voice" : open.sandbox_config_id ? "code" : "written"}</p>
+                {open.total_count != null && <p><span className="font-medium">Tests passed:</span> {open.passed_count ?? 0} of {open.total_count}</p>}
+                <p><span className="font-medium">Result:</span> {open.status}{open.sandbox_score != null ? ` · ${of10(open.sandbox_score)}` : ""}</p>
+                {open.runner && <p><span className="font-medium">Runner:</span> {open.runner}</p>}
+                <p><span className="font-medium">Flags:</span> {(open.flags ?? []).join(", ") || "—"}</p>
+                <p className="font-mono text-[10px] text-muted-foreground">id {open.id}</p>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

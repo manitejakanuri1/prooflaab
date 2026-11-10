@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,9 +30,16 @@ const EVENT: Record<string, { label: string; icon: React.ComponentType<{ classNa
   skill_assessed:     { label: "Skill assessed",            icon: Gauge },
   profile_updated:    { label: "Updated your profile",      icon: UserCog },
   match_participated: { label: "Played a squad match",      icon: Swords },
+  task_completed:     { label: "Task checked",              icon: FileCheck },
 };
 
 const PAGE = 50;
+
+// F8: the Lot an event belongs to, when the event says so (lot_submitted rows point at tasks;
+// task_completed rows carry task_id). Sign-ins and recordings have no Lot, so they stay plain text.
+const lotOf = (e: Event): string | null =>
+  e.source_type === "tasks" && e.source_id ? e.source_id
+  : typeof e.metadata?.task_id === "string" ? (e.metadata.task_id as string) : null;
 
 /**
  * History — the activity timeline.
@@ -91,6 +99,7 @@ const StudentHistory = () => {
             {events.map((e, i) => {
               const meta = EVENT[e.event_type] ?? { label: e.event_type, icon: CheckCircle2 };
               const Icon = meta.icon;
+              const lot = lotOf(e);
               const at = new Date(e.occurred_at);
               // One date heading per day rather than a date on every row.
               const newDay = i === 0 || !isSameDay(at, new Date(events[i - 1].occurred_at));
@@ -103,7 +112,12 @@ const StudentHistory = () => {
                   )}
                   <div className="flex items-center gap-3 py-2 border-b last:border-b-0">
                     <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <p className="text-sm flex-1 min-w-0">{meta.label}</p>
+                    {lot ? (
+                      <Link to={`/student/dashboard?tab=log&view=entries&task=${encodeURIComponent(lot)}`}
+                            className="text-sm flex-1 min-w-0 hover:underline">{meta.label} →</Link>
+                    ) : (
+                      <p className="text-sm flex-1 min-w-0">{meta.label}</p>
+                    )}
                     <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
                       {format(at, "h:mm a")}
                     </span>

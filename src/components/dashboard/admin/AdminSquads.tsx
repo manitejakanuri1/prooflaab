@@ -105,7 +105,7 @@ export default function AdminSquads() {
                             {s.name} {s.is_locked && <Badge variant="secondary">locked</Badge>}
                           </td>
                           <td className="py-2 pr-3">{s.year_group_label ? `${s.year_group_label} · ` : ""}{s.cohort ?? "—"}</td>
-                          <td className="py-2 pr-3">{s.members.length} (room for {s.max_members})</td>
+                          <td className="py-2 pr-3">{s.members.length} of {s.max_members} seats filled</td>
                           <td className="py-2 pr-3 font-mono">{s.points}</td>
                           <td className="py-2 pr-3">{s.rank ?? "—"}</td>
                           <td className="py-2 pr-3 font-mono">{s.code}</td>

@@ -1,3 +1,4 @@
+import InfoTip from "@/components/common/InfoTip";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -93,7 +94,8 @@ const SeasonLeaderboards = ({ highlightStudentId }: { highlightStudentId?: strin
               Individual recognition
             </span>
             <p className="mt-1 text-xs text-muted-foreground">
-              Orange Cap: most points. Purple Cap: best in a skill.
+              Orange Cap: most points. Purple Cap: best in a skill.{" "}
+              <InfoTip text="Orange Cap: the student with the most points this season. Purple Cap: the student with the highest single skill score from the starting test." />
             </p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {AWARDS.map(({ award, title }) => {

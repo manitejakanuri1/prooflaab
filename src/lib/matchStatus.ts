@@ -8,10 +8,10 @@ export interface MatchResultLike {
   away_points: number | null;
 }
 
-export const SEED_WIN = "won as higher seed";
+export const SEED_WIN = "won the tie as the higher-ranked squad";
 
 export function matchStatus(m: MatchResultLike): string {
-  if (m.decided_by === "higher_seed") return "Decided on seed";
+  if (m.decided_by === "higher_seed") return "Tie: higher-ranked squad wins";
   if (m.status === "played") return "Played";
   if (m.status === "no_activity") return "No activity";
   if (m.status === "scheduled") return "Scheduled";

@@ -70,6 +70,11 @@ export const SCORE_HELP = {
   streak: "Days in a row you did the Lot on the same day. Sunday is rest. Miss a day and it goes back to 0.",
   squad: "All members' weekly points added up. More points wins.",
   lowVoice: "Low voice score. Next time talk about what you tried and changed.",
+  squadSeason: "Squad total for the whole season so far.",
+  record: "Wins–Draws–Losses.",
+  share: "Your season points as a share of all members' points.",
+  movement: "Change in college rank since last week.",
+  xp: "Points for finishing Lots, for badges.",
 } as const;
 
 /** What the student reads after a check: submit or try again, or the final best mark. */

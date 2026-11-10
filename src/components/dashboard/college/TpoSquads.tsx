@@ -1,3 +1,4 @@
+import MatchDetailDialog, { type MatchLike } from "@/components/dashboard/season/MatchDetailDialog";
 import { SCORE_HELP } from "@/lib/lotMarks";
 import InfoTip from "@/components/common/InfoTip";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -108,6 +109,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
   // QA week 8 retest: the inner tab lives in the address (?view=matches), so /college/matches opens Matches.
   const [tab, setTab] = useUrlTab("view", "standings");
   const [openStudent, setOpenStudent] = useState<string | null>(null);
+  const [openMatch, setOpenMatch] = useState<MatchLike | null>(null);
   const [performance, setPerformance] = useState<Performance[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   // Keyed by squad, not one box for all of them: with a single string, typing
@@ -566,7 +568,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                       </td>
                       <td className="py-2.5 pr-3 text-muted-foreground">{s.cohort ?? "—"}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">
-                        {mine.length} <span className="text-muted-foreground">(room for {s.max_members})</span>
+                        {mine.length} <span className="text-muted-foreground">of {s.max_members} seats filled</span>
                       </td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">{s.wins}–{s.draws ?? 0}–{s.losses}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums font-semibold">{s.points}</td>
@@ -631,7 +633,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                   { k: "Rank", v: current.rank ? `#${current.rank}` : "—" },
                   { k: "Points", v: current.points },
                   { k: "Record", v: `${current.wins}–${current.draws ?? 0}–${current.losses}` },
-                  { k: "Members", v: `${currentMembers.length} (room for ${current.max_members})` },
+                  { k: "Members", v: `${currentMembers.length} of ${current.max_members} seats filled` },
                 ].map(({ k, v }) => (
                   <div key={k} className="rounded-lg bg-muted/50 p-3">
                     <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{k}</span>
@@ -718,7 +720,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                 </thead>
                 <tbody>
                   {matches.map((m) => (
-                    <tr key={m.id} className="border-t">
+                    <tr key={m.id} className="border-t cursor-pointer hover:bg-muted/40" onClick={() => setOpenMatch(m as MatchLike)}>
                       <td className="py-2.5 pr-3">
                         {names[m.home_squad] ?? "?"}
                         <span className="text-muted-foreground"> vs </span>
@@ -748,6 +750,9 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
             )}
           </CardContent></Card>
         </TabsContent>
+
+        <MatchDetailDialog match={openMatch} names={names} onClose={() => setOpenMatch(null)}
+                           onOpenSquad={(id) => { setSelected(id); setTab("members"); }} />
 
         <TabsContent value="assign" className="mt-4">
           <Card><CardContent className="pt-5">
@@ -782,7 +787,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                     const n = members.filter((m) => m.squad_id === s.id).length;
                     return (
                       <SelectItem key={s.id} value={s.id} disabled={n >= s.max_members}>
-                        {s.name} ({n} members, room for {s.max_members})
+                        {s.name} ({n} of {s.max_members} seats filled)
                       </SelectItem>
                     );
                   })}
@@ -997,7 +1002,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                       <Badge variant="outline" className="text-[10px] font-normal">Archived</Badge>
                     )}
                     <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
-                      {live} members (room for {s.max_members})
+                      {live} of {s.max_members} seats filled
                     </span>
                   </div>
 

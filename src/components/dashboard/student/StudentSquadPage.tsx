@@ -1,3 +1,5 @@
+import MatchDetailDialog from "@/components/dashboard/season/MatchDetailDialog";
+import { useUrlTab } from "@/hooks/useUrlTab";
 import InfoTip from "@/components/common/InfoTip";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -108,6 +110,9 @@ const StudentSquadPage = () => {
   const [standings, setStandings] = useState<Squad[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [achievements, setAchievements] = useState<Achievement[]>([]);
+  // Polish D5: the inner squad tab lives in the URL (?view=), so links and Back land on the same tab.
+  const [sqView, setSqView] = useUrlTab("view", "overview");
+  const [openMatch, setOpenMatch] = useState<Match | null>(null);
   const { status: season } = useSeasonStatus();
   // my_season_status answers nothing once a season is over, so read the squad's own season row.
   const [ended, setEnded] = useState<{ champion: string | null; champions: { bracket: string; champion: string }[] } | null>(null);
@@ -229,10 +234,11 @@ const StudentSquadPage = () => {
   const mine = members.find((m) => m.student_id === profile?.id);
   const totalPoints = members.reduce((sum, m) => sum + m.contribution, 0);
   const myShare = totalPoints > 0 && mine ? Math.round((mine.contribution / totalPoints) * 100) : 0;
-  const movement = squad.previous_rank != null && squad.rank != null ? squad.previous_rank - squad.rank : 0;
+  const movement = squad.previous_rank != null && squad.rank != null ? squad.previous_rank - squad.rank : null;
   // The list is newest first, so the soonest scheduled match is the LAST scheduled one (QA week 8 showed week 10).
   const next = [...matches].reverse().find((m) => m.status === "scheduled");
-  const sectionRank = standings.findIndex((s) => s.id === squad.id) + 1;
+  // F2: the place among squads of the same section, worked out here from the season table (display only).
+  const sectionRank = standings.filter((s) => s.cohort === squad.cohort).findIndex((s) => s.id === squad.id) + 1;
 
   // With an odd number of squads one sits out each round. Their tab used to
   // show nothing at all, which reads as a broken screen rather than a rest.
@@ -246,11 +252,9 @@ const StudentSquadPage = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-baseline gap-3 flex-wrap">
-        <h1 className="text-2xl font-extrabold tracking-tight">
-          THE <span className="text-primary">LAB</span>
-        </h1>
+        <h1 className="text-2xl font-extrabold tracking-tight">Your squad</h1>
         <span className="ml-auto font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          {/* The Standings tab ranks the squad inside its section; squads.rank is college-wide. */}
+          {/* sectionRank = place inside the section; squads.rank = place in the whole college. */}
           {squad.rank
             ? `${sectionRank ? `#${sectionRank} in ${squad.cohort ?? "section"} · ` : ""}#${squad.rank} in college`
             : "Unranked"}
@@ -263,7 +267,7 @@ const StudentSquadPage = () => {
         <CardContent className="pt-5">
           <h2 className="text-xl font-semibold">{squad.name}</h2>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
-            {squad.cohort ? `${squad.cohort} · ` : ""}{members.length} members (room for {squad.max_members})
+            {squad.cohort ? `${squad.cohort} · ` : ""}{members.length} of {squad.max_members} seats filled
           </p>
           {ended ? (
             <p className="mt-2 text-sm" data-testid="season-over">
@@ -292,13 +296,13 @@ const StudentSquadPage = () => {
           )}
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {[
-              { k: "Points", v: squad.points },
-              { k: "Record", v: `${squad.wins}–${squad.draws ?? 0}–${squad.losses}` },
-              { k: "My share", v: `${myShare}%` },
-              { k: "Movement", v: movement === 0 ? "—" : movement > 0 ? `▲${movement}` : `▼${-movement}` },
-            ].map(({ k, v }) => (
+              { k: "Points", v: squad.points, help: SCORE_HELP.squadSeason },
+              { k: "Record", v: `${squad.wins}–${squad.draws ?? 0}–${squad.losses}`, help: SCORE_HELP.record },
+              { k: "My share", v: `${myShare}%`, help: SCORE_HELP.share },
+              { k: "Movement", v: movement == null ? "Not ranked yet" : movement === 0 ? "No change" : movement > 0 ? `▲${movement}` : `▼${-movement}`, help: SCORE_HELP.movement },
+            ].map(({ k, v, help }) => (
               <div key={k} className="rounded-lg bg-muted/50 p-3">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{k}</span>
+                <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{k} <InfoTip text={help} /></span>
                 <div className="font-mono text-xl font-semibold tabular-nums mt-1">{v}</div>
               </div>
             ))}
@@ -308,7 +312,7 @@ const StudentSquadPage = () => {
 
       <SquadSwapCard onSwapped={() => void load()} />
 
-      <Tabs defaultValue="overview">
+      <Tabs value={sqView} onValueChange={setSqView}>
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="members">Members</TabsTrigger>
@@ -338,7 +342,7 @@ const StudentSquadPage = () => {
                 </p>
               )}
               {next ? (
-                <div className="mt-2">
+                <button type="button" className="mt-2 block text-left hover:underline" onClick={() => setOpenMatch(next)}>
                   <p className="font-semibold">
                     {names[next.home_squad] ?? "?"} <span className="text-muted-foreground font-normal">vs</span>{" "}
                     {names[next.away_squad] ?? "?"}
@@ -346,7 +350,7 @@ const StudentSquadPage = () => {
                   <p className="text-sm text-muted-foreground mt-1">
                     {format(new Date(next.scheduled_at), "EEEE d MMM, h:mm a")}
                   </p>
-                </div>
+                </button>
               ) : !restWeek && !ended ? (
                 <p className="text-sm text-muted-foreground mt-2">Nothing scheduled yet.</p>
               ) : null}
@@ -466,7 +470,7 @@ const StudentSquadPage = () => {
                       const won = us != null && them != null && us > them;
                       const drew = us != null && them != null && us === them;
                       return (
-                        <tr key={m.id} className="border-t">
+                        <tr key={m.id} className="border-t cursor-pointer hover:bg-muted/40" onClick={() => setOpenMatch(m)}>
                           <td className="py-2.5 pr-3">
                             vs {names[home ? m.away_squad : m.home_squad] ?? "?"}
                           </td>
@@ -581,6 +585,7 @@ const StudentSquadPage = () => {
           <StudentSeasonReport />
         </TabsContent>
       </Tabs>
+      <MatchDetailDialog match={openMatch} names={names} onClose={() => setOpenMatch(null)} />
     </div>
   );
 };

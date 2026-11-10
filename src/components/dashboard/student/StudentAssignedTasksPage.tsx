@@ -1,3 +1,5 @@
+import { SCORE_HELP } from "@/lib/lotMarks";
+import InfoTip from "@/components/common/InfoTip";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -384,7 +386,7 @@ const StudentAssignedTasksPage = () => {
                           </div>
                           <div className="flex items-center gap-1.5 text-compete font-medium">
                             <Award className="h-3 w-3 sm:h-4 sm:w-4" />
-                            <span>{task.xp_reward || 0} XP</span>
+                            <span>{task.xp_reward || 0} XP</span> <InfoTip text={SCORE_HELP.xp} />
                           </div>
                         </div>
                       </div>

@@ -1,3 +1,5 @@
+import { SCORE_HELP } from "@/lib/lotMarks";
+import InfoTip from "@/components/common/InfoTip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -99,7 +101,7 @@ const StudentPortfolioPage = () => {
                 <Card className="bg-card border-border">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
-                      <div className="text-sm text-muted-foreground">Total XP</div>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">Total XP <InfoTip text={SCORE_HELP.xp} /></div>
                       <Star className="h-5 w-5 text-compete" />
                     </div>
                     <div className="text-3xl font-bold text-foreground">{profile?.total_xp || 0}</div>
@@ -116,16 +118,7 @@ const StudentPortfolioPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-card border-border">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="text-sm text-muted-foreground">Connections</div>
-                      <Users className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex items-center gap-3 text-lg font-semibold text-foreground">
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* F6: the empty "Connections" tile is hidden; nothing fills it yet. */}
               </div>
             </div>
           </div>

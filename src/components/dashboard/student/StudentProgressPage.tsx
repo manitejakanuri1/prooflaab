@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import InfoTip from "@/components/common/InfoTip";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -212,7 +213,8 @@ const StudentProgressPage = () => {
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  None yet — badges appear here as they're earned. See Build-log → Badges & Quests for how.
+                  None yet — badges appear here as they're earned.{" "}
+                  <Link to="/student/dashboard?tab=profile&view=achievements" className="underline">See Profile → Badges for how.</Link>
                 </p>
               )}
             </div>

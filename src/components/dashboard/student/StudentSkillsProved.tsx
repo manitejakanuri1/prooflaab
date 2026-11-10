@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
 
 interface Skill {
@@ -49,7 +50,34 @@ interface TopicRating {
   label: "strong" | "building" | "needs_work" | "new";
   accuracy_pct: number | null;
   attempts: number;
+  last_seen?: string | null;
 }
+
+// D1 / F7: topic_ratings keeps only a rating and an answer count per topic (migration 146), not the
+// answers themselves, so the popup shows the counts it is built from and says so.
+const TopicDialog = ({ r, onClose }: { r: TopicRating | null; onClose: () => void }) => (
+  <Dialog open={Boolean(r)} onOpenChange={(v) => !v && onClose()}>
+    <DialogContent className="max-w-md">
+      {r && (
+        <>
+          <DialogHeader><DialogTitle>{r.topic}</DialogTitle></DialogHeader>
+          <div className="space-y-2 text-sm">
+            <p>
+              <span className="font-medium">{r.label === "strong" ? "Strong" : r.label === "needs_work" ? "Needs work" : "Building"}</span>
+              {" · "}about {Math.round(((r.accuracy_pct ?? 0) * r.attempts) / 100)} of {r.attempts} answers correct
+            </p>
+            {r.last_seen && <p className="text-muted-foreground">Last answer on this topic: {format(new Date(r.last_seen), "d MMM yyyy")}</p>}
+            <p className="text-muted-foreground">
+              From your quiz answers and daily Lots on this topic. ProofLab keeps the count for each topic,
+              not a list of the single answers, so they can't be shown here.
+            </p>
+            <p className="text-xs text-muted-foreground">Shows after 3 answers on a topic. 75%+ = Strong, under 50% = Needs work.</p>
+          </div>
+        </>
+      )}
+    </DialogContent>
+  </Dialog>
+);
 
 /**
  * Strong in / Needs work, from the quiz and Lot answers recorded per topic (migration 146).
@@ -57,6 +85,7 @@ interface TopicRating {
  */
 const TopicStrengths = () => {
   const [rows, setRows] = useState<TopicRating[] | null>(null);
+  const [pick, setPick] = useState<TopicRating | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -72,7 +101,9 @@ const TopicStrengths = () => {
   const chips = (list: TopicRating[], tone: string) => (
     <div className="mt-2 flex flex-wrap gap-2">
       {list.map((r) => (
-        <Badge key={r.topic} variant="outline" className={`text-xs font-normal ${tone}`}>
+        <Badge key={r.topic} variant="outline" role="button" tabIndex={0}
+               onClick={() => setPick(r)} onKeyDown={(e) => e.key === "Enter" && setPick(r)}
+               className={`cursor-pointer text-xs font-normal ${tone}`}>
           {r.topic}: {Math.round(((r.accuracy_pct ?? 0) * r.attempts) / 100)} of {r.attempts} correct{r.label === "strong" ? " ✓" : ""}
         </Badge>
       ))}
@@ -99,8 +130,9 @@ const TopicStrengths = () => {
           </div>
         )}
         <p className="text-xs text-muted-foreground">
-          From your quiz answers and daily Lots. A topic shows once you have answered at least 3.
+          From your quiz answers and daily Lots. A topic shows once you have answered at least 3. Tap a topic for its details.
         </p>
+        <TopicDialog r={pick} onClose={() => setPick(null)} />
       </CardContent>
     </Card>
   );
@@ -116,6 +148,7 @@ const TopicStrengths = () => {
  */
 const StudentSkillsProved = () => {
   const [skills, setSkills] = useState<Skill[] | null>(null);
+  const [openSkill, setOpenSkill] = useState<Skill | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -175,7 +208,8 @@ const StudentSkillsProved = () => {
             ? Math.round((Number(s.topics_cleared) / Number(s.topics_total)) * 100)
             : 0;
           return (
-            <Card key={s.skill}>
+            <Card key={s.skill} role="button" tabIndex={0} className="cursor-pointer hover:shadow-md"
+                  onClick={() => setOpenSkill(s)} onKeyDown={(e) => e.key === "Enter" && setOpenSkill(s)}>
               <CardContent className="pt-5">
                 <div className="flex items-baseline gap-2 flex-wrap">
                   <h3 className="font-semibold">{s.skill}</h3>
@@ -240,6 +274,27 @@ const StudentSkillsProved = () => {
           );
         })}
       </div>
+      <Dialog open={Boolean(openSkill)} onOpenChange={(v) => !v && setOpenSkill(null)}>
+        <DialogContent className="max-w-md">
+          {openSkill && (
+            <>
+              <DialogHeader><DialogTitle>{openSkill.skill}: {(STATUS[openSkill.status] ?? STATUS.claimed).label}</DialogTitle></DialogHeader>
+              <div className="space-y-2 text-sm">
+                <p><span className="font-medium">What it means:</span> {(STATUS[openSkill.status] ?? STATUS.claimed).says}</p>
+                {openSkill.assessed_score != null && (
+                  <p><span className="font-medium">Starting test: {of10(openSkill.assessed_score)}</span> - your overall
+                    starting-test average. The same number is shown on each skill from your resume.</p>
+                )}
+                <p><span className="font-medium">Where it came from:</span> {openSkill.claimed_from ? `added from ${openSkill.claimed_from.replace(/_/g, " ")}` : "your resume"}
+                  {`; Lots on it: ${openSkill.proven_lots}; explained out loud: ${openSkill.proven_voice}`}
+                  {openSkill.topics_total > 0 ? `; syllabus levels cleared: ${openSkill.topics_cleared} of ${openSkill.topics_total}` : ""}.</p>
+                <p><span className="font-medium">How to improve:</span> do the Lots that use this skill, explain each one out loud,
+                  and clear its syllabus levels on your roadmap.</p>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

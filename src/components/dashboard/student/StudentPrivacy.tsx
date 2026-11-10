@@ -1,3 +1,4 @@
+import { of10 } from "@/lib/lotMarks";
 import { useCallback, useEffect, useState } from "react";
 import RecordingPlayback from "./RecordingPlayback";
 import { supabase } from "@/integrations/supabase/client";
@@ -138,7 +139,7 @@ const StudentPrivacy = () => {
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {r.duration_seconds ? `${r.duration_seconds}s` : "—"}
-                      {r.communication_score != null && ` · scored ${r.communication_score}`}
+                      {r.communication_score != null && ` · scored ${of10(r.communication_score)}`}
                     </p>
                   </div>
                 </div>

@@ -50,6 +50,7 @@ interface Lot {
 /** One dot per day, coloured by the Lot's kind: filled once it is done, a ring while it is open. */
 interface DayMark {
   date: Date;
+  taskId: string | null;
   kind: "technical" | "business" | "pitch" | null;
   done: boolean;
 }
@@ -214,21 +215,22 @@ const StudentDailyCard = () => {
     setEarlierOpen(((weekRes.data ?? []) as { id: string; lot_date: string; status: string | null }[])
       .filter((r) => r.lot_date < todayKey && r.status !== "completed")
       .map((r) => ({ id: r.id, lot_date: r.lot_date })));
-    const byDay = new Map<string, { kind: DayMark["kind"]; done: boolean }>();
-    for (const row of (weekRes.data ?? []) as { lot_date: string; lot_category: string | null; status: string | null }[]) {
+    const byDay = new Map<string, { kind: DayMark["kind"]; done: boolean; taskId: string | null }>();
+    for (const row of (weekRes.data ?? []) as { id: string; lot_date: string; lot_category: string | null; status: string | null }[]) {
       // MF-076: a day can hold two Lots (a company Lot and the daily one); a later open row must not
       // un-fill a day whose Lot is done.
       const prev = byDay.get(row.lot_date);
       byDay.set(row.lot_date, {
         kind: prev?.kind ?? (row.lot_category as DayMark["kind"]) ?? "technical",
         done: (prev?.done ?? false) || row.status === "completed",
+        taskId: prev?.done ? prev.taskId : row.id,
       });
     }
     setWeek(
       Array.from({ length: 7 }, (_, i) => {
         const date = addDays(monday, i);
         const d = byDay.get(format(date, "yyyy-MM-dd"));
-        return { date, kind: d?.kind ?? null, done: d?.done ?? false };
+        return { date, kind: d?.kind ?? null, done: d?.done ?? false, taskId: d?.taskId ?? null };
       }),
     );
     setLoading(false);
@@ -349,7 +351,9 @@ const StudentDailyCard = () => {
 
       <div className="flex items-center gap-3 flex-wrap">
         <span className="text-sm text-muted-foreground">
-          Streak <span className="font-mono text-lg font-bold text-primary">{streak}</span> {streak === 1 ? "day" : "days"}
+          <Link to="/student/dashboard?tab=log&view=history" className="hover:underline">
+            Streak <span className="font-mono text-lg font-bold text-primary">{streak}</span> {streak === 1 ? "day" : "days"}
+          </Link>
           {" "}<InfoTip text={SCORE_HELP.streak} />
         </span>
         <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-xs">
@@ -358,14 +362,14 @@ const StudentDailyCard = () => {
               recency === "active" ? "bg-verified" : recency === "idle" ? "bg-compete" : "bg-muted-foreground"
             }`}
           />
-          recency: {recency}
+          {recency === "active" ? "Done today" : recency === "idle" ? "Not done today" : "Not started"}
         </span>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr] items-start">
         {/* The Lot itself: a paper work order on a dark bench. */}
         {lot ? (
-          <div className="rounded-xl bg-[#f2ede1] p-5 text-[#191b1f] shadow-sm">
+          <div id="todays-lot" className="rounded-xl bg-[#f2ede1] p-5 text-[#191b1f] shadow-sm">
             <div className="flex items-center gap-3 border-b border-dashed border-[#cbc4b4] pb-3">
               <span className="font-mono text-xs font-bold tracking-widest">
                 LOT {lot.lot_number ? `#${String(lot.lot_number).padStart(3, "0")}` : ""}
@@ -409,7 +413,10 @@ const StudentDailyCard = () => {
               </p>
             )}
             {lot.status === "completed" && voiceScore != null && voiceScore < LOW_SCORE && (
-              <p className="mt-1 text-xs text-muted-foreground" data-testid="low-voice-tip">{SCORE_HELP.lowVoice}</p>
+              <Link to={`/student/dashboard?tab=log&view=entries&task=${encodeURIComponent(lot.id)}`}
+                    className="mt-1 block text-xs text-muted-foreground hover:underline" data-testid="low-voice-tip">
+                {SCORE_HELP.lowVoice} See this Lot's result.
+              </Link>
             )}
             {lot.status === "pending_voice" && (
               <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-compete/15 px-2.5 py-1 text-xs font-semibold text-compete"
@@ -542,7 +549,8 @@ const StudentDailyCard = () => {
                   <p className="font-mono text-lg font-bold">{lotState.voice_state === "scored" ? fmtMark(lotState.voice_mark) : "–"}</p>
                   <p className="text-[11px] text-muted-foreground">Voice /10 <InfoTip text={SCORE_HELP.voice} /></p>
                 </div>
-                <div>
+                <div className="cursor-pointer" title="Go to today's Lot"
+                     onClick={() => document.getElementById("todays-lot")?.scrollIntoView({ behavior: "smooth", block: "center" })}>
                   <p className="font-mono text-lg font-bold text-primary">
                     {fmtMark(marks?.days.find((d) => d.task_id === lot?.id)?.day_total
                       ?? (Number(lotState.best_mark ?? 0) + Number(lotState.voice_state === "scored" ? lotState.voice_mark ?? 0 : 0)))}
@@ -551,7 +559,9 @@ const StudentDailyCard = () => {
                 </div>
               </div>
               <p className="mt-3 text-sm">
-                This week: <span className="font-mono font-bold">{fmtMark(marks?.week_total)}</span>
+                <Link to="/student/dashboard?tab=log&view=progress" className="hover:underline">
+                  This week: <span className="font-mono font-bold">{fmtMark(marks?.week_total)}</span>
+                </Link>
                 <span className="text-muted-foreground"> · {marks?.days.length ?? 0} {marks?.days.length === 1 ? "Lot" : "Lots"}</span>
                 {" "}<InfoTip text={SCORE_HELP.thisWeek} />
               </p>
@@ -566,8 +576,13 @@ const StudentDailyCard = () => {
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               This week <span className="normal-case tracking-normal">· ● done · ○ not done yet</span>
             </p>
+            <p className="mt-1 flex flex-wrap gap-3 text-[10px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-verified" /> technical</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-compete" /> business</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-alert" /> pitch</span>
+            </p>
             <div className="mt-3 flex justify-between">
-              {week.map(({ date, kind, done }) => {
+              {week.map(({ date, kind, done, taskId }) => {
                 const today = isSameDay(date, now);
                 // Filled = the Lot was done; ring = it was given and is still open; grey = no Lot.
                 // Full class names, so Tailwind keeps them in the build.
@@ -578,7 +593,9 @@ const StudentDailyCard = () => {
                 } as const;
                 const colour = kind ? DOT[kind][done ? 0 : 1] : "bg-muted";
                 return (
-                  <div key={date.toISOString()} className="flex flex-1 flex-col items-center gap-1.5">
+                  <Link key={date.toISOString()}
+                        to={taskId ? `/student/dashboard?tab=log&view=entries&task=${encodeURIComponent(taskId)}` : "/student/dashboard?tab=log&view=history"}
+                        className="flex flex-1 flex-col items-center gap-1.5 rounded hover:bg-muted/40">
                     <span
                       className={`h-2.5 w-2.5 rounded-full ${colour} ${today ? "ring-4 ring-verified/20" : ""}`}
                     />
@@ -587,7 +604,7 @@ const StudentDailyCard = () => {
                     >
                       {format(date, "EEE")}
                     </span>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
@@ -598,7 +615,7 @@ const StudentDailyCard = () => {
             <MapIcon className="mr-2 h-4 w-4" /> My roadmap
           </Button>
 
-          <div className="flex items-center gap-3 rounded-xl border p-4">
+          <Link to="/student/dashboard?tab=squad" className="flex items-center gap-3 rounded-xl border p-4 hover:bg-muted/40">
             <div className="min-w-0">
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Squad
@@ -620,7 +637,7 @@ const StudentDailyCard = () => {
                 </p>
               )}
             </div>
-          </div>
+          </Link>
         </div>
       </div>
 

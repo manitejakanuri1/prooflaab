@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMark, loadWeekMarks, type WeekMarks } from "@/lib/lotMarks";
+import { latestWeeks, weekChangeText, type WeekRow } from "@/lib/weekPoints";
 import { Target, Award, FileCheck, CalendarDays } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
@@ -51,10 +52,10 @@ const StudentProgressPage = () => {
     if (!profile?.id) return;
     (async () => {
       // student_weekly_scores holds FINISHED weeks only (written when a week is scored).
-      // The newest 8, shown oldest to newest (it used to load the first 8, so it stopped moving after week 8).
+      // The newest season's latest 8 finished weeks, in week order (latestWeeks).
       const [{ data: weekly }, { data: earned }, { data: proofs }, week] = await Promise.all([
-        supabase.from("student_weekly_scores").select("week, points")
-          .eq("student_id", profile.id).order("computed_at", { ascending: false }).limit(8),
+        supabase.from("student_weekly_scores").select("season_id, week, points, computed_at")
+          .eq("student_id", profile.id).order("computed_at", { ascending: false }).limit(200),
         supabase.from("student_badges").select("awarded_at, badges(name, emoji)")
           .eq("student_id", profile.id).order("awarded_at", { ascending: false }).limit(3),
         supabase.from("task_submissions").select("status").eq("student_id", profile.id),
@@ -62,7 +63,7 @@ const StudentProgressPage = () => {
       ]);
 
       setRunning(week);
-      setWeeklyPoints((weekly ?? []).reverse().map((w) => ({ week: w.week as number, points: w.points as number })));
+      setWeeklyPoints(latestWeeks((weekly ?? []) as WeekRow[]));
       setBadges((earned ?? []).map((r: any) => ({ name: r.badges?.name ?? "Badge", emoji: r.badges?.emoji ?? "🏅" })));
       setSubmissions({
         total: (proofs ?? []).length,
@@ -87,11 +88,7 @@ const StudentProgressPage = () => {
   const passRate = submissions.total > 0 ? Math.round((submissions.passed / submissions.total) * 100) : 0;
   // "Last week" = the newest finished week; compared with the finished week before it.
   const lastWeek = weeklyPoints.length > 0 ? weeklyPoints[weeklyPoints.length - 1].points : 0;
-  const weekBefore = weeklyPoints.length > 1 ? weeklyPoints[weeklyPoints.length - 2].points : null;
-  const weekChange = weekBefore != null
-    ? (weekBefore === 0 ? (lastWeek > 0 ? "up from a quiet week" : null)
-       : `${lastWeek >= weekBefore ? "+" : ""}${Math.round(((lastWeek - weekBefore) / weekBefore) * 100)}% vs the week before`)
-    : null;
+  const weekChange = weeklyPoints.length > 0 ? weekChangeText(weeklyPoints) : null;
   const lotsSoFar = running?.days.length ?? 0;
 
   const submissionData = [

@@ -319,11 +319,11 @@ const StudentAssignedTasksPage = () => {
             <div className="text-center py-16">
               <Target className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
               <h3 className="text-xl font-semibold text-foreground mb-2">
-                {assignedTasks.length === 0 ? "No assigned tasks yet" : "No tasks match your filters"}
+                {assignedTasks.length === 0 ? "No other tasks right now" : "No tasks match your filters"}
               </h3>
               <p className="text-muted-foreground mb-6">
                 {assignedTasks.length === 0 
-                  ? "Tasks from your onboarding test, your college or ProofLab will appear here."
+                  ? "Your Daily Lot is on its own card. Tasks from your onboarding test, your college or ProofLab will appear here."
                   : "Try adjusting your search or filter criteria."
                 }
               </p>

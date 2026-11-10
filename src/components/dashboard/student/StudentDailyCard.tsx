@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
@@ -113,6 +113,8 @@ const StudentDailyCard = () => {
   const [noContent, setNoContent] = useState(false);
   // Migration 130: Sunday is the rest day - no Lot, and the streak carries over to Monday.
   const [restDay, setRestDay] = useState(false);
+  // QA week 8: an unfinished Lot from an earlier day this week (e.g. Saturday's, seen on Sunday) stays reachable.
+  const [earlierOpen, setEarlierOpen] = useState<{ id: string; lot_date: string }[]>([]);
   // Migration 184: the days off between two seasons - no Lot, the roadmap stays open.
   const [nextSeasonAt, setNextSeasonAt] = useState<string | null>(null);
 
@@ -137,7 +139,7 @@ const StudentDailyCard = () => {
         .maybeSingle(),
       supabase
         .from("tasks")
-        .select("lot_date, lot_category, status")
+        .select("id, lot_date, lot_category, status")
         .eq("student_id", profile.id)
         .gte("lot_date", format(monday, "yyyy-MM-dd"))
         .not("lot_date", "is", null),
@@ -206,6 +208,10 @@ const StudentDailyCard = () => {
       ((squadRes.data as unknown as { squads: SquadSummary | null } | null)?.squads) ?? null,
     );
 
+    const todayKey = format(clock, "yyyy-MM-dd");
+    setEarlierOpen(((weekRes.data ?? []) as { id: string; lot_date: string; status: string | null }[])
+      .filter((r) => r.lot_date < todayKey && r.status !== "completed")
+      .map((r) => ({ id: r.id, lot_date: r.lot_date })));
     const byDay = new Map<string, { kind: DayMark["kind"]; done: boolean }>();
     for (const row of (weekRes.data ?? []) as { lot_date: string; lot_category: string | null; status: string | null }[]) {
       // MF-076: a day can hold two Lots (a company Lot and the daily one); a later open row must not
@@ -227,6 +233,14 @@ const StudentDailyCard = () => {
   }, [profile?.id]);
 
   useEffect(() => { void load(); }, [load]);
+  // QA week 8: a tab left open overnight kept showing yesterday's Lot and date. Reload when the day changes.
+  useEffect(() => {
+    if (FAST_WEEK) return;
+    const timer = setInterval(() => {
+      if (format(new Date(), "yyyy-MM-dd") !== format(now, "yyyy-MM-dd")) void load();
+    }, 60_000);
+    return () => clearInterval(timer);
+  }, [load, now]);
   // MF-116: while a recording is being checked, look again every 15 s so the card shows the result
   // even when the popup was closed during the upload.
   // MF-040: the card itself also waits for the score while the Lot says "Spoken explanation required"
@@ -383,7 +397,10 @@ const StudentDailyCard = () => {
                  data-testid="lot-done">
                 <CheckCircle2 className="h-3.5 w-3.5" />{" "}
                 {/* Owner 1 Nov 2026: a scored voice under 50 means the voice needs redoing. */}
-                {voiceScore != null && voiceScore < LOW_SCORE ? passedLabel(lot.sandbox_config_id ? "code" : "written", voiceScore) : "Done"}
+                {/* Minor 10: a Daily Lot is "submitted", not "passed" - its mark can be low. */}
+                {voiceScore != null && voiceScore < LOW_SCORE
+                  ? (lotState?.daily ? "Submitted · voice needs redo" : passedLabel(lot.sandbox_config_id ? "code" : "written", voiceScore))
+                  : "Done"}
                 {doneScore != null ? ` · ${doneScore}%` : ""}
                 {voiceScore != null ? ` · Voice ${voiceScore}/100` : ""}
               </p>
@@ -391,7 +408,9 @@ const StudentDailyCard = () => {
             {lot.status === "pending_voice" && (
               <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-compete/15 px-2.5 py-1 text-xs font-semibold text-compete"
                  data-testid="lot-pending-voice">
-                <Mic className="h-3.5 w-3.5" /> {lotState?.daily ? "Submitted" : lot?.sandbox_config_id ? "Code passed" : "Answer passed"} · Spoken explanation required
+                <Mic className="h-3.5 w-3.5" /> {lotState?.daily ? "Submitted" : lot?.sandbox_config_id ? "Code passed" : "Answer passed"}
+                {/* M3: after two unusable recordings the spoken part is closed for good; say that instead of "required". */}
+                {lotState?.voice_closed ? " · Spoken part closed (2 recordings could not be used). Your work mark is saved." : " · Spoken explanation required"}
               </p>
             )}
             {/* Why it was chosen is written when the Lot is made, so it is only true until the first try. */}
@@ -468,9 +487,21 @@ const StudentDailyCard = () => {
                 </p>
               </>
             ) : restDay ? (
-              <p className="text-sm text-muted-foreground">
-                Sunday is your rest day. No Lot today, and your streak is safe. See you on Monday.
-              </p>
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Sunday is your rest day. No Lot today, and your streak is safe. See you on Monday.
+                </p>
+                {earlierOpen.length > 0 && (
+                  <div className="mt-3 space-y-2" data-testid="earlier-open-lots">
+                    <p className="text-sm">You still have an unfinished Lot from this week:</p>
+                    {earlierOpen.map((e) => (
+                      <Button key={e.id} asChild variant="outline" size="sm">
+                        <Link to={`/student/tasks/assigned?open=${e.id}`}>Open the {format(new Date(`${e.lot_date}T12:00:00`), "EEE d MMM")} Lot</Link>
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </>
             ) : nextSeasonAt !== null ? (
               <p className="text-sm text-muted-foreground">
                 The season is over. No Daily Lot until the next season starts
@@ -498,7 +529,7 @@ const StudentDailyCard = () => {
               <div className="mt-2 grid grid-cols-3 gap-2 text-center">
                 <div>
                   <p className="font-mono text-lg font-bold">{(lotState.checks_used ?? 0) > 0 ? fmtMark(lotState.best_mark) : "–"}</p>
-                  <p className="text-[11px] text-muted-foreground">Coding /10</p>
+                  <p className="text-[11px] text-muted-foreground">{lotState.kind === "written" ? "Written" : "Coding"} /10</p>
                 </div>
                 <div>
                   <p className="font-mono text-lg font-bold">{lotState.voice_state === "scored" ? fmtMark(lotState.voice_mark) : "–"}</p>

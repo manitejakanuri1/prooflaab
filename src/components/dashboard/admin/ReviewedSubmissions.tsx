@@ -41,13 +41,16 @@ const ReviewedSubmissions = () => {
   const queryClient = useQueryClient();
   const [acting, setActing] = useState<string | null>(null);
 
-  const { data: rows, isLoading } = useQuery({
+  // Fetched fresh each time the list opens, and a failed load says so instead of "Nothing to review"
+  // (QA week 8: the college sometimes saw an empty list while two answers were waiting).
+  const { data: rows, isLoading, error: loadError, refetch } = useQuery({
     queryKey: ["needs-review-submissions"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("needs_review_submissions" as never);
       if (error) throw error;
       return (data ?? []) as FlaggedSubmission[];
     },
+    refetchOnMount: "always",
   });
 
   const act = async (submissionId: string, approve: boolean) => {
@@ -93,6 +96,11 @@ const ReviewedSubmissions = () => {
           {isLoading ? (
             <div className="space-y-3">
               {[1, 2].map((i) => <Skeleton key={i} className="h-32 w-full rounded-lg" />)}
+            </div>
+          ) : loadError ? (
+            <div className="py-12 text-center text-sm">
+              <p className="text-alert">Could not load the flagged answers.</p>
+              <button type="button" className="mt-2 underline" onClick={() => void refetch()}>Try again</button>
             </div>
           ) : !rows || rows.length === 0 ? (
             <p className="py-12 text-center text-sm text-muted-foreground">

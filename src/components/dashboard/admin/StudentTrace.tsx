@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
+import { fmtIST } from "@/lib/ist";
 
 /**
  * Admin "Student Trace": the step trail the student area records (see src/lib/tracker.ts).
@@ -66,7 +67,7 @@ const Timeline = () => {
               <button key={s.student_id} type="button" onClick={() => void open(s)}
                 className={`w-full rounded-md border px-3 py-2 text-left text-sm hover:bg-muted ${picked?.student_id === s.student_id ? "border-primary bg-muted" : ""}`}>
                 <div className="font-medium">{s.full_name ?? "(no name)"}</div>
-                <div className="font-mono text-[11px] text-muted-foreground">{s.events_7d} steps in 7 days{s.last_seen ? ` · last ${format(new Date(s.last_seen), "d MMM HH:mm")}` : " · never seen"}</div>
+                <div className="font-mono text-[11px] text-muted-foreground">{s.events_7d} steps in 7 days{s.last_seen ? ` · last ${fmtIST(s.last_seen)}` : " · never seen"}</div>
               </button>
             ))}
           </CardContent>
@@ -88,7 +89,7 @@ const Timeline = () => {
                 <TableBody>
                   {events.map((e, i) => (
                     <TableRow key={i} className={e.status === "error" ? "bg-alert/5" : ""}>
-                      <TableCell className="whitespace-nowrap font-mono text-xs">{format(new Date(e.created_at), "d MMM HH:mm:ss")}</TableCell>
+                      <TableCell className="whitespace-nowrap font-mono text-xs">{fmtIST(e.created_at, true)}</TableCell>
                       <TableCell><Badge variant="outline">{KIND_LABEL[e.kind] ?? e.kind}</Badge> <span className="text-sm">{e.action ?? e.target ?? ""}</span></TableCell>
                       <TableCell className="text-xs text-muted-foreground">{e.screen ?? (e.kind === "call" ? e.target : "")}</TableCell>
                       <TableCell className="text-xs">{e.status === "error" ? <span className="text-alert">failed{e.detail?.http ? ` (${e.detail.http})` : ""}{e.detail?.message ? `: ${e.detail.message}` : ""}</span> : e.status === "ok" ? "ok" : ""}{e.request_id && <div className="font-mono text-[10px] text-muted-foreground" title="Search this id in Google Cloud Logs Explorer">{e.request_id}</div>}</TableCell>
@@ -162,7 +163,7 @@ const Problems = () => {
             <Table>
               <TableHeader><TableRow><TableHead>Where</TableHead><TableHead>What</TableHead><TableHead className="text-right">Times</TableHead><TableHead className="text-right">Students</TableHead><TableHead>Last</TableHead></TableRow></TableHeader>
               <TableBody>{errors.map((r, i) => (
-                <TableRow key={i}><TableCell className="font-mono text-xs">{r.where_}</TableCell><TableCell className="text-sm">{r.what}</TableCell><TableCell className="text-right font-mono">{r.times}</TableCell><TableCell className="text-right font-mono">{r.students}</TableCell><TableCell className="whitespace-nowrap text-xs">{format(new Date(r.last_seen), "d MMM HH:mm")}</TableCell></TableRow>
+                <TableRow key={i}><TableCell className="font-mono text-xs">{r.where_}</TableCell><TableCell className="text-sm">{r.what}</TableCell><TableCell className="text-right font-mono">{r.times}</TableCell><TableCell className="text-right font-mono">{r.students}</TableCell><TableCell className="whitespace-nowrap text-xs">{fmtIST(r.last_seen)}</TableCell></TableRow>
               ))}</TableBody>
             </Table>
           )}

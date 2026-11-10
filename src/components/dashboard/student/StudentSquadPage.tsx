@@ -229,7 +229,8 @@ const StudentSquadPage = () => {
   const totalPoints = members.reduce((sum, m) => sum + m.contribution, 0);
   const myShare = totalPoints > 0 && mine ? Math.round((mine.contribution / totalPoints) * 100) : 0;
   const movement = squad.previous_rank != null && squad.rank != null ? squad.previous_rank - squad.rank : 0;
-  const next = matches.find((m) => m.status === "scheduled");
+  // The list is newest first, so the soonest scheduled match is the LAST scheduled one (QA week 8 showed week 10).
+  const next = [...matches].reverse().find((m) => m.status === "scheduled");
   const sectionRank = standings.findIndex((s) => s.id === squad.id) + 1;
 
   // With an odd number of squads one sits out each round. Their tab used to
@@ -261,7 +262,7 @@ const StudentSquadPage = () => {
         <CardContent className="pt-5">
           <h2 className="text-xl font-semibold">{squad.name}</h2>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
-            {squad.cohort ? `${squad.cohort} · ` : ""}{members.length} of {squad.max_members} members
+            {squad.cohort ? `${squad.cohort} · ` : ""}{members.length} members (room for {squad.max_members})
           </p>
           {ended ? (
             <p className="mt-2 text-sm" data-testid="season-over">

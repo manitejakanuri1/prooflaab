@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -99,19 +99,27 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
+  // M4: answers for a student opened earlier can arrive after the next student's drawer opened.
+  // Each load gets a number; an answer whose number is no longer current is thrown away.
+  const loadSeq = useRef(0);
   const load = useCallback(async () => {
     if (!studentId) return;
+    const seq = ++loadSeq.current;
+    const current = () => seq === loadSeq.current;
     setData(null); setError(null); setPaths([]); setWork(null);
     const { data: res, error: err } = await supabase.rpc(
       "tpo_student_profile" as never, { _student_id: studentId } as never);
+    if (!current()) return;
     if (err) { setError(err.message); return; }
     const p = res as unknown as Profile;
     if (p?.error) { setError(p.error); return; }
     setData(p);
     const { data: lp } = await supabase.rpc("tpo_student_learning" as never, { _student_id: studentId } as never);
+    if (!current()) return;
     setPaths(Array.isArray(lp) ? (lp as unknown as LearningPath[]) : []);
     // Admin and the own college see every finished task: answer, voice words, recording (migration 168).
     const { data: fw } = await supabase.rpc("tpo_student_work" as never, { _student_id: studentId } as never);
+    if (!current()) return;
     const list = (fw as { work?: FinishedWorkItem[] } | null)?.work;
     setWork(Array.isArray(list) ? list : []);
   }, [studentId]);
@@ -189,7 +197,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                 { k: "Lots done", v: `${data.tasks.completed}/${data.tasks.assigned}` },
                 ...(data.streak !== undefined ? [
                   { k: "Streak", v: data.streak ? `${data.streak.current}d · best ${data.streak.longest}d` : "0d" },
-                  { k: "Failed attempts", v: data.tasks.failed_attempts ?? 0, hot: (data.tasks.failed_attempts ?? 0) >= 3 },
+                  { k: "Checks not passed", v: data.tasks.failed_attempts ?? 0, hot: (data.tasks.failed_attempts ?? 0) >= 3 },
                   { k: "Voice score", v: data.voice?.average_score != null
                       ? `${data.voice.average_score} avg · last ${data.voice.last_score ?? "—"}` : "none yet" },
                   { k: "Mock interviews", v: data.mock_interviews?.count

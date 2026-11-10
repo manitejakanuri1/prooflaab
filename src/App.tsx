@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import TrackerBridge from "@/components/TrackerBridge";
 import AppGuideChatbot from "@/components/AppGuideChatbot";
@@ -67,6 +67,13 @@ const queryClient = new QueryClient({
 if (typeof window !== "undefined") {
   window.addEventListener("pageshow", (e) => { if (e.persisted) window.location.reload(); });
 }
+
+// QA week 8: /college/students, /college/squads, /college/matches were 404s. They open that tab.
+const COLLEGE_TABS: Record<string, string> = { home: "home", students: "students", squads: "squads", matches: "squads", insights: "insights" };
+const CollegeTabRedirect = () => {
+  const { tab = "" } = useParams();
+  return <Navigate to={`/college/dashboard?tab=${COLLEGE_TABS[tab] ?? "home"}`} replace />;
+};
 
 // MF-005: /logout and /signout (were 404s) end the session and go to sign in.
 const Logout = () => {
@@ -241,6 +248,7 @@ const App = () => (
                 />
                 
                 
+                <Route path="/college/:tab" element={<CollegeTabRedirect />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="*" element={<NotFound />} />

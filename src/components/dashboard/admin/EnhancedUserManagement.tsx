@@ -44,6 +44,7 @@ import {
   Eye, Download, MoreHorizontal, Trash2, UserX, UserCheck, Filter, Plus
 } from "lucide-react";
 import { ADMIN_LIST_CAP } from "@/lib/listCaps";
+import { fmtIST } from "@/lib/ist";
 
 interface UserData {
   id: string;
@@ -956,7 +957,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                       )}
                       <p><strong>Last Active:</strong> {
                         viewUserSheet.last_active 
-                          ? new Date(viewUserSheet.last_active).toLocaleString()
+                          ? fmtIST(viewUserSheet.last_active)
                           : 'Never'
                       }</p>
                     </div>

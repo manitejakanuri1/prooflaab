@@ -170,7 +170,14 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     // E2E: show the squads together with their members, never 0/12 while members are still loading.
     setSquads(list);
     setMembers((mem.data ?? []) as unknown as Member[]);
-    setMatches((mat.data ?? []) as unknown as Match[]);
+    // QA week 8: week 10 was at the top and week 1 at the bottom. Upcoming matches first (soonest first),
+    // then played ones (most recent first).
+    const allMatches = (mat.data ?? []) as unknown as Match[];
+    const upcoming = allMatches.filter((m) => m.status === "scheduled")
+      .sort((x, y) => new Date(x.scheduled_at).getTime() - new Date(y.scheduled_at).getTime());
+    const played = allMatches.filter((m) => m.status !== "scheduled")
+      .sort((x, y) => new Date(y.scheduled_at).getTime() - new Date(x.scheduled_at).getTime());
+    setMatches([...upcoming, ...played]);
     setPerformance((perf.data ?? []) as unknown as Performance[]);
     setAchievements((ach.data ?? []) as unknown as Achievement[]);
     setScoringRules((rules.data ?? []) as unknown as ScoringRule[]);
@@ -556,7 +563,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                       </td>
                       <td className="py-2.5 pr-3 text-muted-foreground">{s.cohort ?? "—"}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">
-                        {mine.length}/{s.max_members}
+                        {mine.length} <span className="text-muted-foreground">(room for {s.max_members})</span>
                       </td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">{s.wins}–{s.draws ?? 0}–{s.losses}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums font-semibold">{s.points}</td>
@@ -611,15 +618,17 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
         </TabsContent>
 
         <TabsContent value="overview" className="mt-4">
-          {current && (
-            <Card><CardContent className="pt-5">
+          {/* QA week 8: the overview showed only the selected squad; it now shows every squad. */}
+          <div className="space-y-4">
+          {squads.map((current) => { const currentMembers = members.filter((m) => m.squad_id === current.id); return (
+            <Card key={current.id}><CardContent className="pt-5">
               <h2 className="text-xl font-semibold">{current.name}</h2>
               <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {[
                   { k: "Rank", v: current.rank ? `#${current.rank}` : "—" },
                   { k: "Points", v: current.points },
                   { k: "Record", v: `${current.wins}–${current.draws ?? 0}–${current.losses}` },
-                  { k: "Members", v: `${currentMembers.length}/${current.max_members}` },
+                  { k: "Members", v: `${currentMembers.length} (room for ${current.max_members})` },
                 ].map(({ k, v }) => (
                   <div key={k} className="rounded-lg bg-muted/50 p-3">
                     <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{k}</span>
@@ -646,7 +655,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                 );
               })()}
             </CardContent></Card>
-          )}
+          ); })}
+          </div>
         </TabsContent>
 
         <TabsContent value="members" className="mt-4">
@@ -769,7 +779,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                     const n = members.filter((m) => m.squad_id === s.id).length;
                     return (
                       <SelectItem key={s.id} value={s.id} disabled={n >= s.max_members}>
-                        {s.name} ({n}/{s.max_members})
+                        {s.name} ({n} members, room for {s.max_members})
                       </SelectItem>
                     );
                   })}
@@ -984,7 +994,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                       <Badge variant="outline" className="text-[10px] font-normal">Archived</Badge>
                     )}
                     <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
-                      {live}/{s.max_members} members
+                      {live} members (room for {s.max_members})
                     </span>
                   </div>
 

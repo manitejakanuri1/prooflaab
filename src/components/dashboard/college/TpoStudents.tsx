@@ -352,7 +352,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                   <th className="pb-2 pr-3">Branch</th>
                   <th className="pb-2 pr-3">Squad</th>
                   <th className="pb-2 pr-3">Last active</th>
-                  <th className="pb-2 pr-3">Lots</th>
+                  <th className="pb-2 pr-3" title="Lots this student passed. A Lot submitted but not passed is not counted.">Lots passed</th>
                   <th className="pb-2 pr-3">Status</th>
                   <th className="pb-2"></th>
                 </tr>

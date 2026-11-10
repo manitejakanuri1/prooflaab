@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface StudentProfile {
@@ -60,29 +60,8 @@ async function fetchProfile(): Promise<StudentProfile | null> {
   } as any;
 }
 
-// The cache is keyed without a user id, so it must be dropped when the signed-in
-// user changes - otherwise a sign-out and sign-in as someone else in the same
-// tab would briefly show the previous person's profile. One listener, attached
-// once for the app, compares user ids so a token refresh does not clear it.
-let authListenerAttached = false;
-let lastUserId: string | null | undefined;
-
-function attachAuthListener(queryClient: QueryClient) {
-  if (authListenerAttached) return;
-  authListenerAttached = true;
-  supabase.auth.onAuthStateChange((_event, session) => {
-    const uid = session?.user?.id ?? null;
-    if (lastUserId !== undefined && uid !== lastUserId) {
-      queryClient.removeQueries({ queryKey: PROFILE_KEY });
-      queryClient.removeQueries({ queryKey: RANK_KEY });
-    }
-    lastUserId = uid;
-  });
-}
-
 export const useStudentProfile = () => {
   const queryClient = useQueryClient();
-  attachAuthListener(queryClient);
 
   const profileQuery = useQuery({
     queryKey: PROFILE_KEY,

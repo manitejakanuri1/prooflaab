@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { fmtIST } from "@/lib/ist";
 
 /**
  * Admin "Bug Finder": results of the robot that uses the live app like a student, on a schedule,
@@ -64,7 +65,7 @@ const BugFinder = () => {
                     className={`w-full rounded-md border px-3 py-2 text-left text-sm hover:bg-muted ${open === r.run_id ? "border-primary bg-muted" : ""}`}>
                     <div className="flex items-center gap-2">
                       {failed.length === 0 ? <CheckCircle2 className="h-4 w-4 text-verified" /> : <XCircle className="h-4 w-4 text-alert" />}
-                      <span className="font-medium">{format(new Date(r.started_at), "d MMM HH:mm")}</span>
+                      <span className="font-medium">{fmtIST(r.started_at)}</span>
                       <span className="ml-auto font-mono text-xs text-muted-foreground">{r.passed}/{r.total}</span>
                     </div>
                     {failed.length > 0 && <div className="mt-1 text-xs text-alert">{failed.join(", ")}</div>}

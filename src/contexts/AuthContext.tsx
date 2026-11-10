@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, Fragment, useContext, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureStudentProfile } from "@/lib/ensureStudentProfile";
@@ -25,6 +26,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const lastUserId = useRef<string | null | undefined>(undefined);
+
+  // M1: cached data is not keyed by user, so when a different person signs in on the same tab
+  // drop every cached answer first; the children are also keyed by user id below, so no screen
+  // keeps the previous person's Lot or drawer in its own state.
+  const adoptUser = (next: User | null) => {
+    const id = next?.id ?? null;
+    if (lastUserId.current !== undefined && lastUserId.current !== id) queryClient.clear();
+    lastUserId.current = id;
+    setUser(next);
+  };
 
   useEffect(() => {
     // Set up auth state listener
@@ -34,13 +47,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (event === 'TOKEN_REFRESHED' && !session) {
           await supabase.auth.signOut();
           setSession(null);
-          setUser(null);
+          adoptUser(null);
           setLoading(false);
           return;
         }
 
         setSession(session);
-        setUser(session?.user ?? null);
+        adoptUser(session?.user ?? null);
         
         // Handle successful authentication
         if (session?.user && event === 'SIGNED_IN') {
@@ -59,13 +72,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error('Error getting session:', error);
         await supabase.auth.signOut();
         setSession(null);
-        setUser(null);
+        adoptUser(null);
         setLoading(false);
         return;
       }
 
       setSession(session);
-      setUser(session?.user ?? null);
+      adoptUser(session?.user ?? null);
       
       // Create student profile if user exists and profile doesn't exist
       if (session?.user) {
@@ -79,7 +92,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('Failed to get session:', error);
       await supabase.auth.signOut();
       setSession(null);
-      setUser(null);
+      adoptUser(null);
       setLoading(false);
     });
 
@@ -99,7 +112,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      <Fragment key={user?.id ?? "signed-out"}>{children}</Fragment>
       {/* Show onboarding modal for authenticated users */}
       {user && !loading && (
         <OnboardingModal 

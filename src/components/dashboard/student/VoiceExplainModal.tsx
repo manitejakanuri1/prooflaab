@@ -1520,6 +1520,11 @@ const VoiceExplainModal = ({
             <Button variant="destructive" onClick={stop} className="w-full">
               <Square className="h-4 w-4 mr-2" /> Stop and save
             </Button>
+            {secondsLeft <= 10 && (
+              <p className="text-sm font-medium text-compete" role="status" data-testid="voice-time-warning">
+                {secondsLeft} seconds left. Finish your sentence; recording stops at 60 seconds.
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
               Keep this page open until you see “Saved”. Switching away stops the recording;
               closing or leaving the page before then means it may not be saved.
@@ -1560,6 +1565,11 @@ const VoiceExplainModal = ({
               <p className="flex items-center gap-2 text-sm" data-testid="voice-not-used">
                 <AlertTriangle className="h-4 w-4 text-compete" /> We could not use this recording.
               </p>
+            ) : savedResult && savedResult.score == null && scoringPending ? (
+              // M2: not "Saved" yet - the server can still find it silent or off topic.
+              <p className="flex items-center gap-2 text-sm" data-testid="voice-checking">
+                <Loader2 className="h-4 w-4 animate-spin" /> Recording received. Checking it now…
+              </p>
             ) : (
               <p className="flex items-center gap-2 text-sm">
                 <CheckCircle2 className="h-4 w-4 text-verified" /> Saved. It will appear in your build-log.
@@ -1581,7 +1591,12 @@ const VoiceExplainModal = ({
                     Grading your explanation… You can close this; it will be scored either way.
                   </p>
                 )}
-                {savedResult.notes && <p className="text-xs text-muted-foreground mt-1">{savedResult.notes}</p>}
+                {savedResult.notes ? <p className="text-xs text-muted-foreground mt-1">{savedResult.notes}</p>
+                  : savedResult.score == null && !scoringPending && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      A recording is not used when it is silent, too short (fewer than 12 words), repeats itself, or is not about this task.
+                    </p>
+                  )}
               </div>
             )}
             {savedResult && (

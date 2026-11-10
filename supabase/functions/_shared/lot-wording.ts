@@ -20,6 +20,12 @@ function hasLabel(text: string, label: string): boolean {
 
 const FILE_DELIVERABLE = /\b(upload|attach(ed|ment)?|(text|markdown|pdf|word|docx?|txt|csv|excel)\b[^.\n]{0,25}\bfile\b|\.(txt|md|pdf|docx?)\b|screenshot|github (repo|link))/i;
 const UNSEEN_MATERIAL = /\b((article|document|transcript|log|data|dataset|table|code|snippet|function|program|query|script|class|method|file|email|spec(ification)?|report)\s+(below|above|attached|provided)|(see|use|read)\s+the\s+(attached|following)\s+(article|document|data|file)|from the attached)\b/i;
+// QA week 8 (Nov 2026): Lots on REAL asked to "summarise the raw notes", "fix three wrong answers on a five-question
+// sheet" and to use the "Infosys Interview Experience 2023 article" - none of it was shown. A named article, sheet,
+// set of notes or handout the student is meant to work from must be in code_sample.
+const NAMED_MATERIAL = /\b(raw notes|meeting notes|(the|this|that|these|those)\s+([\w'-]+\s+){0,6}(article|sheet|worksheet|handout|notes|blog post|write-up|transcript|log file))\b/i;
+// "as a PDF", "a script and its output log": things that only make sense as a file.
+const FILE_WORDS = /\b(pdf|output log|log file|(submit|send|share|attach)\s+(the|your|a)\s+(script|file|document))\b/i;
 const FABRICATED_PAST = /\byou\s+(recently\s+|just\s+)?(attended|appeared (in|for)|sat (for|in)|took part in|were (interviewed|selected)|went (to|through))\b/i;
 const VOICE_IN_TASK = /\b(record (yourself|a (video|voice|audio))|voice (note|recording)|video)\b/i;
 
@@ -44,6 +50,8 @@ export function lotWordingProblems(lot: { title?: unknown; scenario?: unknown; c
   }
 
   if (FILE_DELIVERABLE.test(text)) problems.push('Asks for a file, upload, attachment or link; the student can only type in the answer box or the code editor.');
+  if (FILE_WORDS.test(text)) problems.push('Asks for a PDF, a log or a file; the student can only type in the answer box or the code editor, so ask them to paste the text there.');
+  if (NAMED_MATERIAL.test(text) && !code) problems.push('Names notes, a sheet, an article or a log the student works from, but it is not included; put the material in code_sample or describe the facts in the task itself.');
   if (UNSEEN_MATERIAL.test(text) && !code) problems.push('Refers to material "below/attached/provided" that is not included; put it in code_sample or remove the reference.');
   if (FABRICATED_PAST.test(text)) problems.push('Assumes the student already did something (attended, appeared, was interviewed); describe a situation they can actually work on.');
   if (VOICE_IN_TASK.test(text)) problems.push('Asks for a recording or video; the voice explanation is a separate step after submitting.');

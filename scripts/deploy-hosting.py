@@ -147,6 +147,8 @@ version = call("POST", f"sites/{SITE}/versions", {
                     "Referrer-Policy": "strict-origin-when-cross-origin",
                     "Permissions-Policy": "microphone=(self), camera=(), geolocation=(), payment=(), usb=()",
                     "X-Frame-Options": "SAMEORIGIN",
+                    # S3 (security review, Nov 2026): browsers keep to https for a year on every subdomain too.
+                    "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
                     "Content-Security-Policy": (
                         "default-src 'self'; "
                         "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tailwindcss.com; "

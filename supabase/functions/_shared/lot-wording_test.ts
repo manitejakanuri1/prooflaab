@@ -44,3 +44,21 @@ Deno.test('coding Lots need Input/Output/Example/Why; "code below" needs the cod
   const q = lotWordingProblems({ title: 'Fix it', scenario: 'Your task: fix the function below so it works for negative numbers and prints the right total every time it runs.', code_sample: 'def f(x):\n  return x' }, 'sandbox');
   assert(!has(q, 'not included'), '"below" flagged even though code_sample is present');
 });
+
+// QA week 8 on REAL (Nov 2026): each of these reached students with nothing to work from.
+Deno.test('named notes, sheets, articles and PDFs without the material are rejected', () => {
+  const ctx = 'A manager needs a one-page summary for the client call tomorrow. The call is short, so it must be clear.\n';
+  const cases: [string, string][] = [
+    [ctx + 'Your task: Write the summary from the raw notes.\nWhat to write: 150 words in the answer box.', 'not included'],
+    [ctx + 'Your task: Fix three wrong answers on the five-question sheet.\nWhat to write: the fixed answers, 100 words.', 'not included'],
+    [ctx + 'Your task: Using the Infosys Interview Experience 2023 article, list talking points.\nWhat to write: 200 words.', 'not included'],
+    [ctx + 'Your task: Write the talking points and submit them as a PDF.\nWhat to write: 200 words.', 'pdf'],
+    [ctx + 'Your task: Write a script for the time-and-work sum and include its output log.\nWhat to write: the script and the output.', 'pdf'],
+  ];
+  for (const [scenario, word] of cases) {
+    const p = lotWordingProblems({ title: 'Summary', scenario }, 'rubric');
+    assert(has(p, word), `not caught (${word}): ${scenario.slice(ctx.length, ctx.length + 60)} -> ${JSON.stringify(p)}`);
+  }
+  const withSheet = lotWordingProblems({ title: 'Sheet', scenario: cases[1][0], code_sample: 'Q1 ...' }, 'rubric');
+  assert(!has(withSheet, 'not included'), 'flagged even though the sheet is in code_sample');
+});

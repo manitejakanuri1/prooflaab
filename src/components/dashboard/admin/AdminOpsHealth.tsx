@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { fmtIST } from "@/lib/ist";
 
 const since = (hours: number) => new Date(Date.now() - hours * 3600_000).toISOString();
 const count = async (table: string, build: (q: any) => any = (q) => q) => {
@@ -20,7 +21,7 @@ const count = async (table: string, build: (q: any) => any = (q) => q) => {
 interface JobRow { job: string; what: string; schedule: string; next_run: string; last_run: string | null; proof: string }
 
 const when = (iso: string | null) => iso
-  ? new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })
+  ? fmtIST(iso)
   : "—";
 
 const AdminOpsHealth = () => {

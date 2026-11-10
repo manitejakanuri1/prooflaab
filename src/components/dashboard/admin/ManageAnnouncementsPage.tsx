@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { fmtIST } from "@/lib/ist";
 
 // MF-033 (migration 199): who sees it. Publishing sends each of them one bell notice and shows it on their dashboard.
 const AUDIENCES = { all: "Everyone", students: "Students", colleges: "Colleges", companies: "Companies" } as const;
@@ -329,7 +330,7 @@ const ManageAnnouncementsPage = () => {
             <DialogTitle>{viewing?.title}</DialogTitle>
           </DialogHeader>
           <p className="text-xs text-muted-foreground">
-            {viewing?.status} · {viewing ? new Date(viewing.created_at).toLocaleString() : ""}
+            {viewing?.status} · {viewing ? fmtIST(viewing.created_at) : ""}
           </p>
           <p className="whitespace-pre-wrap text-sm">{viewing?.description || "No description."}</p>
         </DialogContent>

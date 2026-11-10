@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { fmtIST } from "@/lib/ist";
 
 interface Row {
   id: string;
@@ -18,6 +19,33 @@ interface Row {
   sandbox_config_id: string | null;
   tasks: { title: string; source: string | null } | null;
   student_profiles: { full_name: string } | null;
+  voice?: boolean;
+}
+
+interface VoiceRow {
+  id: string;
+  status: string;
+  communication_score: number | null;
+  created_at: string;
+  evaluation: { attempt_fail?: string } | null;
+  tasks: { title: string; source: string | null } | null;
+  student_profiles: { full_name: string } | null;
+}
+
+// M7: voice recordings live in voice_explanations, not task_submissions, so they were never listed here.
+async function voiceRows(status: string): Promise<Row[]> {
+  let q = supabase.from("voice_explanations")
+    .select("id, status, communication_score, created_at, evaluation, tasks(title, source), student_profiles(full_name)")
+    .is("withdrawn_at", null).order("created_at", { ascending: false }).limit(200);
+  if (status === "passed") q = q.eq("status", "scored");
+  if (status === "failed") q = q.eq("status", "failed");
+  const { data, error } = await q;
+  if (error) throw error;
+  return ((data as unknown as VoiceRow[]) ?? []).map((v) => ({
+    id: v.id, status: v.status, sandbox_score: v.communication_score, passed_count: null, total_count: null,
+    runner: null, flags: v.evaluation?.attempt_fail ? [v.evaluation.attempt_fail] : null, created_at: v.created_at,
+    sandbox_config_id: null, tasks: v.tasks, student_profiles: v.student_profiles, voice: true,
+  }));
 }
 
 /**
@@ -31,13 +59,15 @@ const AdminSubmissions = () => {
   const { data = [], isLoading, error } = useQuery({
     queryKey: ["admin-submissions", status],
     queryFn: async (): Promise<Row[]> => {
+      if (status === "voice") return voiceRows("all");
       let q = supabase.from("task_submissions")
         .select("id, status, sandbox_score, passed_count, total_count, runner, flags, created_at, sandbox_config_id, tasks(title, source), student_profiles(full_name)")
         .order("created_at", { ascending: false }).limit(200);
       if (status !== "all") q = q.eq("status", status);
-      const { data, error } = await q;
+      const [{ data, error }, voices] = await Promise.all([q, status === "needs_review" ? Promise.resolve([]) : voiceRows(status)]);
       if (error) throw error;
-      return (data as unknown as Row[]) ?? [];
+      return [...((data as unknown as Row[]) ?? []), ...voices]
+        .sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 200);
     },
   });
 
@@ -52,6 +82,7 @@ const AdminSubmissions = () => {
             <SelectItem value="passed">Passed</SelectItem>
             <SelectItem value="failed">Not passed</SelectItem>
             <SelectItem value="needs_review">Needs review</SelectItem>
+            <SelectItem value="voice">Voice only</SelectItem>
           </SelectContent>
         </Select>
       </CardHeader>
@@ -70,11 +101,11 @@ const AdminSubmissions = () => {
               <tbody>
                 {data.map((r) => (
                   <tr key={r.id} className="border-t">
-                    <td className="py-2 pr-3 font-mono text-xs">{format(new Date(r.created_at), "dd MMM HH:mm")}</td>
+                    <td className="py-2 pr-3 font-mono text-xs">{fmtIST(r.created_at)}</td>
                     <td className="py-2 pr-3">{r.student_profiles?.full_name ?? "—"}</td>
                     <td className="py-2 pr-3">{r.tasks?.title ?? "—"}</td>
-                    <td className="py-2 pr-3">{r.sandbox_config_id ? `code (${r.passed_count ?? 0}/${r.total_count ?? 0})` : "written"}</td>
-                    <td className="py-2 pr-3"><Badge variant={r.status === "passed" ? "default" : "secondary"}>{r.status}{r.sandbox_score != null ? ` · ${r.sandbox_score}` : ""}</Badge></td>
+                    <td className="py-2 pr-3">{r.voice ? "voice" : r.sandbox_config_id ? `code (${r.passed_count ?? 0}/${r.total_count ?? 0})` : "written"}</td>
+                    <td className="py-2 pr-3"><Badge variant={r.status === "passed" || (r.voice && r.status === "scored") ? "default" : "secondary"}>{r.status}{r.sandbox_score != null ? ` · ${r.sandbox_score}` : ""}</Badge></td>
                     <td className="py-2 text-xs text-muted-foreground">{(r.flags ?? []).join(", ") || "—"}</td>
                   </tr>
                 ))}

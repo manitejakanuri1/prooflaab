@@ -257,6 +257,14 @@ export default function WrittenTaskPanel({
         {wordCount} words {tooShort ? `(need ${view.min_words - wordCount} more)` : tooLong ? "(too long)" : ""}
       </p>
 
+      {/* QA week 8: say why Check is greyed out, next to the button. */}
+      {!done && (tooShort || tooLong) && answer.trim() && (
+        <p className="text-right text-xs text-compete" data-testid="check-disabled-why">
+          {tooShort
+            ? `Check opens at ${view.min_words} words. Write ${view.min_words - wordCount} more.`
+            : `Your answer is over ${view.max_words} words. Shorten it to check.`}
+        </p>
+      )}
       <div className="flex justify-end gap-2">
         {daily ? (
           <>
@@ -350,7 +358,7 @@ export default function WrittenTaskPanel({
                 {daily ? "Your mark is saved." : "Your written answer passed!"} Record now, or close this and record later from the Daily Card.
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Look at the panel on the right — click &quot;I understand — continue&quot; and explain your work in your own words.
+                Use the recorder on the right and explain your work in your own words.
               </p>
             </div>
           )}

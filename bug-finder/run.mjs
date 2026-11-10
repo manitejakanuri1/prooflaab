@@ -144,9 +144,11 @@ async function fakeResumePdf() {
 
 async function signIn(page, email, password) {
   await page.goto(`${SITE}/auth`, { waitUntil: "networkidle" });
-  await page.fill('input[type="email"]', email);
-  await page.fill('input[type="password"]', password);
-  await page.click('button[type="submit"]');
+  // The sign-in card has two steps: email, then password on its own screen.
+  await page.fill("#login-email", email);
+  await page.click('form button[type="submit"]');
+  await page.fill("#login-password", password);
+  await page.click('form button[type="submit"]');
   await page.waitForURL((u) => !u.pathname.startsWith("/auth"), { timeout: 30000 });
   await page.waitForTimeout(1500);
 }

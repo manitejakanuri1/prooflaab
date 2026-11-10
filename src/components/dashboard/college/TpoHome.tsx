@@ -108,10 +108,10 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
   // — there is nothing to show behind "0 need attention".
   const cards = [
     { key: "students", label: "Students", value: data.students, icon: Users,
-      note: `${data.active_this_week} active this week · open the list`,
+      note: `${data.active_this_week} opened the app this week · open the list`,
       action: () => onNavigate?.("students") },
-    { key: "today", label: "Active today", value: data.active_today, icon: Activity,
-      note: data.active_today > 0 ? "signed in or submitted today" : "nobody yet today",
+    { key: "today", label: "Opened the app today", value: data.active_today, icon: Activity,
+      note: data.active_today > 0 ? "signed in today (not all of them submitted work)" : "nobody yet today",
       tone: "good" as const, action: () => onFilterStudents?.("active_today") },
     { key: "attention", label: "Needs attention", value: data.needs_attention, icon: AlertTriangle,
       note: data.needs_attention > 0 ? "tap to see who" : "nobody, for once",

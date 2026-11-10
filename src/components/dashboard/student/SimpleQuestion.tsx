@@ -70,10 +70,16 @@ export const SimpleQuestion = ({ taskId, original }: { taskId: string; original:
   const { brief, loading } = useSimpleBrief(taskId);
   const [showOriginal, setShowOriginal] = useState(false);
 
+  // QA week 8 (N1, N2): the simple version can take 10-20 s the first time. Show the original question
+  // at once, and swap in the simple version when it is ready, so nobody waits on a spinner.
   if (loading) {
+    if (!original) return null;
     return (
-      <div className="flex items-center gap-2 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading the question…
+      <div className="space-y-2">
+        <BriefCards text={original} />
+        <p className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Writing a simpler version of this question…
+        </p>
       </div>
     );
   }
@@ -145,7 +151,7 @@ export const SimpleQuestion = ({ taskId, original }: { taskId: string; original:
 /** Short version for the Daily card: the one line and what it means. */
 export const SimpleQuestionShort = ({ taskId, original }: { taskId: string; original: string | null }) => {
   const { brief, loading } = useSimpleBrief(taskId);
-  if (loading) return <p className="text-sm text-[#6b6559]">Loading…</p>;
+  if (loading) return original ? <BriefCards text={original} tone="paper" /> : null;
   if (!brief) return original ? <BriefCards text={original} tone="paper" /> : null;
   return (
     <div className="space-y-2">

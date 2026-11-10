@@ -1,11 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { checkLine, fmtMark, voiceLine } from "./lotMarksText.ts";
+import { checkLine, fmtMark, of10, talkCheck, voiceLine } from "./lotMarksText.ts";
 
 test("marks: whole marks show no decimal, others one", () => {
   assert.equal(fmtMark(8), "8");
   assert.equal(fmtMark(7.1), "7.1");
-  assert.equal(fmtMark(null), "0");
+  assert.equal(fmtMark(null), "–");
+  assert.equal(fmtMark(0), "0");
+  assert.equal(of10(72), "7.2/10");
+  assert.equal(of10(100), "10/10");
+  assert.equal(of10(null), "–");
+  assert.equal(talkCheck(88), "Matched");
+  assert.equal(talkCheck(30), "Partly");
+  assert.equal(talkCheck(29), "Not matched");
 });
 test("check line: submit or try again while checks are left, then the best mark", () => {
   assert.match(checkLine(8, { daily: true, checks_left: 2, submitted: false }), /2 tries left/);

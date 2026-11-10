@@ -1,3 +1,4 @@
+import { of10 } from "@/lib/lotMarksText";
 import { jsPDF } from "jspdf";
 
 /**
@@ -49,7 +50,7 @@ export function exportTranscriptPdf(opts: TranscriptPdfOptions, filename: string
   if (opts.overallScore != null) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
-    doc.text(`Overall score: ${opts.overallScore}/100`, MARGIN, y);
+    doc.text(`Overall score: ${of10(opts.overallScore)}`, MARGIN, y);
     y += 7;
   }
   if (opts.overallFeedback) {
@@ -78,7 +79,7 @@ export function exportTranscriptPdf(opts: TranscriptPdfOptions, filename: string
       doc.setFont("helvetica", "italic");
       doc.setFontSize(9);
       doc.setTextColor(90);
-      doc.text(`Scored ${entry.score}/100`, MARGIN, y);
+      doc.text(`Scored ${of10(entry.score)}`, MARGIN, y);
       doc.setTextColor(20);
       y += 5;
     }

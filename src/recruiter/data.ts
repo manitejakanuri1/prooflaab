@@ -1,3 +1,4 @@
+import { of10 } from "@/lib/lotMarksText";
 import { supabase } from "@/integrations/supabase/client";
 import type { Candidate, ProofItem, SkillScore } from "./types";
 import { passedLabel } from "@/lib/passedNote";
@@ -36,7 +37,7 @@ const skillProof = (s: {
     out.push({
       type: "assessment",
       title: `${s.skill} assessment`,
-      detail: `Scored ${s.score}/100 in the validation assessment.`,
+      detail: `Scored ${of10(s.score as number)} in the validation assessment.`,
       date: (s.last_evidence_at ?? "").slice(0, 10),
       score: s.score,
     });
@@ -213,7 +214,7 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
       id: String(l.task_id),
       title: String(l.title ?? "Lot"),
       description: l.score != null
-        ? `Score ${l.score}/100 · ${grade(l)}`
+        ? `Score ${of10(l.score as number)} · ${grade(l)}`
         : l.task_status === "pending" ? "Not started yet" : "In progress",
       status: l.submission_status === "passed" || l.submission_status === "failed" ? "reviewed"
         : l.submitted_at ? "submitted" : "pending",

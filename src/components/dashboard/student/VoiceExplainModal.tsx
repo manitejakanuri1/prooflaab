@@ -1,3 +1,4 @@
+import { of10 } from "@/lib/lotMarks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -1584,7 +1585,7 @@ const VoiceExplainModal = ({
                   transcript={savedResult.transcript}
                   segments={savedResult.segments} />
                 {savedResult.score != null && (
-                  <p className="mt-2 text-sm font-medium">Communication score {savedResult.score}/100</p>
+                  <p className="mt-2 text-sm font-medium">Voice {of10(savedResult.score)}</p>
                 )}
                 {savedResult.score == null && scoringPending && (
                   <p className="mt-2 text-xs text-muted-foreground">

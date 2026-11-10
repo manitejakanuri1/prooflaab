@@ -1,3 +1,4 @@
+import { of10 } from "@/lib/lotMarks";
 import { format } from "date-fns";
 import type { FinishedWorkItem } from "@/recruiter/types";
 import VoicePlayButton from "./recruiter/VoicePlayButton";
@@ -19,7 +20,7 @@ const FinishedWork = ({ work }: { work: FinishedWorkItem[] }) => {
             <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">
               {w.kind === "code" && w.total_count ? `${w.passed_count ?? 0}/${w.total_count} tests · ` : ""}
               {w.attempts > 1 ? `${w.attempts} tries · ` : ""}
-              {w.voice?.score != null ? `voice ${w.voice.score} · ` : ""}
+              {w.voice?.score != null ? `voice ${of10(w.voice.score)} · ` : ""}
               {w.submitted_at ? format(new Date(w.submitted_at), "d MMM") : ""}
             </span>
           </summary>

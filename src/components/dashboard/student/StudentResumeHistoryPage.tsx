@@ -1,3 +1,4 @@
+import { of10 } from "@/lib/lotMarks";
 import { Fragment, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -134,7 +135,7 @@ const StudentResumeHistoryPage = () => {
                     <span className="text-sm font-medium">Interview Readiness</span>
                     {readiness != null && (
                       <Badge variant={readiness >= 70 ? "default" : readiness >= 45 ? "secondary" : "outline"}>
-                        {readiness}/100
+                        {of10(readiness)}
                       </Badge>
                     )}
                   </div>
@@ -143,7 +144,7 @@ const StudentResumeHistoryPage = () => {
                     {parts.map(([label, v, w]) => (
                       <div key={label} className="rounded bg-muted/50 p-2">
                         <div className="text-muted-foreground">{label}</div>
-                        <div className="font-mono text-base font-semibold">{v ?? "—"}</div>
+                        <div className="font-mono text-base font-semibold">{of10(v)}</div>
                         <div className="text-muted-foreground">
                           {v == null ? "not assessed" : `counts ${Math.round((w / weightSum) * 100)}%`}
                         </div>
@@ -159,12 +160,12 @@ const StudentResumeHistoryPage = () => {
                   </div>
                   {latest.coding_score != null && (
                     <p className="text-xs text-muted-foreground mt-2">
-                      Coding round: {latest.coding_score}/100 (shown separately, not part of readiness).
+                      Coding round: {of10(latest.coding_score)} (shown separately, not part of readiness).
                     </p>
                   )}
                   {lotVoice != null && (
                     <p className="text-xs text-muted-foreground mt-2" data-testid="readiness-lot-voice">
-                      Voice (your latest spoken explanation of a task): {lotVoice}/100.
+                      Voice (your latest spoken explanation of a task): {of10(lotVoice)}.
                     </p>
                   )}
                   {latest.coding_score != null && (

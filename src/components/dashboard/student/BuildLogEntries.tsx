@@ -8,7 +8,8 @@ import { Loader2, NotebookPen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBuildLog, voiceInProgress, type BuildLogEntry } from "@/hooks/useBuildLog";
 import { passedLabel, passedNote } from "@/lib/passedNote";
-import { loadLotState } from "@/lib/lotMarks";
+import { loadLotState, of10, talkCheck, SCORE_HELP } from "@/lib/lotMarks";
+import InfoTip from "@/components/common/InfoTip";
 
 const STATUS: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
   passed: { label: "Passed", variant: "default" },
@@ -19,9 +20,11 @@ const STATUS: Record<string, { label: string; variant: "default" | "secondary" |
 interface Label { task_id: string; criterion_id: string; name: string; max_points: number }
 
 /** One number with its label: the unit every result on this page is built from. */
-const Score = ({ label, value, sub }: { label: string; value: string; sub?: string }) => (
+const Score = ({ label, value, sub, help }: { label: string; value: string; sub?: string; help?: string }) => (
   <div className="rounded-lg border px-3 py-2">
-    <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
+    <p className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+      {label}{help && <InfoTip text={help} />}
+    </p>
     <p className="text-xl font-semibold tabular-nums leading-tight">{value}</p>
     {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
   </div>
@@ -142,14 +145,15 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <Score label="Task result" value={e.score != null ? `${e.score}/100` : "—"}
+          <Score label={e.kind === "written" ? "Answer" : "Code"} value={of10(e.score)}
+                 help={e.kind === "written" ? SCORE_HELP.answer() : SCORE_HELP.code()}
                  sub={e.kind === "code" && e.total_count != null
                    ? `Tests passed ${e.passed_count ?? 0} of ${e.total_count}${e.language ? ` · ${e.language}` : ""}`
                    : e.kind === "written" ? "Written answer" : undefined} />
-          <Score label="Voice explanation"
-                 value={scored ? `${v!.communication_score}/100` : "—"}
+          <Score label="Voice" help={SCORE_HELP.voice}
+                 value={scored ? of10(v!.communication_score) : "–"}
                  sub={!v ? "Not recorded yet" : busy ? undefined : scored ? undefined : closed ? "Closed" : "Not scored"} />
-          {scored && match != null && <Score label="Matches your work" value={`${match}/100`} />}
+          {scored && match != null && <Score label="Talk check" value={talkCheck(match)} help={SCORE_HELP.talk} />}
         </div>
         {e.status === "passed" && scored && passedNote(v!.communication_score, match) && (
           <p className="text-sm rounded-md border border-compete/30 bg-compete/5 p-3" data-testid="passed-note">

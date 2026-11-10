@@ -1,3 +1,4 @@
+import InfoTip from "@/components/common/InfoTip";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -5,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtMark, loadWeekMarks, type WeekMarks } from "@/lib/lotMarks";
+import { fmtMark, loadWeekMarks, SCORE_HELP, type WeekMarks } from "@/lib/lotMarks";
 import { latestWeeks, weekChangeText, type WeekRow } from "@/lib/weekPoints";
 import { Target, Award, FileCheck, CalendarDays } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
@@ -98,13 +99,13 @@ const StudentProgressPage = () => {
   ];
 
   const progressCards = [
-    { title: "This week (so far)", value: fmtMark(running?.week_total), icon: CalendarDays,
+    { title: "This week (so far)", value: fmtMark(running?.week_total), icon: CalendarDays, help: SCORE_HELP.thisWeek,
       color: "text-primary", bgColor: "bg-primary/10", change: `${lotsSoFar} ${lotsSoFar === 1 ? "Lot" : "Lots"} so far` },
-    { title: "Last week", value: lastWeek.toString(), icon: Award,
+    { title: "Last week", value: fmtMark(lastWeek), icon: Award, help: SCORE_HELP.lastWeek,
       color: "text-verified", bgColor: "bg-verified/10", change: weekChange },
-    { title: "Pass Rate", value: `${passRate}%`, icon: Target,
+    { title: "Pass Rate", value: `${passRate}%`, icon: Target, help: "Lots passed ÷ Lots handed in.",
       color: "text-primary", bgColor: "bg-primary/10", change: null },
-    { title: "Total Submissions", value: submissions.total.toString(), icon: FileCheck,
+    { title: "Total Submissions", value: submissions.total.toString(), icon: FileCheck, help: "Every piece of work you have handed in.",
       color: "text-compete", bgColor: "bg-compete/10", change: null },
   ];
 
@@ -116,7 +117,7 @@ const StudentProgressPage = () => {
           return (
             <Card key={index} className="transition-all hover:shadow-md">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{card.title}</CardTitle>
+                <CardTitle className="flex items-center gap-1 text-sm font-medium text-muted-foreground">{card.title} <InfoTip text={card.help} /></CardTitle>
                 <div className={`p-2 rounded-lg ${card.bgColor}`}>
                   <Icon className={`h-4 w-4 ${card.color}`} />
                 </div>

@@ -1,3 +1,4 @@
+import { of10 } from "@/lib/lotMarks";
 import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -314,7 +315,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                       <th className="pb-2 pr-3">Role</th>
                       {sortHead("skills", "Skills proven")}
                       {sortHead("work", "Verified work")}
-                      {sortHead("speaking", "Communication (of 100)", "Average score of their spoken explanations, out of 100")}
+                      {sortHead("speaking", "Voice (of 10)", "Average score of their spoken explanations, out of 10")}
                       <th className="pb-2">Last active</th>
                     </tr>
                   </thead>
@@ -453,7 +454,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                         {l.submission_id ? (
                           <span className={lotGrade(l) === "Passed" ? "text-verified" : "text-compete"}>
                             {lotGrade(l)}
-                            {l.score != null ? ` · ${String(l.score)}/100` : ""}
+                            {l.score != null ? ` · ${of10(Number(l.score))}` : ""}
                             {l.voice_status === "scored" ? " · explained" : ""}
                           </span>
                         ) : (

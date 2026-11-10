@@ -1,3 +1,5 @@
+import { SCORE_HELP } from "@/lib/lotMarks";
+import InfoTip from "@/components/common/InfoTip";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUrlTab } from "@/hooks/useUrlTab";
 import { supabase } from "@/integrations/supabase/client";
@@ -536,7 +538,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                   <th className="pb-2 pr-3">#</th><th className="pb-2 pr-3">Squad</th>
                   <th className="pb-2 pr-3">Section</th>
                   <th className="pb-2 pr-3">Members</th><th className="pb-2 pr-3">W-D-L</th>
-                  <th className="pb-2 pr-3">Points</th>
+                  <th className="pb-2 pr-3">Points <InfoTip text={SCORE_HELP.squad} /></th>
                   <th className="pb-2 pr-3">Championship</th><th className="pb-2">Health</th>
                 </tr>
               </thead>
@@ -1091,7 +1093,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                 <thead>
                   <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                     <th className="pb-2 pr-3">Week</th><th className="pb-2 pr-3">Squad</th>
-                    <th className="pb-2 pr-3">Points</th><th className="pb-2 pr-3">Change</th>
+                    <th className="pb-2 pr-3">Points <InfoTip text={SCORE_HELP.squad} /></th><th className="pb-2 pr-3">Change</th>
                     <th className="pb-2 pr-3">Active</th><th className="pb-2">Rank</th>
                   </tr>
                 </thead>

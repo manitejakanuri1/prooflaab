@@ -1,3 +1,4 @@
+import { of10 } from "@/lib/lotMarks";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -123,7 +124,7 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <Badge variant={grade(s) === "Passed" ? "default" : "secondary"}>
-                      {grade(s)}{s.score != null ? ` · ${s.score}/100` : ""}
+                      {grade(s)}{s.score != null ? ` · ${of10(s.score)}` : ""}
                     </Badge>
                     {s.review_decision && (
                       <Badge variant={s.review_decision === "rejected" ? "destructive" : "outline"}>
@@ -146,7 +147,7 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
                   <Mic className="mt-0.5 h-4 w-4 text-muted-foreground" />
                   {s.voice_status === "scored" ? (
                     <div>
-                      <span className="font-medium">Spoken explanation: {s.voice_score}/100.</span>{" "}
+                      <span className="font-medium">Voice: {of10(s.voice_score)}.</span>{" "}
                       {s.voice_notes && <span className="text-muted-foreground">{s.voice_notes}</span>}
                       {s.voice_transcript && (
                         <details className="mt-1">

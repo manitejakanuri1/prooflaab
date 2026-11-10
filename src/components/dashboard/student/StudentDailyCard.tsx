@@ -19,7 +19,8 @@ import TaskVoicePanel from "./TaskVoicePanel";
 import { SimpleQuestionShort } from "./SimpleQuestion";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 import { tidyTitle } from "@/lib/utils";
-import { fmtMark, loadLotState, loadWeekMarks, SKIP_WARNING, type LotState, type WeekMarks } from "@/lib/lotMarks";
+import { fmtMark, loadLotState, loadWeekMarks, of10, SCORE_HELP, SKIP_WARNING, type LotState, type WeekMarks } from "@/lib/lotMarks";
+import InfoTip from "@/components/common/InfoTip";
 import { LOW_SCORE, passedLabel } from "@/lib/passedNote";
 import { FAST_WEEK } from "@/lib/testClock";
 
@@ -349,6 +350,7 @@ const StudentDailyCard = () => {
       <div className="flex items-center gap-3 flex-wrap">
         <span className="text-sm text-muted-foreground">
           Streak <span className="font-mono text-lg font-bold text-primary">{streak}</span> {streak === 1 ? "day" : "days"}
+          {" "}<InfoTip text={SCORE_HELP.streak} />
         </span>
         <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-xs">
           <span
@@ -397,14 +399,17 @@ const StudentDailyCard = () => {
               <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-verified/15 px-2.5 py-1 text-xs font-semibold text-verified"
                  data-testid="lot-done">
                 <CheckCircle2 className="h-3.5 w-3.5" />{" "}
-                {/* Owner 1 Nov 2026: a scored voice under 50 means the voice needs redoing. */}
+                {/* Owner 1 Nov 2026: a scored voice under 50 is a low voice score. Polish C1: no redo exists, so it says so. */}
                 {/* Minor 10: a Daily Lot is "submitted", not "passed" - its mark can be low. */}
                 {voiceScore != null && voiceScore < LOW_SCORE
-                  ? (lotState?.daily ? "Submitted · voice needs redo" : passedLabel(lot.sandbox_config_id ? "code" : "written", voiceScore))
+                  ? (lotState?.daily ? "Submitted · low voice score" : passedLabel(lot.sandbox_config_id ? "code" : "written", voiceScore))
                   : "Done"}
-                {doneScore != null ? ` · ${doneScore}%` : ""}
-                {voiceScore != null ? ` · Voice ${voiceScore}/100` : ""}
+                {doneScore != null ? ` · ${lot.sandbox_config_id ? "Code" : "Answer"} ${of10(doneScore)}` : ""}
+                {voiceScore != null ? ` · Voice ${of10(voiceScore)}` : ""}
               </p>
+            )}
+            {lot.status === "completed" && voiceScore != null && voiceScore < LOW_SCORE && (
+              <p className="mt-1 text-xs text-muted-foreground" data-testid="low-voice-tip">{SCORE_HELP.lowVoice}</p>
             )}
             {lot.status === "pending_voice" && (
               <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-compete/15 px-2.5 py-1 text-xs font-semibold text-compete"
@@ -530,23 +535,25 @@ const StudentDailyCard = () => {
               <div className="mt-2 grid grid-cols-3 gap-2 text-center">
                 <div>
                   <p className="font-mono text-lg font-bold">{(lotState.checks_used ?? 0) > 0 ? fmtMark(lotState.best_mark) : "–"}</p>
-                  <p className="text-[11px] text-muted-foreground">{lotState.kind === "written" ? "Written" : "Coding"} /10</p>
+                  <p className="text-[11px] text-muted-foreground">{lotState.kind === "written" ? "Answer" : "Code"} /10{" "}
+                    <InfoTip text={lotState.kind === "written" ? SCORE_HELP.answer() : SCORE_HELP.code(lotState.mode)} /></p>
                 </div>
                 <div>
                   <p className="font-mono text-lg font-bold">{lotState.voice_state === "scored" ? fmtMark(lotState.voice_mark) : "–"}</p>
-                  <p className="text-[11px] text-muted-foreground">Voice /10</p>
+                  <p className="text-[11px] text-muted-foreground">Voice /10 <InfoTip text={SCORE_HELP.voice} /></p>
                 </div>
                 <div>
                   <p className="font-mono text-lg font-bold text-primary">
                     {fmtMark(marks?.days.find((d) => d.task_id === lot?.id)?.day_total
                       ?? (Number(lotState.best_mark ?? 0) + Number(lotState.voice_state === "scored" ? lotState.voice_mark ?? 0 : 0)))}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">Today /20</p>
+                  <p className="text-[11px] text-muted-foreground">Today /20 <InfoTip text={SCORE_HELP.today} /></p>
                 </div>
               </div>
               <p className="mt-3 text-sm">
                 This week: <span className="font-mono font-bold">{fmtMark(marks?.week_total)}</span>
                 <span className="text-muted-foreground"> · {marks?.days.length ?? 0} {marks?.days.length === 1 ? "Lot" : "Lots"}</span>
+                {" "}<InfoTip text={SCORE_HELP.thisWeek} />
               </p>
               {(lotState.skip_warning || (marks?.skips ?? 0) >= 2) && lotState.voice_state !== "scored" && (
                 <p className="mt-3 rounded-lg border-2 border-compete bg-compete/10 p-3 text-xs font-medium" data-testid="lot-skip-warning">

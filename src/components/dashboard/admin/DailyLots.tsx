@@ -1,3 +1,4 @@
+import { of10, talkCheck } from "@/lib/lotMarks";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -99,8 +100,8 @@ const DailyLots = () => {
                     {r.difficulty && <Badge variant="outline">{r.difficulty}</Badge>}
                     {r.grading_mode && <Badge variant="outline">{r.grading_mode === "sandbox" ? "code tests" : "rubric"}</Badge>}
                     <Badge>{s ? s.status : "not submitted"}</Badge>
-                    {s?.score != null && <Badge variant="outline">{s.score}/100</Badge>}
-                    {r.voice?.communication_score != null && <Badge variant="outline">voice {r.voice.communication_score}</Badge>}
+                    {s?.score != null && <Badge variant="outline">{of10(s.score)}</Badge>}
+                    {r.voice?.communication_score != null && <Badge variant="outline">voice {of10(r.voice.communication_score)}</Badge>}
                     {(s?.flags?.length ?? 0) > 0 && <Badge variant="destructive">flagged</Badge>}
                   </div>
                 </div>
@@ -117,7 +118,7 @@ const DailyLots = () => {
                   {s && (
                     <>
                       <p>
-                        Result: {s.status}{s.score != null ? ` · ${s.score}/100` : ""}
+                        Result: {s.status}{s.score != null ? ` · ${of10(s.score)}` : ""}
                         {s.total != null ? ` · tests ${s.passed ?? 0}/${s.total}` : ""} · {s.attempts} attempt{s.attempts === 1 ? "" : "s"}
                         {s.flags?.length ? ` · flags: ${s.flags.join(", ")}` : ""}
                       </p>
@@ -141,8 +142,8 @@ const DailyLots = () => {
                   {r.voice && (
                     <p>
                       Voice: {r.voice.status}
-                      {r.voice.communication_score != null ? ` · communication ${r.voice.communication_score}/100` : ""}
-                      {r.voice.content_match != null ? ` · matches the work ${r.voice.content_match}/100` : ""}
+                      {r.voice.communication_score != null ? ` · voice ${of10(r.voice.communication_score)}` : ""}
+                      {r.voice.content_match != null ? ` · talk check ${talkCheck(r.voice.content_match)}` : ""}
                       {r.voice.flags?.length ? ` · flags: ${r.voice.flags.join(", ")}` : ""}
                       {r.voice.notes ? <span className="block text-muted-foreground">{r.voice.notes}</span> : null}
                     </p>

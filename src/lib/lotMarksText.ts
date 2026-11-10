@@ -33,11 +33,44 @@ export interface WeekMarks {
 export const SKIP_WARNING =
   "We noticed you are not recording your voice. Explaining your work by speaking is very important - it is how you show others what you know. From now on this week, coding without voice will not be counted. Please record.";
 
-/** 8 -> "8", 7.1 -> "7.1": marks keep one decimal, whole marks show none. */
+/** 8 -> "8", 7.1 -> "7.1": marks keep one decimal, whole marks show none. Nothing loaded -> "–", never 0 (C2). */
 export function fmtMark(n: number | null | undefined): string {
-  const v = Number(n ?? 0);
+  if (n == null || !Number.isFinite(Number(n))) return "–";
+  const v = Math.round(Number(n) * 10) / 10;
   return Number.isInteger(v) ? String(v) : v.toFixed(1);
 }
+
+/** Polish pass A1: every stored 0-100 score is shown as x/10 (72 -> "7.2/10"). Stored values never change. */
+export function of10(score100: number | null | undefined): string {
+  return score100 == null ? "–" : `${fmtMark(Number(score100) / 10)}/10`;
+}
+
+/** Polish pass A2: the AI's "is this talk about this work" number, in words. */
+export function talkCheck(match: number | null | undefined): string {
+  if (match == null) return "–";
+  return match >= 80 ? "Matched" : match >= 30 ? "Partly" : "Not matched";
+}
+
+/** Polish pass B: the one plain line under each number (shown by the (i) button). */
+export const SCORE_HELP = {
+  // Each Lot has its own pass line; where the screen does not know it, it says so.
+  answer: (passLine?: number | null) =>
+    `Your answer is checked part by part. Points earned ÷ total × 10. ${passLine != null
+      ? `Pass is ${fmtMark(passLine / 10)}.` : "Pass is usually 7 (each Lot sets its own)."}`,
+  // Week 1 of a season gives part marks for coding; from week 2 it is all or nothing (migration 166).
+  code: (mode?: string | null) => mode === "graded"
+    ? "Week 1: tests passed ÷ all tests × 10."
+    : mode === "strict" ? "All tests pass = 10, otherwise 0."
+    : "Week 1: tests passed ÷ all tests × 10. From week 2: all tests pass = 10, otherwise 0.",
+  voice: "How well you showed it's your own work: what you tried, what went wrong, what you changed.",
+  talk: "Is your talk about this task and the work you handed in? Matched, Partly or Not matched.",
+  today: "Answer + Voice, out of 20.",
+  thisWeek: "Your Today scores added up this week (up to 20 per Lot).",
+  lastWeek: "Your total from last week.",
+  streak: "Days in a row you did the Lot on the same day. Sunday is rest. Miss a day and it goes back to 0.",
+  squad: "All members' weekly points added up. More points wins.",
+  lowVoice: "Low voice score. Next time talk about what you tried and changed.",
+} as const;
 
 /** What the student reads after a check: submit or try again, or the final best mark. */
 export function checkLine(mark: number, lot: LotState): string {

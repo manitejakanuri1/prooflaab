@@ -8,7 +8,7 @@ import { GivenMaterial } from "./GivenMaterial";
 import CodeRunBox from "./CodeRunBox";
 import { scratchLanguage, scratchLabel, writtenSubmitBody } from "@/lib/scratchpad";
 import { Loader2, Send, Clock, Mic, CheckCircle2, Code, Lightbulb, Play } from "lucide-react";
-import { checkLine, fmtMark, loadLotState, submitLot, type LotState } from "@/lib/lotMarks";
+import { checkLine, fmtMark, loadLotState, submitLot, type LotState, of10 } from "@/lib/lotMarks";
 import { savedResultLine, type SavedRow } from "@/lib/savedAnswer";
 import { loadSavedAnswer } from "@/lib/savedAnswerLoad";
 
@@ -321,8 +321,8 @@ export default function WrittenTaskPanel({
           ) : (
             <p className="font-semibold">
               {daily && lot
-                ? `Score ${result.score} of 100 = ${fmtMark(result.mark)} out of 10. ${result.status === "passed" ? "Passed - submitted." : checkLine(result.mark ?? 0, lot)}`
-                : `Score ${result.score}% ${result.status === "passed" ? "· Passed" : `· Needs ${result.pass_threshold}%`}`}
+                ? `Answer ${fmtMark(result.mark)}/10. ${result.status === "passed" ? "Passed - submitted." : checkLine(result.mark ?? 0, lot)}`
+                : `Answer ${of10(result.score)} ${result.status === "passed" ? "· Passed" : `· Needs ${of10(result.pass_threshold)}`}`}
               {result.xp_awarded > 0 && ` · +${result.xp_awarded} XP`}
             </p>
           )}

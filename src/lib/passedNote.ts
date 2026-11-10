@@ -7,9 +7,10 @@
  */
 export const LOW_SCORE = 50;
 
+// Polish pass C1: there is no voice redo, so the label says what it is: a low voice score (under 5/10).
 export function passedLabel(kind: string | null | undefined, voice: number | null | undefined): string {
   if (voice != null && voice >= LOW_SCORE) return "Passed";
-  return `${kind === "written" ? "Answer" : "Code"} passed · voice needs redo`;
+  return `${kind === "written" ? "Answer" : "Code"} passed · ${voice == null ? "no voice score" : "low voice score"}`;
 }
 
 export function passedNote(voice: number | null | undefined, match: number | null | undefined): string | null {
@@ -18,12 +19,12 @@ export function passedNote(voice: number | null | undefined, match: number | nul
   if (!lowVoice && !lowMatch) return null;
   const parts = ["Your work passed - well done."];
   if (lowMatch) {
-    parts.push(`Your explanation did not match the work you submitted (${match}/100).`,
+    parts.push(`Talk check: ${match < 30 ? "not matched" : "partly matched"} - your explanation did not fully match the work you submitted.`,
       "Next time, talk about your own work: what it takes in, what each part does, and what it gives back.");
   }
   if (lowVoice) {
-    parts.push(`Your spoken explanation scored ${voice}/100.`,
-      "Speak for the full 60 seconds in clear, full sentences: say what the task asked, how you solved it, and one case you checked.");
+    parts.push(`Your voice scored ${Math.round(voice) / 10}/10.`,
+      "Low voice score. Next time talk about what you tried and changed.");
   }
   parts.push("You are close - one clear explanation lifts this score.");
   return parts.join(" ");

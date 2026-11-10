@@ -1,3 +1,5 @@
+import { of10 } from "@/lib/lotMarks";
+import InfoTip from "@/components/common/InfoTip";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,7 +25,7 @@ const STATUS: Record<string, { label: string; tone: string; says: string }> = {
   proven: {
     label: "Proven",
     tone: "bg-verified/10 text-verified border-verified/20",
-    says: "Evidence exists for this: work submitted and explained out loud.",
+    says: "On your resume and not flagged in your starting test.",
   },
   assessed: {
     label: "Assessed",
@@ -71,7 +73,7 @@ const TopicStrengths = () => {
     <div className="mt-2 flex flex-wrap gap-2">
       {list.map((r) => (
         <Badge key={r.topic} variant="outline" className={`text-xs font-normal ${tone}`}>
-          {r.topic} · {r.accuracy_pct ?? 0}% of {r.attempts}
+          {r.topic}: {Math.round(((r.accuracy_pct ?? 0) * r.attempts) / 100)} of {r.attempts} correct{r.label === "strong" ? " ✓" : ""}
         </Badge>
       ))}
     </div>
@@ -82,7 +84,10 @@ const TopicStrengths = () => {
       <CardContent className="pt-5 space-y-4">
         <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
           Where you stand, topic by topic
-        </span>
+        </span>{" "}
+        <InfoTip text="Shows after 3 answers on a topic. 75%+ = Strong, under 50% = Needs work." />{" "}
+        <InfoTip text="Shows after 3 answers on a topic. 75%+ = Strong, under 50% = Needs work." />{" "}
+        <InfoTip text="Shows after 3 answers on a topic. 75%+ = Strong, under 50% = Needs work." />
         {strong.length > 0 && (
           <div>
             <p className="text-sm font-medium">Strong in</p>
@@ -181,18 +186,34 @@ const StudentSkillsProved = () => {
                   </Badge>
                   {s.assessed_score != null && (
                     <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
-                      {s.assessed_score}/100
+                      Starting test: {of10(s.assessed_score)}
                     </span>
                   )}
                 </div>
 
                 <p className="text-xs text-muted-foreground mt-1">{meta.says}</p>
+                {s.assessed_score != null && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Starting test = your overall starting-test average, shown on each skill from your resume.
+                  </p>
+                )}
+                {s.assessed_score != null && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Starting test = your overall starting-test average, shown on each skill from your resume.
+                  </p>
+                )}
+                {s.assessed_score != null && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Starting test = your overall starting-test average, shown on each skill from your resume.
+                  </p>
+                )}
 
                 {s.topics_total > 0 && (
                   <div className="mt-3">
                     <div className="flex items-baseline justify-between">
                       <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                        Topics on the ladder
+                        Syllabus levels cleared{" "}
+                        <InfoTip text="Each skill's syllabus is split into levels. A level counts once you pass it." />
                       </span>
                       <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
                         {s.topics_cleared} of {s.topics_total}

@@ -1,3 +1,4 @@
+import { of10 } from "@/lib/lotMarks";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { CheckCircle2, Code2, Mic, PenLine } from "lucide-react";
@@ -62,7 +63,7 @@ export default function ProvenWork({ studentId, rows, emptyText }: { studentId?:
           <div className="flex items-start justify-between gap-3">
             <p className="font-medium leading-snug">{tidyTitle(w.title)}</p>
             {/* Owner rule B: "Passed" only with a spoken explanation of 50+. */}
-            <Badge className="shrink-0">{passedLabel(w.kind, w.explanation_score)}{w.score != null ? ` · ${w.score}/100` : ""}</Badge>
+            <Badge className="shrink-0">{passedLabel(w.kind, w.explanation_score)}{w.score != null ? ` · ${of10(w.score)}` : ""}</Badge>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
@@ -73,7 +74,7 @@ export default function ProvenWork({ studentId, rows, emptyText }: { studentId?:
             </span>
             <span className="inline-flex items-center gap-1">
               <Mic className="h-3.5 w-3.5" />
-              {w.explanation_score != null ? `Explained · ${w.explanation_score}/100` : "Not explained yet"}
+              {w.explanation_score != null ? `Explained · ${of10(w.explanation_score)}` : "Not explained yet"}
             </span>
             <span>{format(new Date(w.passed_at), "d MMM yyyy")}</span>
             {w.set_by && <span>Set by {w.set_by}</span>}

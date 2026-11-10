@@ -1,3 +1,4 @@
+import { of10 } from "@/lib/lotMarks";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -136,7 +137,7 @@ function ProofProfile({ candidate }: { candidate: Candidate }) {
                   </div>
                   <div className='text-right text-xs font-mono'>
                     <div className={label === 'Passed' ? 'text-verified' : task.status === 'missed' ? 'text-muted-foreground' : 'text-compete'}>{label}</div>
-                    <div className='tabular text-muted-foreground'>{task.score != null ? `${task.score}/100` : '—'}</div>
+                    <div className='tabular text-muted-foreground'>{of10(task.score)}</div>
                   </div>
                 </div>
                 );

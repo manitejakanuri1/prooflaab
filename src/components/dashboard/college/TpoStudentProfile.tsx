@@ -1,3 +1,4 @@
+import { of10 } from "@/lib/lotMarks";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -199,9 +200,9 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                   { k: "Streak", v: data.streak ? `${data.streak.current}d · best ${data.streak.longest}d` : "0d" },
                   { k: "Checks not passed", v: data.tasks.failed_attempts ?? 0, hot: (data.tasks.failed_attempts ?? 0) >= 3 },
                   { k: "Voice score", v: data.voice?.average_score != null
-                      ? `${data.voice.average_score} avg · last ${data.voice.last_score ?? "—"}` : "none yet" },
+                      ? `${of10(data.voice.average_score)} avg · last ${of10(data.voice.last_score)}` : "none yet" },
                   { k: "Mock interviews", v: data.mock_interviews?.count
-                      ? `${data.mock_interviews.completed}/${data.mock_interviews.count} · last ${data.mock_interviews.last_score ?? "—"}`
+                      ? `${data.mock_interviews.completed}/${data.mock_interviews.count} · last ${of10(data.mock_interviews.last_score)}`
                       : "none yet" },
                   { k: "Squad points", v: data.squad
                       ? `${data.squad.my_season_points ?? 0} mine · squad ${data.squad.points ?? 0}${data.squad.rank ? ` (#${data.squad.rank})` : ""}`

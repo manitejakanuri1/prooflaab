@@ -1,3 +1,4 @@
+import { of10 } from "@/lib/lotMarks";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -368,7 +369,7 @@ const MockInterview = () => {
                       {new Date(h.created_at).toLocaleDateString()}
                     </span>
                     <Badge variant={h.overall_score != null && h.overall_score >= 70 ? "default" : "secondary"}>
-                      {h.overall_score ?? "—"}/100
+                      {of10(h.overall_score)}
                     </Badge>
                   </button>
                   {expandedId === h.id && (
@@ -380,7 +381,7 @@ const MockInterview = () => {
                           <div key={i} className="border-t pt-2">
                             <p className="font-medium">{q}</p>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              {a?.score ?? "—"}/100 — {a?.feedback ?? "not scored"}
+                              {of10(a?.score)} — {a?.feedback ?? "not scored"}
                             </p>
                           </div>
                         );

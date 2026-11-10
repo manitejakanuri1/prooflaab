@@ -1,3 +1,4 @@
+import InfoTip from "@/components/common/InfoTip";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
@@ -12,7 +13,7 @@ import { format, startOfWeek, addDays, addMinutes, isWithinInterval } from "date
 import { FAST_WEEK, FAST_WEEK_MINUTES, WHEN_FORMAT } from "@/lib/testClock";
 import StudentSeasonReport from "./StudentSeasonReport";
 import SquadSwapCard from "./SquadSwapCard";
-import { fmtMark } from "@/lib/lotMarks";
+import { fmtMark, SCORE_HELP } from "@/lib/lotMarks";
 import { matchScore, matchStatus, SEED_WIN } from "@/lib/matchStatus";
 
 /** Why a student has no squad yet (migration 195: 5 waiting students of a section make a new squad). */
@@ -360,7 +361,9 @@ const StudentSquadPage = () => {
                     This week&apos;s marks
                   </span>
                   <span className="text-sm">
-                    Squad total <span className="font-mono font-bold">{fmtMark(weekMarks.squad_total)}</span>
+                    Squad total <span className="font-mono font-bold">{fmtMark(weekMarks.squad_total)}</span>{" "}
+                    <InfoTip text={SCORE_HELP.squad} />{" "}
+                    <InfoTip text={SCORE_HELP.squad} />
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -505,7 +508,7 @@ const StudentSquadPage = () => {
                     <th className="pb-2 pr-3">#</th>
                     <th className="pb-2 pr-3">Squad</th>
                     <th className="pb-2 pr-3">Section</th>
-                    <th className="pb-2 pr-3">Points</th>
+                    <th className="pb-2 pr-3">Points <InfoTip text={SCORE_HELP.squad} /></th>
                     <th className="pb-2 pr-3">W</th>
                     <th className="pb-2 pr-3">D</th>
                     <th className="pb-2">L</th>

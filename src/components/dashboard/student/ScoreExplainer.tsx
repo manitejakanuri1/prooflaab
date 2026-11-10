@@ -3,6 +3,7 @@
 // (skill proof, project proof, reasoning, interview readiness) and resume-code-execute (coding).
 // Change them together.
 
+import { of10 } from "@/lib/lotMarks";
 export interface ExplainedAnswer {
   question_type: "mcq" | "short_answer";
   category?: "skill" | "project_defense";
@@ -18,10 +19,10 @@ export function QuestionMarks({ a, n }: { a: ExplainedAnswer & { question_id?: s
     <p className="text-xs font-mono">
       {label} · {a.question_type === "mcq" ? "Multiple choice" : project ? "Project" : "Written"} ·{" "}
       {a.question_type === "mcq" ? (
-        <><b>{a.final_score}/100</b> ({a.final_score >= 100 ? "right" : "wrong"}) → Skill proof</>
+        <><b>{of10(a.final_score)}</b> ({a.final_score >= 100 ? "right" : "wrong"}) → Skill proof</>
       ) : (
-        <>Correct <b>{a.final_score}/100</b> → {project ? "Project proof" : "Skill proof"} · Clear{" "}
-          <b>{a.reasoning_clarity_score != null ? `${a.reasoning_clarity_score}/100` : "—"}</b> → Reasoning</>
+        <>Correct <b>{of10(a.final_score)}</b> → {project ? "Project proof" : "Skill proof"} · Clear{" "}
+          <b>{of10(a.reasoning_clarity_score)}</b> → Reasoning</>
       )}
     </p>
   );
@@ -48,7 +49,7 @@ function Part({ title, score, children }: { title: string; score?: number | null
     <div className="rounded-md border p-3 space-y-1">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-medium">{title}</p>
-        <span className="font-mono text-sm">{score == null ? "not asked" : `${score}/100`}</span>
+        <span className="font-mono text-sm">{score == null ? "not asked" : of10(score)}</span>
       </div>
       <div className="text-xs text-muted-foreground space-y-1">{children}</div>
     </div>

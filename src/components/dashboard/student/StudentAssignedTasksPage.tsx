@@ -73,7 +73,7 @@ const StudentAssignedTasksPage = () => {
       // ("0 tasks" beside it read as a bug). Older Daily Lots are closed days, not open work
       // (they showed as open: 2-6 Nov); History has them.
       // Retest: a finished earlier Lot stays listed so its View Submission button is there.
-      if (source === 'daily lot') return task.lot_date === latestLot || task.status === 'Completed';
+      if (source === 'daily lot') return task.lot_date === latestLot || task.status === 'Completed' || !!task.work_passed;
       return source !== 'company';
     });
   }, [allTasks]);
@@ -446,7 +446,7 @@ const StudentAssignedTasksPage = () => {
                             </Button>
                           </>
                         )}
-                        {task.status === 'Completed' && (
+                        {(task.status === 'Completed' || task.work_passed) && (
                           <Button
                             size="sm"
                             variant="outline"

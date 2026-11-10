@@ -20,6 +20,8 @@ interface StudentTask {
   sandbox_config_id?: string | null;
   rubric_config_id?: string | null;
   is_sandbox_task?: boolean;
+  /** The work itself passed (completed, or passed with the 60-second explanation still owed). */
+  work_passed?: boolean;
 }
 
 export const useAllStudentTasks = () => {
@@ -135,6 +137,7 @@ export const useAllStudentTasks = () => {
           deadline: task.due_date,
           lot_date: task.lot_date,
           status,
+          work_passed: task.status === 'completed' || task.status === 'pending_voice',
           source: taskSource,
           created_by_type: task.created_by_type || taskSource.toLowerCase(),
           xp_reward: task.xp_reward,

@@ -55,7 +55,29 @@ export const CLOSES_TONIGHT = "Today's Lot closes at 11:59 PM. Do it to keep you
  * QA round 2 item 25: squad points are added up once a season week ends (daily job, 05:37 IST), not after each Lot.
  * `weekEnds` is the end of the running season week (my_marks_week "season_to", migration 219).
  */
-export function squadUpdateText(weekEnds: string | null | undefined, fmt: (d: Date) => string): string {
-  const when = weekEnds ? ` Next update: ${fmt(new Date(weekEnds))}, about 5:40 AM.` : "";
+export function squadUpdateText(weekEnds: string | null | undefined, fmt: (d: Date) => string, now = new Date()): string {
+  // Retest F3: the morning job runs a few minutes after the week ends; a time already past moves on a week.
+  let next = weekEnds ? new Date(new Date(weekEnds).getTime() + 10 * 60_000) : null;
+  while (next && next <= now) next = new Date(next.getTime() + 7 * 86_400_000);
+  const when = next ? ` Next update: about ${fmt(next)}.` : "";
   return `Squad points are added up once a week, after the season week ends - not after each Lot.${when}`;
 }
+
+type WeekDay = { coding_mark: number; voice_mark: number; voice_state: string; day_total: number };
+
+/** Retest F2 (11 Nov 2026): a Lot whose voice is still owed is not "finished"; say so instead of hiding it in a count. */
+export function weekLotsText(days: WeekDay[]): string {
+  const owed = days.filter((d) => d.voice_state === "open").length;
+  const n = days.length;
+  return owed ? `${n - owed} finished, ${owed} voice owed` : `${n} ${n === 1 ? "Lot" : "Lots"}`;
+}
+
+/** Retest F2: "5.5 + voice owed = 0 (counts when your voice is scored)" rather than a bare "5.5 + 0 = 0". */
+export function weekDayText(d: WeekDay): string {
+  return d.voice_state === "open" && d.day_total === 0
+    ? `${fmtMark(d.coding_mark)} + voice owed = 0 (counts when your voice is scored)`
+    : `${fmtMark(d.coding_mark)} + ${fmtMark(d.voice_mark)} = ${fmtMark(d.day_total)}`;
+}
+
+/** Retest G4: speech-to-text mishears words ("time in WorkSolver"); say so wherever a transcript is shown. */
+export const AUTO_TRANSCRIPT_NOTE = "Auto transcript, may have errors.";

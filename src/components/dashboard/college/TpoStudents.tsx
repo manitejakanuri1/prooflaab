@@ -280,10 +280,10 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
           <SelectContent>
             <SelectItem value="all">All status</SelectItem>
             <SelectItem value="attention">Needs attention</SelectItem>
-            <SelectItem value="inactive">Quiet 7+ days</SelectItem>
+            <SelectItem value="inactive">No Lot tried for 7+ days</SelectItem>
             <SelectItem value="onboarding">Onboarding unfinished</SelectItem>
-            <SelectItem value="active_today">Active today</SelectItem>
-            <SelectItem value="active_week">Active this week</SelectItem>
+            <SelectItem value="active_today">Tried a Lot today</SelectItem>
+            <SelectItem value="active_week">Tried a Lot this week</SelectItem>
           </SelectContent>
         </Select>
 
@@ -400,7 +400,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                     <td className="py-2.5 pr-3 font-mono tabular-nums">{r.lots_done}</td>
                     <td className="py-2.5 pr-3">
                       {r.attention === "ok" ? (
-                        <Badge className="bg-verified/15 text-verified hover:bg-verified/15">Active</Badge>
+                        <Badge className="bg-verified/15 text-verified hover:bg-verified/15">Trying Lots</Badge>
                       ) : r.attention === "high" ? (
                         <Badge variant="destructive">Needs attention</Badge>
                       ) : (

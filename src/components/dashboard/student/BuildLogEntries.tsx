@@ -10,7 +10,7 @@ import { useBuildLog, voiceInProgress, type BuildLogEntry } from "@/hooks/useBui
 import { passedLabel, passedNote } from "@/lib/passedNote";
 import { fmtMark, loadLotState, of10, talkCheck, SCORE_HELP } from "@/lib/lotMarks";
 import InfoTip from "@/components/common/InfoTip";
-import { lotStatusText, part10, voiceOwedText } from "@/lib/lotText";
+import { lotStatusText, part10, voiceOwedText, AUTO_TRANSCRIPT_NOTE } from "@/lib/lotText";
 
 const STATUS: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
   passed: { label: "Passed", variant: "default" },
@@ -117,7 +117,8 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
   const st = closed && e.status === "passed"
     ? { label: `${e.kind === "written" ? "Answer" : "Code"} passed · spoken part closed`, variant: "outline" as const }
     : rejected && e.status === "passed"
-    ? { label: `${e.kind === "written" ? "Answer" : "Code"} passed · voice not accepted`, variant: "outline" as const }
+    // Retest F4: the same words as "Code passed - record your 60s explanation to finish", for a rejected voice.
+    ? { label: `${e.kind === "written" ? "Answer" : "Code"} passed - voice not accepted - record again${e.lot_date === format(new Date(), "yyyy-MM-dd") ? " (due today)" : ""}`, variant: "outline" as const }
     // Item 21: work handed in, voice never recorded - the same words as the Daily Card.
     : !v && e.lot_date && e.task_status === "pending_voice"
     ? { label: voiceOwedText({ coding: e.kind === "code", passed: e.status === "passed", mark10: e.score != null ? e.score / 10 : null,
@@ -212,7 +213,8 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
               ))}
               {v?.transcript && (
                 <div><p className="text-xs text-muted-foreground">What you said</p>
-                  <p className="whitespace-pre-wrap text-xs">{v.transcript}</p></div>
+                  <p className="whitespace-pre-wrap text-xs">{v.transcript}</p>
+                  <p className="text-[11px] italic text-muted-foreground" data-testid="auto-transcript-note">{AUTO_TRANSCRIPT_NOTE}</p></div>
               )}
               {e.work && (
                 <div><p className="text-xs text-muted-foreground">Your {e.kind === "code" ? "code" : "answer"}</p>

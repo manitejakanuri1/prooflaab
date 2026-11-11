@@ -9,7 +9,7 @@ import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMark, loadWeekMarks, SCORE_HELP, type WeekMarks } from "@/lib/lotMarks";
 import { latestWeeks, weekChangeText, type WeekRow } from "@/lib/weekPoints";
-import { triesSummary } from "@/lib/lotText";
+import { triesSummary, weekDayText, weekLotsText } from "@/lib/lotText";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
 
@@ -101,7 +101,6 @@ const StudentProgressPage = () => {
   // "Last week" = the newest finished week; compared with the finished week before it.
   const lastWeek = weeklyPoints.length > 0 ? weeklyPoints[weeklyPoints.length - 1].points : 0;
   const weekChange = weeklyPoints.length > 0 ? weekChangeText(weeklyPoints) : null;
-  const lotsSoFar = running?.days.length ?? 0;
 
   const submissionData = [
     { name: "Passed", value: submissions.passed, color: "hsl(var(--verified))" },
@@ -113,7 +112,7 @@ const StudentProgressPage = () => {
   const titleOf = new Map(tries.map((t) => [t.task_id, t.title]));
   const progressCards = [
     { title: "This week (so far)", value: fmtMark(running?.week_total), icon: CalendarDays, help: SCORE_HELP.thisWeek,
-      color: "text-primary", bgColor: "bg-primary/10", change: `${lotsSoFar} ${lotsSoFar === 1 ? "Lot" : "Lots"} so far`, list: "week" as const },
+      color: "text-primary", bgColor: "bg-primary/10", change: `${weekLotsText(running?.days ?? [])} so far`, list: "week" as const },
     { title: "Last week", value: fmtMark(lastWeek), icon: Award, help: SCORE_HELP.lastWeek,
       color: "text-verified", bgColor: "bg-verified/10", change: weekChange, list: null },
     { title: "Pass Rate", value: `${passRate}%`, icon: Target, help: "Passed tries ÷ all tries × 100.",
@@ -164,7 +163,7 @@ const StudentProgressPage = () => {
                 {(running?.days ?? []).map((d) => (
                   <li key={d.task_id} className="flex justify-between gap-3 border-b pb-2">
                     <span>{format(new Date(d.lot_at), "EEE d MMM")} · {titleOf.get(d.task_id) ?? "Lot"}</span>
-                    <span className="font-mono tabular-nums">{fmtMark(d.coding_mark)} + {fmtMark(d.voice_mark)} = {fmtMark(d.day_total)}</span>
+                    <span className="font-mono tabular-nums">{weekDayText(d)}</span>
                   </li>
                 ))}
                 {(running?.days ?? []).length === 0 && <li className="text-muted-foreground">No Lot this week yet.</li>}

@@ -1,3 +1,4 @@
+import { AUTO_TRANSCRIPT_NOTE } from "@/lib/lotText";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Play } from "lucide-react";
@@ -75,6 +76,9 @@ const RecordingPlayback = ({ src, storagePath, audioRemoved, transcript, segment
         <p className="text-sm text-muted-foreground whitespace-pre-line">{transcript}</p>
       ) : (
         <p className="text-sm text-muted-foreground">No words could be picked up from this recording.</p>
+      )}
+      {((segments?.length ?? 0) > 0 || transcript) && (
+        <p className="text-[11px] italic text-muted-foreground" data-testid="auto-transcript-note">{AUTO_TRANSCRIPT_NOTE}</p>
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { dropHelper, lotStatusText, oneRange, part10, squadUpdateText, triesSummary, voiceOwedText } from "./lotText.ts";
+import { dropHelper, lotStatusText, oneRange, part10, squadUpdateText, triesSummary, voiceOwedText, weekDayText, weekLotsText } from "./lotText.ts";
 
 test("one word range: the checker's replaces the one in the text", () => {
   const w = { min: 150, max: 800 };
@@ -47,6 +47,17 @@ test("voice owed reads one way everywhere (QA round 2 item 21)", () => {
 });
 
 test("squad card says when points update (item 25)", () => {
-  assert.match(squadUpdateText("2026-11-12T00:00:00Z", () => "Thu 12 Nov"), /once a week.*Next update: Thu 12 Nov, about 5:40 AM/);
+  assert.match(squadUpdateText("2026-11-12T00:00:00Z", () => "Thu 12 Nov", new Date("2026-11-11T09:00:00Z")), /once a week.*Next update: about Thu 12 Nov/);
+  // F3: Wednesday afternoon, the week ended Wednesday morning: the next update is the Wednesday after.
+  assert.match(squadUpdateText("2026-11-11T00:00:00Z", (d) => d.toISOString().slice(0, 10), new Date("2026-11-11T09:00:00Z")), /Next update: about 2026-11-18/);
   assert.doesNotMatch(squadUpdateText(null, () => "x"), /Next update/);
+});
+
+test("F2: a Lot with its voice owed is named, not counted as finished", () => {
+  const done = { coding_mark: 10, voice_mark: 7.2, voice_state: "scored", day_total: 17.2 };
+  const owed = { coding_mark: 5.5, voice_mark: 0, voice_state: "open", day_total: 0 };
+  assert.equal(weekLotsText([done, owed]), "1 finished, 1 voice owed");
+  assert.equal(weekLotsText([done]), "1 Lot");
+  assert.equal(weekDayText(owed), "5.5 + voice owed = 0 (counts when your voice is scored)");
+  assert.equal(weekDayText(done), "10 + 7.2 = 17.2");
 });

@@ -1,4 +1,4 @@
-import { CLOSES_TONIGHT, lotStatusText, squadUpdateText, voiceOwedText } from "@/lib/lotText";
+import { CLOSES_TONIGHT, lotStatusText, squadUpdateText, voiceOwedText, weekLotsText } from "@/lib/lotText";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { liveStreak } from "@/lib/streak";
@@ -287,6 +287,7 @@ const StudentDailyCard = () => {
   }, 15_000);
 
   // Plain words for the streak status (item 23): the streak moved today, the voice is still owed, or nothing yet.
+  const todayRow = marks?.days.find((d) => d.task_id === lot?.id);
   const recency = lastActive && isSameDay(new Date(lastActive), now) ? "active"
     : lot?.status === "pending_voice" ? "voice"
     : lastActive ? "idle" : "new";
@@ -437,7 +438,8 @@ const StudentDailyCard = () => {
                   ? lotStatusText({ passed: false, submitted: true, mark10: lotState.best_mark })
                   : voiceScore != null && voiceScore < LOW_SCORE
                   ? (lotState?.daily ? "Submitted · low voice score" : passedLabel(lot.sandbox_config_id ? "code" : "written", voiceScore))
-                  : "Done"}
+                  // Retest G3: "Done · 18.2/20", the same Today total as the box below.
+                  : `Done${lotState?.daily && todayRow ? ` · ${fmtMark(todayRow.day_total)}/20` : ""}`}
                 {doneScore != null ? ` · ${lot.sandbox_config_id ? "Code" : "Answer"} ${of10(doneScore)}` : ""}
                 {voiceScore != null ? ` · Voice ${of10(voiceScore)}` : ""}
               </p>
@@ -612,7 +614,7 @@ const StudentDailyCard = () => {
                 <Link to="/student/dashboard?tab=log&view=progress" className="hover:underline">
                   This week: <span className="font-mono font-bold">{fmtMark(marks?.week_total)}</span>
                 </Link>
-                <span className="text-muted-foreground"> · {marks?.days.length ?? 0} {marks?.days.length === 1 ? "Lot" : "Lots"}</span>
+                <span className="text-muted-foreground" data-testid="week-lots"> · {weekLotsText(marks?.days ?? [])}</span>
                 {" "}<InfoTip text={SCORE_HELP.thisWeek} />
               </p>
               {(lotState.skip_warning || (marks?.skips ?? 0) >= 2) && lotState.voice_state !== "scored" && (
@@ -683,7 +685,7 @@ const StudentDailyCard = () => {
                   </p>
                   {!squad.last && (
                     <p className="mt-1 text-[11px] text-muted-foreground" data-testid="squad-update-when">
-                      {squadUpdateText(marks?.season_to, (d) => format(d, "EEE d MMM"))}
+                      {squadUpdateText(marks?.season_to, (d) => format(d, "EEE d MMM, h:mm a"))}
                     </p>
                   )}
                 </>

@@ -43,7 +43,6 @@ try {
   // The dots follow the season week (item 24), so a done Lot can be on any weekday: take the first done dot, else
   // the written Lot from the Build-log.
   const dotHrefs = await page.locator('a[href*="tab=log&view=entries&task="]').evaluateAll((as) => as.map((a) => a.getAttribute("href")));
-  let tueTask = dotHrefs.length ? new URL(BASE + dotHrefs[0]).searchParams.get("task") : null;
   const anyDoneDot = dotHrefs.length > 0;
   const dailyWeek = (await page.getByTestId("lot-marks").innerText().catch(() => "")).match(/This week: ([\d.–]+)/)?.[1] ?? null;
   await check("Daily: status label is Done today / Voice owed today / Not done today / Not started", async () =>
@@ -54,6 +53,14 @@ try {
   });
   await check("Daily: squad card says when squad points update (item 25)", async () =>
     /once a week, after the season week ends/.test(await page.getByTestId("squad-update-when").innerText()));
+  await check("Daily: squad 'Next update' is not in the past (F3)", async () => {
+    const m = (await page.getByTestId("squad-update-when").innerText()).match(/Next update: about \w{3} (\d{1,2}) (\w{3}), (\d{1,2}:\d{2} [AP]M)/);
+    if (!m) return false;
+    const when = new Date(`${m[1]} ${m[2]} ${new Date().getFullYear()} ${m[3]} GMT+0530`);
+    return when.getTime() > Date.now();
+  });
+  await check("Daily: This week names voice-owed Lots, not a bare count (F2)", async () =>
+    /^\s*·\s*(\d+ Lots?|\d+ finished, \d+ voice owed)\s*$/.test(await page.getByTestId("week-lots").innerText()));
   await check("Daily: streak (i) says what counts (item 23)", async () => {
     await page.getByRole("button", { name: "How this is worked out" }).first().click();
     const ok = await page.getByText(/Passing is not needed/).isVisible(); await closeDialog(page); return ok;
@@ -106,13 +113,11 @@ try {
     return /Voice done: [\d.]+\/10/.test(await done.first().innerText()) && (await card.getByRole("button", { name: /Explain 60s/ }).count()) === 0;
   });
   await check("Lot screen: 'Answer: out of 10 · Voice: out of 10', no points, neutral grey placeholder with the word range (R2)", async () => {
-    if (!tueTask) {
-      await go(page, "/student/dashboard?tab=log&view=entries"); await page.waitForTimeout(3000);
-      const id = await page.locator('[id^="build-log-"]').filter({ hasText: "Rewrite a Weak Resume Bullet" }).first().getAttribute("id").catch(() => null);
-      tueTask = id ? id.replace("build-log-", "") : null;
-    }
-    if (!tueTask) return false;
-    await go(page, `/student/tasks/assigned?open=${tueTask}`); await page.waitForTimeout(4000);
+    // A finished Lot no longer opens its Lot screen, so use the first open written Lot on Your Tasks.
+    await go(page, "/student/tasks/assigned"); await page.waitForTimeout(4000);
+    const write = page.getByRole("button", { name: /Write my answer/ }).first();
+    if (!(await write.count())) return false;
+    await write.click(); await page.waitForTimeout(4000);
     const d = page.getByRole("dialog"); const text = await d.innerText();
     const ph = (await d.locator("textarea").first().getAttribute("placeholder")) ?? "";
     await page.screenshot({ path: `${out}/r2-lot-screen.png` });
@@ -148,6 +153,8 @@ try {
   await check("College: /college/matches opens Matches", async () => page.url().includes("view=matches"));
   await check("College: a match row opens the match popup", async () => { const row = page.locator("tbody tr.cursor-pointer").first(); if (!(await row.count())) return true; await row.click(); const ok = await dialogOpen(page); await page.screenshot({ path: `${out}/d-college-match-popup.png` }); await closeDialog(page); return ok; });
   await go(page, "/college/dashboard?tab=students");
+  await check("College: students STATUS is Lot-based, no login-style 'Active' badge (F5)", async () =>
+    (await page.getByText(/^Active$/).count()) === 0);
   await check("College: a student row opens the drawer", async () => { await page.locator("tbody tr").first().click(); return dialogOpen(page); });
   await check("College: drawer never says '0 questions'", async () => { await page.waitForTimeout(1500); return !/\b0 questions\b/.test(await page.getByRole("dialog").innerText()); });
   await ctx.close();

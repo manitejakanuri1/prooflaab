@@ -356,14 +356,7 @@ export default function SandboxTaskPanel({
               <p className="mt-1 text-xs text-muted-foreground">
                 Your code submission and voice explanation have both been verified and saved.
               </p>
-              {onFinish && (
-                <Button
-                  className="mt-3 w-full bg-verified text-primary-foreground hover:bg-verified/90 font-semibold"
-                  onClick={onFinish}
-                >
-                  Complete &amp; Return to Dashboard
-                </Button>
-              )}
+              {/* Retest G1: the recorder beside this shows the one "All Done - Return to Dashboard" button. */}
             </div>
           )}
         </div>

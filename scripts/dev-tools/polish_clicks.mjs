@@ -17,13 +17,17 @@ for (const block of readFileSync(file, "utf8").split(/\r?\n\s*\r?\n/)) {
 
 const results = [];
 const check = async (name, fn) => {
-  try { results.push(`${(await fn()) ? "PASS" : "FAIL"} ${name}`); }
+  // Each check prints at once and gets 60 s at most, so one stuck step can never hang the run.
+  const limit = new Promise((_, no) => setTimeout(() => no(new Error("took over 60 s")), 60000));
+  try { results.push(`${(await Promise.race([fn(), limit])) ? "PASS" : "FAIL"} ${name}`); }
   catch (e) { results.push(`FAIL ${name}: ${String(e.message).split("\n")[0].slice(0, 100)}`); }
+  console.log(results.at(-1));
 };
 const go = async (page, path) => { await page.goto(BASE + path, { waitUntil: "networkidle", timeout: 60000 }).catch(() => {}); await page.waitForTimeout(2500); };
 const dialogOpen = async (page) => page.locator('[role="dialog"]').first().isVisible({ timeout: 5000 });
 const closeDialog = async (page) => { await page.keyboard.press("Escape"); await page.waitForTimeout(300); };
 
+setTimeout(() => { console.log("STOPPED: the whole run took over 8 minutes"); process.exit(2); }, 8 * 60000).unref();
 const browser = await chromium.launch();
 try {
   // ---- student 08
@@ -31,6 +35,9 @@ try {
   await cookieSignIn(ctx, BASE, logins["Student 08"]);
   let page = await ctx.newPage();
   await go(page, "/student/dashboard?tab=lab");
+  // The card waits on several reads; check only once its week row is drawn.
+  await page.getByText("technical", { exact: true }).first().waitFor({ timeout: 30000 }).catch(() => {});
+  const tueTask = new URL(BASE + ((await page.getByRole("link", { name: /^Tue$/ }).getAttribute("href").catch(() => null)) ?? "/")).searchParams.get("task");
   await check("Daily: status label is Done today / Not done today / Not started", async () =>
     (await page.getByText(/^(Done today|Not done today|Not started)$/).count()) > 0);
   await check("Daily: dot colour key shown", async () => (await page.getByText("technical", { exact: true }).count()) > 0);
@@ -64,14 +71,15 @@ try {
   await check("Your Tasks: View Submission shown for earlier work", async () => (await page.getByRole("button", { name: /View Submission/ }).count()) > 0);
   await check("Your Tasks: the count is not '0 tasks' while a Daily Lot exists", async () => (await page.getByText(/^0 tasks$/).count()) === 0);
   await check("Lot screen: 'Answer: out of 10 · Voice: out of 10', no points, template only as grey placeholder", async () => {
-    await page.getByRole("button", { name: /View Submission/ }).first().click(); await page.waitForTimeout(4000);
+    if (!tueTask) return false;
+    await go(page, `/student/tasks/assigned?open=${tueTask}`); await page.waitForTimeout(4000);
     const d = page.getByRole("dialog"); const text = await d.innerText();
     const ph = (await d.locator("textarea").first().getAttribute("placeholder")) ?? "";
     await page.screenshot({ path: `${out}/r2-lot-screen.png` });
-    const ok = (await d.getByTestId("marked-out-of-10").count()) > 0 && !/\b\d+ pts\b/.test(text) && !/Aim for/.test(text)
+    const ok = (await d.getByTestId("marked-out-of-10").count()) > 0 && !/\b\d+ pts\b/.test(text) && !/Aim for/.test(text) && !/of 100/.test(text)
       && /Overview & Steps|Example 1/.test(ph) && (await d.getByRole("button", { name: /Insert example format/ }).count()) === 0
       && !/not solving the task|making the question clear/i.test(text);
-    await closeDialog(page); return ok; });
+    await closeDialog(page); await go(page, "/student/tasks/assigned"); return ok; });
   await go(page, "/student/dashboard?tab=log&view=progress");
   await check("Progress: Total Submissions says 'N tries on M Lots (x passed, y not passed)'", async () => /\d+ tries? on \d+ Lots? \(\d+ passed, \d+ not passed/.test(await page.getByTestId("tile-tries").last().innerText()));
   await check("Progress: Total Submissions opens the list of what was counted", async () => { await page.getByTestId("tile-tries").last().click(); const ok = await dialogOpen(page) && (await page.getByTestId("tries-list").locator("li").count()) > 0; await page.screenshot({ path: `${out}/r2-tries-popup.png` }); await closeDialog(page); return ok; });
@@ -100,4 +108,4 @@ try {
   await check("Admin: a submission row opens its detail", async () => { await page.locator("tbody tr.cursor-pointer").first().click(); const ok = await dialogOpen(page); await page.screenshot({ path: `${out}/d-admin-submission.png` }); return ok; });
   await ctx.close();
 } finally { await browser.close(); }
-console.log(results.join("\n"));
+console.log(`DONE ${results.filter((r) => r.startsWith("PASS")).length}/${results.length} PASS`);

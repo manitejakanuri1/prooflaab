@@ -15,6 +15,6 @@ test("finished task: the passed answer is the one shown, else the best, newest o
 });
 test("finished task: the result line shows tests or score, and the voice score", () => {
   const coding = { code: "x", passed_count: 4, total_count: 5, sandbox_score: 80, status: "failed", created_at: t(1) };
-  assert.equal(savedResultLine(coding, "coding", 70), "Your saved answer · 4 of 5 tests passed · Voice 7 / 10");
-  assert.equal(savedResultLine({ ...coding, total_count: 0 }, "written", null), "Your saved answer · Score 80 of 100");
+  assert.equal(savedResultLine(coding, "coding", 70), "Your saved answer · 4 of 5 tests passed · Voice 7/10");
+  assert.equal(savedResultLine({ ...coding, total_count: 0 }, "written", null), "Your saved answer · Score 8/10");
 });

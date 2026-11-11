@@ -1,3 +1,5 @@
+import { of10 } from "./lotMarksText.ts";
+
 /**
  * MF-020: a finished task shows the student's saved answer and result, read from the server
  * (task_submissions / voice_explanations, own rows only), not from the browser's draft.
@@ -22,12 +24,12 @@ export function bestSaved(rows: SavedRow[]): SavedRow | null {
     || b.created_at.localeCompare(a.created_at))[0] ?? null;
 }
 
-/** "Your saved answer · 4 of 5 tests passed · Voice 7 / 10" */
+/** "Your saved answer · 4 of 5 tests passed · Voice 7.2/10" - every score x/10 (QA round 2 item 12). */
 export function savedResultLine(row: SavedRow, kind: "coding" | "written", voiceScore: number | null): string {
   const parts = ["Your saved answer"];
   parts.push(kind === "coding" && row.total_count
     ? `${row.passed_count ?? 0} of ${row.total_count} tests passed`
-    : `Score ${Math.round(row.sandbox_score ?? 0)} of 100`);
-  if (voiceScore != null) parts.push(`Voice ${Math.round(voiceScore / 10)} / 10`);
+    : `Score ${of10(row.sandbox_score ?? 0)}`);
+  if (voiceScore != null) parts.push(`Voice ${of10(voiceScore)}`);
   return parts.join(" · ");
 }

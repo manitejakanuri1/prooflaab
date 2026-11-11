@@ -71,7 +71,7 @@ interface Props {
 const EVENT_LABEL: Record<string, string> = {
   login: "signed in",
   lot_started: "started a Lot",
-  lot_submitted: "submitted a Lot",
+  lot_submitted: "finished a Lot (answer + voice)",
   voice_recorded: "recorded an explanation",
   topic_cleared: "cleared a topic",
   proof_submitted: "submitted proof",

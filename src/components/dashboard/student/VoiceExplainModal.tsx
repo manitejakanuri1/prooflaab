@@ -1527,8 +1527,8 @@ const VoiceExplainModal = ({
               </p>
             )}
             <p className="text-xs text-muted-foreground">
-              Keep this page open until you see “Saved”. Switching away stops the recording;
-              closing or leaving the page before then means it may not be saved.
+              Not saved yet. Stay on this page: press Stop, then wait for the green “Saved” message.
+              Switching away stops the recording, and closing the page before “Saved” can lose it.
             </p>
           </div>
         )}

@@ -1,5 +1,5 @@
-import { lotStatusText } from "@/lib/lotText";
-import { useCallback, useEffect, useState } from "react";
+import { CLOSES_TONIGHT, lotStatusText, squadUpdateText, voiceOwedText } from "@/lib/lotText";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { liveStreak } from "@/lib/streak";
 import { supabase } from "@/integrations/supabase/client";
@@ -124,6 +124,10 @@ const StudentDailyCard = () => {
   const [restDay, setRestDay] = useState(false);
   // QA week 8: an unfinished Lot from an earlier day this week (e.g. Saturday's, seen on Sunday) stays reachable.
   const [earlierOpen, setEarlierOpen] = useState<{ id: string; lot_date: string }[]>([]);
+  // QA round 2 item 30: after sign-out the card unmounts while its reads are still chained; stop there
+  // instead of sending more reads with no session (the 401 on voice_explanations).
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
   // Migration 184: the days off between two seasons - no Lot, the roadmap stays open.
   const [nextSeasonAt, setNextSeasonAt] = useState<string | null>(null);
 
@@ -150,7 +154,7 @@ const StudentDailyCard = () => {
         .from("tasks")
         .select("id, lot_date, lot_category, status")
         .eq("student_id", profile.id)
-        .gte("lot_date", format(monday, "yyyy-MM-dd"))
+        .gte("lot_date", format(addDays(monday, -6), "yyyy-MM-dd"))
         .not("lot_date", "is", null),
       // A student with no squad row is a reserve, which is a real state rather
       // than an error - left_at is null so a past membership does not count.
@@ -195,10 +199,12 @@ const StudentDailyCard = () => {
       }
     }
 
+    if (!alive.current) return;
     setLot(today);
     const [todayState, weekMarks] = await Promise.all([today ? loadLotState(today.id) : Promise.resolve(null), loadWeekMarks()]);
     setLotState(todayState);
     setMarks(weekMarks);
+    if (!alive.current) return;
     if (today) {
       const { data: subs } = await supabase.from("task_submissions").select("status, sandbox_score")
         .eq("task_id", today.id);
@@ -244,9 +250,12 @@ const StudentDailyCard = () => {
         taskId: prev?.passed ? prev.taskId : row.id,
       });
     }
+    // QA round 2 item 24: the dots show the same 7 days as "This week" (the season week, which can start on any
+    // weekday), so filled dots and the week total never disagree.
+    const weekStart = weekMarks?.from ? new Date(weekMarks.from) : monday;
     setWeek(
       Array.from({ length: 7 }, (_, i) => {
-        const date = addDays(monday, i);
+        const date = addDays(weekStart, i);
         const d = byDay.get(format(date, "yyyy-MM-dd"));
         return { date, kind: d?.kind ?? null, passed: d?.passed ?? false, taskId: d?.taskId ?? null };
       }),
@@ -277,9 +286,10 @@ const StudentDailyCard = () => {
     } else if (st === "scored") await load();
   }, 15_000);
 
-  const recency = lastActive
-    ? isSameDay(new Date(lastActive), now) ? "active" : "idle"
-    : "new";
+  // Plain words for the streak status (item 23): the streak moved today, the voice is still owed, or nothing yet.
+  const recency = lastActive && isSameDay(new Date(lastActive), now) ? "active"
+    : lot?.status === "pending_voice" ? "voice"
+    : lastActive ? "idle" : "new";
 
   if (loading) {
     return (
@@ -377,10 +387,10 @@ const StudentDailyCard = () => {
         <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-xs">
           <span
             className={`h-1.5 w-1.5 rounded-full ${
-              recency === "active" ? "bg-verified" : recency === "idle" ? "bg-compete" : "bg-muted-foreground"
+              recency === "active" ? "bg-verified" : recency === "new" ? "bg-muted-foreground" : "bg-compete"
             }`}
           />
-          {recency === "active" ? "Done today" : recency === "idle" ? "Not done today" : "Not started"}
+          {recency === "active" ? "Done today" : recency === "voice" ? "Voice owed today" : recency === "idle" ? "Not done today" : "Not started"}
         </span>
       </div>
 
@@ -441,9 +451,18 @@ const StudentDailyCard = () => {
             {lot.status === "pending_voice" && (
               <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-compete/15 px-2.5 py-1 text-xs font-semibold text-compete"
                  data-testid="lot-pending-voice">
-                <Mic className="h-3.5 w-3.5" /> {lotState?.daily ? (doneScore == null ? lotStatusText({ passed: false, submitted: true, mark10: lotState.best_mark }) : "Submitted") : lot?.sandbox_config_id ? "Code passed" : "Answer passed"}
+                <Mic className="h-3.5 w-3.5" />{" "}
                 {/* M3: after two unusable recordings the spoken part is closed for good; say that instead of "required". */}
-                {lotState?.voice_closed ? " · Spoken part closed (2 recordings could not be used). Your work mark is saved." : " · Spoken explanation required"}
+                {lotState?.voice_closed
+                  ? `${lot.sandbox_config_id ? "Code" : "Answer"} handed in · Spoken part closed (2 recordings could not be used). Your work mark is saved.`
+                  : voiceOwedText({ coding: Boolean(lot.sandbox_config_id), passed: !lotState?.daily || doneScore != null,
+                                    mark10: lotState?.best_mark, dueToday: true })}
+              </p>
+            )}
+            {lot.status !== "completed" && !lotState?.voice_closed && (
+              <p className="mt-2 rounded-md border border-compete/40 bg-compete/10 px-3 py-2 text-xs font-medium text-[#191b1f]"
+                 data-testid="lot-closes-tonight">
+                <Clock className="mr-1 inline h-3.5 w-3.5" />{CLOSES_TONIGHT}
               </p>
             )}
             {/* Why it was chosen is written when the Lot is made, so it is only true until the first try. */}
@@ -584,6 +603,9 @@ const StudentDailyCard = () => {
                         ?? (Number(lotState.best_mark ?? 0) + Number(lotState.voice_state === "scored" ? lotState.voice_mark ?? 0 : 0)))}
                   </p>
                   <p className="text-[11px] text-muted-foreground">Today /20 <InfoTip text={SCORE_HELP.today} /></p>
+                  {lotState.voice_state !== "scored" && (lotState.checks_used ?? 0) > 0 && (
+                    <p className="text-[10px] text-muted-foreground" data-testid="today-after-voice">counts once your voice is scored</p>
+                  )}
                 </div>
               </div>
               <p className="mt-3 text-sm">
@@ -602,7 +624,8 @@ const StudentDailyCard = () => {
           )}
           <div className="rounded-xl border p-4">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              This week <span className="normal-case tracking-normal">· ● done · ○ not done yet</span>
+              {week[0] && format(week[0].date, "EEE") !== "Mon" ? `This season week (${format(week[0].date, "EEE")}–${format(week[6].date, "EEE")})` : "This week"}{" "}
+              <span className="normal-case tracking-normal">· ● done · ○ not done yet</span>
             </p>
             <p className="mt-1 flex flex-wrap gap-3 text-[10px] text-muted-foreground">
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-verified" /> technical</span>
@@ -658,6 +681,11 @@ const StudentDailyCard = () => {
                     {squad.points ?? 0} pts
                     {squad.rank && (squad.points ?? 0) > 0 ? ` · rank #${squad.rank}` : ""}
                   </p>
+                  {!squad.last && (
+                    <p className="mt-1 text-[11px] text-muted-foreground" data-testid="squad-update-when">
+                      {squadUpdateText(marks?.to, (d) => format(d, "EEE d MMM"))}
+                    </p>
+                  )}
                 </>
               ) : (
                 <p className="mt-1 text-sm text-muted-foreground">

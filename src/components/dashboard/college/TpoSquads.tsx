@@ -656,7 +656,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground mt-4">Every member has been active this week.</p>
+                  <p className="text-sm text-muted-foreground mt-4">Every member tried a Lot this week.</p>
                 );
               })()}
             </CardContent></Card>

@@ -108,10 +108,10 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
   // — there is nothing to show behind "0 need attention".
   const cards = [
     { key: "students", label: "Students", value: data.students, icon: Users,
-      note: `${data.active_this_week} opened the app this week · open the list`,
+      note: `${data.active_this_week} tried a Lot this week · open the list`,
       action: () => onNavigate?.("students") },
-    { key: "today", label: "Opened the app today", value: data.active_today, icon: Activity,
-      note: data.active_today > 0 ? "signed in today (not all of them submitted work)" : "nobody yet today",
+    { key: "today", label: "Tried a Lot today", value: data.active_today, icon: Activity,
+      note: data.active_today > 0 ? "handed in an answer or code today" : "nobody yet today",
       tone: "good" as const, action: () => onFilterStudents?.("active_today") },
     { key: "attention", label: "Needs attention", value: data.needs_attention, icon: AlertTriangle,
       note: data.needs_attention > 0 ? "tap to see who" : "nobody, for once",
@@ -181,7 +181,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
 
             {data.attention_breakdown.length === 0 ? (
               <p className="text-sm text-muted-foreground mt-4">
-                Nobody is behind. Every student has been active this week and finished onboarding.
+                Nobody is behind. Every student tried a Lot this week and finished onboarding.
               </p>
             ) : (
               <div className="mt-2">

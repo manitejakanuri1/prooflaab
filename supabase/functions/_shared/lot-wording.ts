@@ -37,7 +37,15 @@ const PROGRAM_TITLE = /\b(program|script|solver|calculator|simulator)\b/i;
 const VOICE_IN_TASK = /\b(record (yourself|a (video|voice|audio))|voice (note|recording)|video)\b/i;
 
 /** Problems with this Lot's wording; [] means it may be published. */
-export function lotWordingProblems(lot: { title?: unknown; scenario?: unknown; code_sample?: unknown }, mode: LotMode): string[] {
+// QA round 2 item 20 (11 Nov 2026): the hidden tests feed input, but the script the student is given uses its own
+// data and the steps never say to read input, so following the steps cannot pass.
+const READS_INPUT = /(input\s*\(|sys\.stdin|readline|process\.stdin|readFileSync\(\s*(0|'\/dev\/stdin')|Scanner\s*\(|BufferedReader|cin\s*>>|scanf|getline|bufio\.)/;
+const SAYS_READ_INPUT = /\b(read|reads|reading)\b[^.\n]{0,40}\b(input|stdin)\b|\bfrom (standard )?input\b|\bstdin\b/i;
+
+export function lotWordingProblems(
+  lot: { title?: unknown; scenario?: unknown; code_sample?: unknown; starter_code?: unknown; test_cases?: unknown },
+  mode: LotMode,
+): string[] {
   const title = typeof lot.title === 'string' ? lot.title.trim() : '';
   const text = typeof lot.scenario === 'string' ? lot.scenario.trim() : '';
   const code = typeof lot.code_sample === 'string' ? lot.code_sample.trim() : '';
@@ -62,6 +70,13 @@ export function lotWordingProblems(lot: { title?: unknown; scenario?: unknown; c
   if (UNSEEN_MATERIAL.test(text) && !code) problems.push('Refers to material "below/attached/provided" that is not included; put it in code_sample or remove the reference.');
   if (FABRICATED_PAST.test(text)) problems.push('Assumes the student already did something (attended, appeared, was interviewed); describe a situation they can actually work on.');
   if (GIVEN_MATERIAL.test(text) && !code) problems.push('Points at a list, set or excerpt the student is not shown; put it in code_sample or write the facts into the task itself.');
+  if (mode === 'sandbox' && Array.isArray(lot.test_cases)
+      && lot.test_cases.some((t) => typeof (t as { stdin?: unknown })?.stdin === 'string' && (t as { stdin: string }).stdin.trim() !== '')) {
+    const given = `${code}\n${typeof lot.starter_code === 'string' ? lot.starter_code : ''}`;
+    if (!READS_INPUT.test(given) && !SAYS_READ_INPUT.test(text)) {
+      problems.push('The tests feed input (stdin), but the task never says to read it and the given code never reads it; say "Read the input from stdin" in the steps and make the starter code read it.');
+    }
+  }
   if (VOICE_IN_TASK.test(text)) problems.push('Asks for a recording or video; the voice explanation is a separate step after submitting.');
   return problems;
 }

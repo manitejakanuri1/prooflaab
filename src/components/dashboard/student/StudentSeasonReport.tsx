@@ -36,7 +36,7 @@ const VERDICT_STYLE: Record<string, string> = {
 };
 
 const ACTIVITY: Record<string, string> = {
-  lot_submitted: "Lots submitted",
+  lot_submitted: "Lots finished",
   topic_cleared: "Topics cleared",
   voice_recorded: "Explanations",
   match_participated: "Matches played",

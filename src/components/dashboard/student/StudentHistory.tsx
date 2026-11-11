@@ -23,7 +23,9 @@ interface Event {
 const EVENT: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
   login:              { label: "Signed in",                 icon: LogIn },
   lot_started:        { label: "Started the day's lot",     icon: PlayCircle },
-  lot_submitted:      { label: "Submitted the day's lot",   icon: Upload },
+  // QA round 2 item 29: this event is written when the Lot is finished (voice scored), not when the answer was
+  // checked, so its time can be a few minutes after "submitted" in Recent work.
+  lot_submitted:      { label: "Finished the day's Lot (answer + voice)", icon: Upload },
   voice_recorded:     { label: "Recorded an explanation",   icon: Mic },
   topic_cleared:      { label: "Cleared a topic",           icon: CheckCircle2 },
   proof_submitted:    { label: "Submitted work",            icon: FileCheck },

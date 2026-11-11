@@ -79,3 +79,16 @@ Deno.test('material the student is not shown is caught', () => {
   }
   assert(!has(lotWordingProblems({ title: 'T', scenario: base + 'rank the list given by difficulty.' + end, code_sample: '1. a\n2. b' }, 'rubric'), 'not shown'), 'shown in code_sample');
 });
+
+// QA round 2 item 20: tests feed stdin, the given script uses inline data, the steps never say "read input".
+const SPLIT = 'Your task: move the parsing helpers of this growing script into a module and import them. Input: see the script. Output: the same totals as before. Example: totals print as before. Why: modules keep code reusable.';
+const stdinTests = [{ id: 't1', stdin: 'id,value\n1,10', expected_output: '1,10' }];
+Deno.test('a coding Lot whose tests feed input it never reads is rejected (item 20)', () => {
+  const bad = lotWordingProblems({ title: 'Split a growing script into an importable module', scenario: SPLIT,
+    code_sample: 'rows = [(1, 10), (2, 20)]\nprint(sum(v for _, v in rows))', starter_code: '', test_cases: stdinTests }, 'sandbox');
+  assert(has(bad, 'stdin'), 'unread stdin not caught');
+  const saysIt = lotWordingProblems({ title: 'Split', scenario: SPLIT + ' Read the input lines from stdin.', test_cases: stdinTests }, 'sandbox');
+  assert(!has(saysIt, 'stdin'), 'task that says read stdin was rejected');
+  const reads = lotWordingProblems({ title: 'Split', scenario: SPLIT, starter_code: 'import sys\ndata = sys.stdin.read()', test_cases: stdinTests }, 'sandbox');
+  assert(!has(reads, 'stdin'), 'starter that reads stdin was rejected');
+});

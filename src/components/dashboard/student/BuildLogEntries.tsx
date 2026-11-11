@@ -8,9 +8,9 @@ import { Loader2, NotebookPen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBuildLog, voiceInProgress, type BuildLogEntry } from "@/hooks/useBuildLog";
 import { passedLabel, passedNote } from "@/lib/passedNote";
-import { loadLotState, of10, talkCheck, SCORE_HELP } from "@/lib/lotMarks";
+import { fmtMark, loadLotState, of10, talkCheck, SCORE_HELP } from "@/lib/lotMarks";
 import InfoTip from "@/components/common/InfoTip";
-import { lotStatusText, part10 } from "@/lib/lotText";
+import { lotStatusText, part10, voiceOwedText } from "@/lib/lotText";
 
 const STATUS: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
   passed: { label: "Passed", variant: "default" },
@@ -118,6 +118,10 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
     ? { label: `${e.kind === "written" ? "Answer" : "Code"} passed · spoken part closed`, variant: "outline" as const }
     : rejected && e.status === "passed"
     ? { label: `${e.kind === "written" ? "Answer" : "Code"} passed · voice not accepted`, variant: "outline" as const }
+    // Item 21: work handed in, voice never recorded - the same words as the Daily Card.
+    : !v && e.lot_date && e.task_status === "pending_voice"
+    ? { label: voiceOwedText({ coding: e.kind === "code", passed: e.status === "passed", mark10: e.score != null ? e.score / 10 : null,
+                               dueToday: e.lot_date === format(new Date(), "yyyy-MM-dd") }), variant: "outline" as const }
     : passLabel && passLabel !== "Passed" ? { label: passLabel, variant: "outline" as const }
     // QA round 2 item 10: the same words as the Daily Card and the Lot screen.
     : e.status === "failed" ? { label: lotStatusText({ passed: false, submitted: !!e.lot_date && ["pending_voice", "completed"].includes(e.task_status ?? ""),
@@ -151,10 +155,12 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <Score label={e.kind === "written" ? "Answer" : "Code"} value={of10(e.score)}
+          <Score label={e.kind === "written" ? "Answer" : "Code"}
+                 value={e.counted != null ? `${fmtMark(e.counted)}/10` : of10(e.score)}
                  help={e.kind === "written" ? SCORE_HELP.answer() : SCORE_HELP.code()}
                  sub={e.kind === "code" && e.total_count != null
-                   ? `Tests passed ${e.passed_count ?? 0} of ${e.total_count}${e.language ? ` · ${e.language}` : ""}`
+                   ? `Tests passed ${e.passed_count ?? 0} of ${e.total_count}${e.language ? ` · ${e.language}` : ""}${
+                       e.counted === 0 && (e.passed_count ?? 0) > 0 ? " · from week 2 every test must pass" : ""}`
                    : e.kind === "written" ? "Written answer" : undefined} />
           <Score label="Voice" help={SCORE_HELP.voice}
                  value={scored ? of10(v!.communication_score) : "–"}

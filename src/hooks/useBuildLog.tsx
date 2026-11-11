@@ -39,6 +39,8 @@ export interface BuildLogEntry {
   work: string | null;
   feedback: { criterion_id: string; points: number; evidence: string }[] | null;
   submitted_at: string;
+  /** Daily Lot only: the coding/answer mark that counts (my_lot_marks, migration 218), out of 10. */
+  counted?: number | null;
   attempts: number;
   voice: BuildLogVoice | null;
 }
@@ -55,14 +57,18 @@ export const useBuildLog = () => {
       if (!user) return [];
       const { data: profile } = await supabase.from("student_profiles").select("id").eq("user_id", user.id).maybeSingle();
       if (!profile) return [];
-      const [subs, voices] = await Promise.all([
+      const [subs, voices, counted] = await Promise.all([
         supabase.from("task_submissions")
           .select("id, task_id, status, sandbox_score, passed_count, total_count, language, code, rubric_scores, sandbox_config_id, created_at, tasks(title, lot_date, source_jd, lot_category, status)")
           .eq("student_id", profile.id).order("created_at", { ascending: false }).limit(200),
         supabase.from("voice_explanations")
           .select("id, task_id, submission_id, current_authoritative, attempt_no, status, transcription_status, communication_score, communication_notes, transcript, evaluation, created_at")
           .eq("student_id", profile.id).is("withdrawn_at" as never, null).order("created_at", { ascending: false }).limit(200),
+        // QA round 2 item 21: the mark that counts for each Daily Lot (same number as the Daily Card).
+        supabase.rpc("my_lot_marks" as never),
       ]);
+      const countedBy = new Map(((counted.data ?? []) as unknown as { task_id: string; coding_mark: number }[])
+        .map((m) => [m.task_id, Number(m.coding_mark)]));
       if (subs.error) throw subs.error;
       if (voices.error) throw voices.error;
 
@@ -99,6 +105,7 @@ export const useBuildLog = () => {
           work: s.code,
           feedback: Array.isArray(s.rubric_scores) ? s.rubric_scores : null,
           submitted_at: s.created_at,
+          counted: countedBy.get(s.task_id) ?? null,
           attempts: 1,
           voice: voiceBySubmission.get(s.id) ?? voiceByTask.get(s.task_id) ?? null,
         });

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { dropHelper, lotStatusText, oneRange, part10, triesSummary } from "./lotText.ts";
+import { dropHelper, lotStatusText, oneRange, part10, squadUpdateText, triesSummary, voiceOwedText } from "./lotText.ts";
 
 test("one word range: the checker's replaces the one in the text", () => {
   const w = { min: 150, max: 800 };
@@ -37,4 +37,16 @@ test("Progress tiles: tries, Lots, passed and not passed in one line", () => {
   const s = triesSummary(rows);
   assert.equal(s.text, "11 tries on 9 Lots (8 passed, 3 not passed)");
   assert.equal(triesSummary([]).text, "0 tries on 0 Lots (0 passed, 0 not passed)");
+});
+
+test("voice owed reads one way everywhere (QA round 2 item 21)", () => {
+  assert.equal(voiceOwedText({ coding: true, passed: true, dueToday: true }),
+    "Code passed - record your 60s explanation to finish (due today)");
+  assert.equal(voiceOwedText({ coding: false, passed: false, mark10: 6.5, dueToday: false }),
+    "Submitted, not passed (6.5/10) - record your 60s explanation to finish");
+});
+
+test("squad card says when points update (item 25)", () => {
+  assert.match(squadUpdateText("2026-11-12T00:00:00Z", () => "Thu 12 Nov"), /once a week.*Next update: Thu 12 Nov, about 5:40 AM/);
+  assert.doesNotMatch(squadUpdateText(null, () => "x"), /Next update/);
 });

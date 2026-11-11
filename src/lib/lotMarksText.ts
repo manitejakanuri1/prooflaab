@@ -74,7 +74,10 @@ export const SCORE_HELP = {
   today: "Answer + Voice, out of 20.",
   thisWeek: "Your Today scores added up this week (up to 20 per Lot).",
   lastWeek: "Your total from last week.",
-  streak: "Days in a row you did the Lot on the same day. Sunday is rest. Miss a day and it goes back to 0.",
+  // QA round 2 item 23: what really moves the streak (touch_streak, migration 20261103017000).
+  streak: "A day counts when you finish that day's Lot on the same day: hand in your answer or code, then record "
+    + "your 60-second voice and get it scored. Passing is not needed. Code that never passes, or a Lot with no "
+    + "voice, does not count. Sunday is rest. Miss a day and the streak starts again from 1.",
   squad: "All members' weekly points added up. More points wins.",
   lowVoice: "Low voice score. Next time talk about what you tried and changed.",
   squadSeason: "Squad total for the whole season so far.",

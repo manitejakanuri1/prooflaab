@@ -34,18 +34,46 @@ try {
   let ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await cookieSignIn(ctx, BASE, logins["Student 08"]);
   let page = await ctx.newPage();
+  // QA round 2 item 30: no 404 / 401 from the TEST API while the student pages load.
+  const apiErrors = [];
+  page.on("response", (r) => { if (r.url().includes("/api/") && [401, 404].includes(r.status())) apiErrors.push(`${r.status()} ${r.url().split("?")[0].split("/api/")[1]}`); });
   await go(page, "/student/dashboard?tab=lab");
   // The card waits on several reads; check only once its week row is drawn.
   await page.getByText("technical", { exact: true }).first().waitFor({ timeout: 30000 }).catch(() => {});
-  const tueTask = new URL(BASE + ((await page.getByRole("link", { name: /^Tue$/ }).getAttribute("href").catch(() => null)) ?? "/")).searchParams.get("task");
-  await check("Daily: status label is Done today / Not done today / Not started", async () =>
-    (await page.getByText(/^(Done today|Not done today|Not started)$/).count()) > 0);
+  // The dots follow the season week (item 24), so a done Lot can be on any weekday: take the first done dot, else
+  // the written Lot from the Build-log.
+  const dotHrefs = await page.locator('a[href*="tab=log&view=entries&task="]').evaluateAll((as) => as.map((a) => a.getAttribute("href")));
+  let tueTask = dotHrefs.length ? new URL(BASE + dotHrefs[0]).searchParams.get("task") : null;
+  const anyDoneDot = dotHrefs.length > 0;
+  await check("Daily: status label is Done today / Voice owed today / Not done today / Not started", async () =>
+    (await page.getByText(/^(Done today|Voice owed today|Not done today|Not started)$/).count()) > 0);
+  await check("Daily: 'closes at 11:59 PM' warning while today's Lot is not finished (item 24)", async () => {
+    const done = (await page.getByTestId("lot-done").count()) > 0;
+    return done || (await page.getByTestId("lot-closes-tonight").innerText()).includes("11:59 PM");
+  });
+  await check("Daily: squad card says when squad points update (item 25)", async () =>
+    /once a week, after the season week ends/.test(await page.getByTestId("squad-update-when").innerText()));
+  await check("Daily: streak (i) says what counts (item 23)", async () => {
+    await page.getByRole("button", { name: "How this is worked out" }).first().click();
+    const ok = await page.getByText(/Passing is not needed/).isVisible(); await closeDialog(page); return ok;
+  });
   await check("Daily: dot colour key shown", async () => (await page.getByText("technical", { exact: true }).count()) > 0);
   await check("Daily: (i) streak opens", async () => { await page.getByRole("button", { name: "How this is worked out" }).first().click(); const ok = await page.getByText(/Sunday is rest/).isVisible(); await closeDialog(page); return ok; });
   await check("Daily: Streak goes to Build-log History", async () => { await page.getByRole("link", { name: /Streak/ }).click(); await page.waitForTimeout(1500); return page.url().includes("view=history"); });
   await page.goBack(); await page.waitForTimeout(2000);
   await check("Back returns to the Daily Card", async () => page.url().includes("tab=lab"));
-  await check("Daily: Tuesday's done Lot dot opens its Build-log entry", async () => { const l = page.getByRole("link", { name: /^Tue$/ }); return (await l.getAttribute("href") ?? "").includes("tab=log&view=entries&task="); });
+  await check("Daily: week dots and 'This week' cover the same days (item 24)", async () => {
+    const head = page.locator("p", { hasText: "not done yet" }).first();
+    const label = await head.innerText();
+    const firstDot = (await head.locator("xpath=ancestor::div[contains(@class,'rounded-xl')][1]").locator("a span.font-mono").first().innerText()).trim();
+    // The heading is shown in capitals (CSS), so compare without case.
+    return /^This week/i.test(label) ? firstDot.toLowerCase() === "mon" : label.toLowerCase().includes(`(${firstDot.toLowerCase()}–`);
+  });
+  await check("Daily: a done Lot dot opens its Build-log entry (if any done this season week)", async () => {
+    if (!anyDoneDot) return true;
+    await page.locator('a[href*="tab=log&view=entries&task="]').first().click(); await page.waitForTimeout(3000);
+    const ok = page.url().includes("view=entries"); await go(page, "/student/dashboard?tab=lab"); return ok;
+  });
   await check("Daily: a week dot opens its entry (done) or the Lot (open)", async () => { await page.getByRole("link", { name: /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)$/ }).first().click(); await page.waitForTimeout(1500); return page.url().includes("tab=log") || page.url().includes("tasks/assigned"); });
   await go(page, "/student/dashboard?tab=lab");
   await check("Daily: no 'Record 60s explain' once the voice is done", async () => (await page.getByTestId("voice-done").count()) === 0 || (await page.getByRole("button", { name: /Record 60s explain/ }).count()) === 0);
@@ -71,6 +99,11 @@ try {
   await check("Your Tasks: View Submission shown for earlier work", async () => (await page.getByRole("button", { name: /View Submission/ }).count()) > 0);
   await check("Your Tasks: the count is not '0 tasks' while a Daily Lot exists", async () => (await page.getByText(/^0 tasks$/).count()) === 0);
   await check("Lot screen: 'Answer: out of 10 · Voice: out of 10', no points, template only as grey placeholder", async () => {
+    if (!tueTask) {
+      await go(page, "/student/dashboard?tab=log&view=entries"); await page.waitForTimeout(3000);
+      const id = await page.locator('[id^="build-log-"]').filter({ hasText: "Rewrite a Weak Resume Bullet" }).first().getAttribute("id").catch(() => null);
+      tueTask = id ? id.replace("build-log-", "") : null;
+    }
     if (!tueTask) return false;
     await go(page, `/student/tasks/assigned?open=${tueTask}`); await page.waitForTimeout(4000);
     const d = page.getByRole("dialog"); const text = await d.innerText();
@@ -88,10 +121,18 @@ try {
   await check("Progress: badges link goes to Profile -> Badges", async () => { const l = page.getByRole("link", { name: /Profile → Badges/ }); if (!(await l.count())) return true; await l.click(); await page.waitForTimeout(1500); return page.url().includes("view=achievements"); });
   await ctx.close();
 
+  await check("No 404/401 from the API on the student pages (item 30)", async () => {
+    if (apiErrors.length) console.log("  api errors:", [...new Set(apiErrors)].join(", "));
+    return apiErrors.length === 0;
+  });
+
   // ---- college
   ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await cookieSignIn(ctx, BASE, logins["College"]);
   page = await ctx.newPage();
+  await go(page, "/college/dashboard");
+  await check("College: home counts Lot attempts, not logins (item 26)", async () =>
+    (await page.getByText("Tried a Lot today").count()) > 0 && (await page.getByText(/opened the app/i).count()) === 0);
   await go(page, "/college/matches");
   await check("College: /college/matches opens Matches", async () => page.url().includes("view=matches"));
   await check("College: a match row opens the match popup", async () => { const row = page.locator("tbody tr.cursor-pointer").first(); if (!(await row.count())) return true; await row.click(); const ok = await dialogOpen(page); await page.screenshot({ path: `${out}/d-college-match-popup.png` }); await closeDialog(page); return ok; });

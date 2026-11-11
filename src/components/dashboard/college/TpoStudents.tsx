@@ -216,8 +216,8 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
   const remind = async (r: Row) => {
     setSending(r.student_id);
     // E2E-3: 999 means never active - say so instead of "999 days".
-    const reason = r.days_quiet >= 999 ? "Has not started yet"
-      : r.days_quiet >= 7 ? `No activity for ${r.days_quiet} days`
+    const reason = r.days_quiet >= 999 ? "Has not tried a Lot yet"
+      : r.days_quiet >= 7 ? `No Lot tried for ${r.days_quiet} days`
       : `Onboarding not finished (${r.onboarding_status})`;
     const { error: err } = await supabase.rpc("tpo_send_reminder" as never, {
       _student_id: r.student_id, _reason: reason,
@@ -351,7 +351,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                   <th className="pb-2 pr-3">Roll no.</th>
                   <th className="pb-2 pr-3">Branch</th>
                   <th className="pb-2 pr-3">Squad</th>
-                  <th className="pb-2 pr-3">Last active</th>
+                  <th className="pb-2 pr-3" title="When the student last handed in a Lot answer or code (QA round 2 item 26). Opening the app does not count.">Last Lot tried</th>
                   <th className="pb-2 pr-3" title="Lots this student passed. A Lot submitted but not passed is not counted.">Lots passed</th>
                   <th className="pb-2 pr-3">Status</th>
                   <th className="pb-2"></th>

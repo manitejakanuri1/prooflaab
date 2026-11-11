@@ -16,6 +16,7 @@ import { joinCodeFiles, MAX_HELPER_FILES, splitCodeFiles, validHelperName } from
 import { checkLine, fmtMark, loadLotState, submitLot, type LotState } from "@/lib/lotMarks";
 import { savedResultLine, type SavedRow } from "@/lib/savedAnswer";
 import { loadSavedAnswer } from "@/lib/savedAnswerLoad";
+import { languageLabel, STARTERS } from "@/lib/codeLanguages";
 
 interface SandboxView {
   task_id: string;
@@ -25,6 +26,8 @@ interface SandboxView {
   kind?: string | null;
   function_spec?: unknown;
   language: string;
+  /** Migration 226: the languages this task may be answered in (5 on a stdin Lot, else only its own). */
+  languages?: string[];
   starter_code: string;
   constraints: string | null;
   pass_threshold: number;
@@ -85,6 +88,17 @@ const isTimeout = (e: unknown) => {
   return cause instanceof DOMException && (cause.name === "AbortError" || cause.name === "TimeoutError");
 };
 
+/** Each language keeps its own draft; the Lot's own language keeps the old key. */
+const draftKeyFor = (taskId: string, v: { language: string } | null, l: string) =>
+  l === v?.language ? `sandbox-draft:${taskId}` : `sandbox-draft:${taskId}:${l}`;
+const starterFor = (v: { language: string; starter_code: string } | null, l: string) =>
+  (l === v?.language ? v?.starter_code : STARTERS[l]) ?? "";
+function readDraft(taskId: string, v: { language: string; starter_code: string } | null, l: string) {
+  let draft: string | null = null;
+  try { draft = localStorage.getItem(draftKeyFor(taskId, v, l)); } catch { /* storage blocked */ }
+  return draft ?? starterFor(v, l);
+}
+
 interface SandboxTaskPanelProps {
   taskId: string;
   onCompleted?: () => void;
@@ -115,11 +129,12 @@ export default function SandboxTaskPanel({
   voiceStatus,
   onFinish,
 }: SandboxTaskPanelProps) {
-  const draftKey = `sandbox-draft:${taskId}`;
   const [view, setView] = useState<SandboxView | null>(null);
   // MF-020: a finished task shows the saved answer and result from the server, not an empty draft.
   const [saved, setSaved] = useState<{ row: SavedRow; voice: number | null } | null>(null);
   const [code, setCode] = useState("");
+  // The language being written in; the Lot's own unless the student picked another from its list.
+  const [lang, setLang] = useState("");
   // null = the main program; otherwise the name of the helper file open in the editor.
   const [openFile, setOpenFile] = useState<string | null>(null);
   const [busy, setBusy] = useState<"run" | "submit" | null>(null);
@@ -140,29 +155,42 @@ export default function SandboxTaskPanel({
       if (cancelled) return;
       const v = data as unknown as SandboxView | null;
       setView(v);
-      let draft: string | null = null;
-      try { draft = localStorage.getItem(draftKey); } catch { /* storage blocked */ }
-      setCode(draft ?? v?.starter_code ?? "");
+      let picked: string | null = null;
+      try { picked = localStorage.getItem(`sandbox-lang:${taskId}`); } catch { /* storage blocked */ }
+      const l = v && picked && v.languages?.includes(picked) ? picked : v?.language ?? "";
+      setLang(l);
+      setCode(readDraft(taskId, v, l));
       const st = await loadLotState(taskId);
       if (!cancelled) setLot(st);
       if (v?.completed || st?.submitted) {
         const s = await loadSavedAnswer(taskId);
-        if (!cancelled && s) { setSaved(s); setTab("result"); if (s.row.code) setCode(s.row.code); }
+        if (!cancelled && s) {
+          setSaved(s); setTab("result");
+          if (s.row.code) setCode(s.row.code);
+          if (s.row.language) setLang(s.row.language);
+        }
       }
     })();
     return () => { cancelled = true; };
-  }, [taskId, draftKey]);
+  }, [taskId]);
 
   const saveDraft = (value: string) => {
     setCode(value);
-    try { localStorage.setItem(draftKey, value); } catch { /* storage blocked */ }
+    try { localStorage.setItem(draftKeyFor(taskId, view, lang), value); } catch { /* storage blocked */ }
+  };
+
+  const pickLanguage = (l: string) => {
+    setLang(l);
+    try { localStorage.setItem(`sandbox-lang:${taskId}`, l); } catch { /* storage blocked */ }
+    setCode(readDraft(taskId, view, l));
+    setOpenFile(null); setRunResults(null); setError(null);
   };
 
   // MF-045/046: a busy runner (502 or 503) is tried again for the student; no check waits more than a minute.
   const callRunner = async (name: "run-sandbox" | "submit-sandbox-task") => {
     let data: unknown, e: unknown;
     for (let attempt = 0; ; attempt++) {
-      ({ data, error: e } = await supabase.functions.invoke(name, { body: { task_id: taskId, code }, timeout: CHECK_TIMEOUT_MS }));
+      ({ data, error: e } = await supabase.functions.invoke(name, { body: { task_id: taskId, code, language: lang }, timeout: CHECK_TIMEOUT_MS }));
       if (!e || !RUNNER_BUSY.includes((e as { context?: Response }).context?.status ?? 0) || attempt >= 3) break;
       setRetryNote(`The code runner is busy. Your code is safe - trying again (${attempt + 1} of 3)...`);
       await new Promise((r) => setTimeout(r, 5000 * (attempt + 1)));
@@ -203,7 +231,7 @@ export default function SandboxTaskPanel({
       onPassedChange?.(true);
       // Not onCompleted() here: that closes the dialog, so a pass flashed its
       // score and vanished. The Done button below closes it once it is read.
-      try { localStorage.removeItem(draftKey); } catch { /* storage blocked */ }
+      try { localStorage.removeItem(draftKeyFor(taskId, view, lang)); } catch { /* storage blocked */ }
     }
   };
 
@@ -216,7 +244,7 @@ export default function SandboxTaskPanel({
     setLot(st);
     if (st.submitted) {
       onPassedChange?.(true);
-      try { localStorage.removeItem(draftKey); } catch { /* storage blocked */ }
+      try { localStorage.removeItem(draftKeyFor(taskId, view, lang)); } catch { /* storage blocked */ }
     }
   };
 
@@ -230,7 +258,8 @@ export default function SandboxTaskPanel({
 
   const done = view.completed || result?.passed || (daily && lot?.submitted);
   // Python whole-program tasks can hold helper files; every other task keeps one plain editor.
-  const helperFiles = view.language === "python" && view.kind !== "function";
+  const anyLanguage = (view.languages?.length ?? 0) > 1;
+  const helperFiles = lang === "python" && view.kind !== "function";
   const files = helperFiles ? splitCodeFiles(code) : { main: code, helpers: [] };
   const openHelper = files.helpers.find((h) => h.name === openFile);
   const editFile = (value: string) => {
@@ -438,13 +467,13 @@ ${result.hidden_hint.error}` : ""}`}
         <h2 className="pr-8 text-lg font-semibold lg:pr-0">{view.title}</h2>
         {/* Lot screen simplify (owner, 11 Nov 2026): above the editor only the task, the input/output with one
             sample, and the stdin rule. Size limits, test counts and the rest sit in "More help". */}
-        <SimpleQuestion taskId={taskId} original={view.description} coding
+        <SimpleQuestion taskId={taskId} original={view.description} coding anyLanguage={anyLanguage}
           moreHelp={
             <div className="space-y-2">
               {view.visible_tests.length > 1 && <SampleExamples tests={view.visible_tests.slice(1)} spec={spec} />}
               {view.constraints && <p className="font-mono text-xs text-muted-foreground">{view.constraints}</p>}
               <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-                {view.language} · {daily && !strict ? `${lot?.checks_max ?? 3} checks, your best counts` : "every test must pass"} · {view.visible_tests.length} sample
+                {languageLabel(lang)} · {daily && !strict ? `${lot?.checks_max ?? 3} checks, your best counts` : "every test must pass"} · {view.visible_tests.length} sample
                 {view.visible_tests.length === 1 ? "" : "s"} + {view.hidden_test_count} hidden test
                 {view.hidden_test_count === 1 ? "" : "s"}
               </p>
@@ -459,7 +488,17 @@ ${result.hidden_hint.error}` : ""}`}
 
       <div className="flex min-h-0 shrink-0 flex-col lg:h-full">
         <div className="flex items-center justify-between border-b px-4 py-2 pr-12">
-          <span className="text-xs text-muted-foreground font-mono">Editor ({view.language})</span>
+          {anyLanguage ? (
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              Language
+              <select value={lang} onChange={(e) => pickLanguage(e.target.value)} disabled={!!busy || !!done}
+                      data-testid="code-language" className="rounded-md border bg-background px-2 py-1 text-xs text-foreground">
+                {view.languages!.map((l) => <option key={l} value={l}>{languageLabel(l)}</option>)}
+              </select>
+            </label>
+          ) : (
+            <span className="text-xs text-muted-foreground font-mono">Editor ({languageLabel(lang)})</span>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -467,7 +506,7 @@ ${result.hidden_hint.error}` : ""}`}
             disabled={!!busy || !!done}
             onClick={() => {
               if (window.confirm("Reset editor to starter code? Any changes you typed will be replaced.")) {
-                saveDraft(view.starter_code ?? "");
+                saveDraft(starterFor(view, lang));
                 setOpenFile(null);
               }
             }}
@@ -511,8 +550,8 @@ ${result.hidden_hint.error}` : ""}`}
         <div className="h-[360px] shrink-0 lg:h-auto lg:min-h-[200px] lg:flex-1">
           <Editor
             height="100%"
-            path={`${taskId}/${openHelper?.name ?? "main"}`}
-            language={view.language === "cpp" || view.language === "c" ? "cpp" : view.language}
+            path={`${taskId}/${lang}/${openHelper?.name ?? "main"}`}
+            language={lang === "cpp" || lang === "c" ? "cpp" : lang}
             value={openHelper ? openHelper.content : files.main}
             onChange={(v) => editFile(v ?? "")}
             theme="vs-dark"

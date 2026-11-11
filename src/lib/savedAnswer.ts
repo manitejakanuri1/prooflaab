@@ -6,6 +6,7 @@ import { of10 } from "./lotMarksText.ts";
  */
 export interface SavedRow {
   code: string | null;
+  language?: string | null;
   passed_count: number | null;
   total_count: number | null;
   sandbox_score: number | null;

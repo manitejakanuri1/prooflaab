@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { BriefCards, InlineText } from "./ReadableText";
 import { dropHelper, dropWordRange, oneRange } from "@/lib/lotText";
+import { anyLanguageText } from "@/lib/codeLanguages";
 
 interface Brief {
   in_one_line: string;
@@ -49,8 +50,8 @@ function useSimpleBrief(taskId: string) {
 }
 
 /** The brief as the student sees it: the checker's word range only, no leaked prompt text (items 6, 7). */
-function tidyBrief(b: Brief, words: Words): Brief {
-  const t = (s: string) => oneRange(dropHelper(s), words);
+function tidyBrief(b: Brief, words: Words, anyLanguage?: boolean): Brief {
+  const t = (s: string) => oneRange(dropHelper(anyLanguage ? anyLanguageText(s) : s), words);
   return {
     in_one_line: t(b.in_one_line), what_it_means: t(b.what_it_means), steps: b.steps.map(t).filter(Boolean),
     example: b.example ? t(b.example) : null, words: b.words, done_when: t(b.done_when),
@@ -112,13 +113,15 @@ const StepList = ({ steps, from = 0 }: { steps: string[]; from?: number }) => (
  * other steps, the example, "Words to know", the screen's own extras (`moreHelp`) and the original wording -
  * sits behind one "More help" toggle, closed by default. The word range is said once, on the marking line.
  */
-export const SimpleQuestion = ({ taskId, original, words, coding, children, moreHelp }: {
+export const SimpleQuestion = ({ taskId, original, words, coding, anyLanguage, children, moreHelp }: {
   taskId: string; original: string | null; words?: Words; coding?: boolean;
+  /** Migration 226: the Lot can be answered in any of 5 languages, so the shown text names none (screen only). */
+  anyLanguage?: boolean;
   children?: React.ReactNode; moreHelp?: React.ReactNode;
 }) => {
   const { brief: raw, loading, failed, retry } = useSimpleBrief(taskId);
   const [open, setOpen] = useState(false);
-  const shownOriginal = original ? oneRange(dropHelper(original), words) : null;
+  const shownOriginal = original ? oneRange(dropHelper(anyLanguage ? anyLanguageText(original) : original), words) : null;
 
   // QA week 8 (N1, N2): the simple version can take 10-20 s the first time. Show the original question
   // at once, and swap in the simple version when it is ready, so nobody waits on a spinner.
@@ -137,7 +140,7 @@ export const SimpleQuestion = ({ taskId, original, words, coding, children, more
       </div>
     );
   }
-  const brief = tidyBrief(raw, words);
+  const brief = tidyBrief(raw, words, anyLanguage);
   const steps = brief.steps.map(dropWordRange).filter(Boolean);
   const shown = coding ? 0 : 3;
   // Owner 11 Nov 2026: "covering all four points" no longer matches the 3 steps shown; point at the steps instead.

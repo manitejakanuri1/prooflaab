@@ -2,7 +2,7 @@ import { serve } from "../_shared/serve.ts";
 import { createClient } from "../_shared/backend.ts";
 import { guard } from "../_shared/rate-limit.ts";
 import { cors } from "../_shared/cors.ts";
-import { submissionPassed, selfAuthoredTask } from "../_shared/submission.ts";
+import { chosenLanguage, submissionPassed, selfAuthoredTask } from "../_shared/submission.ts";
 import { gradeSandboxConfig, redact, type SandboxTest } from "../_shared/sandbox.ts";
 import { afterCheck, checkRefusal, hiddenHint, lotState } from "../_shared/lotChecks.ts";
 
@@ -41,7 +41,7 @@ serve(async (req) => {
     if (limited) return limited;
 
     // 3. Input
-    const { task_id, code } = await req.json();
+    const { task_id, code, language: asked } = await req.json();
     if (typeof task_id !== "string" || typeof code !== "string" || !code.trim()) {
       return json({ error: "task_id and code are required" }, 400);
     }
@@ -77,11 +77,14 @@ serve(async (req) => {
     const { data: cfg } = await db.from("task_sandbox_config")
       .select("id, kind, language, function_spec, test_cases, pass_threshold, time_limit_ms, memory_limit_mb").eq("id", task.sandbox_config_id).maybeSingle();
     if (!cfg) return json({ error: "This coding task has no tests yet" }, 404);
+    // Migration 226: a stdin Lot may be answered in any of 5 languages; anything else is refused.
+    const language = await chosenLanguage(db, task_id, cfg.language, asked);
+    if (!language) return json({ error: "That language is not allowed for this task" }, 400);
 
     const started = Date.now();
     const graded = await gradeSandboxConfig({
       kind: cfg.kind,
-      language: cfg.language,
+      language,
       function_spec: cfg.function_spec,
       test_cases: cfg.test_cases as SandboxTest[],
       time_limit_ms: cfg.time_limit_ms,
@@ -99,7 +102,7 @@ serve(async (req) => {
     const safe = redact(graded.results);
     const { data: rec, error } = await db.rpc("record_task_submission", {
       _student_id: profile.id, _task_id: task_id, _sandbox_config_id: cfg.id,
-      _language: cfg.language, _code: code,
+      _language: language, _code: code,
       _passed_count: graded.passedCount, _total_count: graded.results.length, _score: graded.score,
       _details: safe, _runner: graded.runner, _duration_ms: Date.now() - started,
     });

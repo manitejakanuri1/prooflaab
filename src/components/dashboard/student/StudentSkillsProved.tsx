@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarks";
 import InfoTip from "@/components/common/InfoTip";
 import { useCallback, useEffect, useState } from "react";
@@ -24,9 +25,10 @@ interface Skill {
 /** Claimed → assessed → proven, and the fourth one nobody wants to be in. */
 const STATUS: Record<string, { label: string; tone: string; says: string }> = {
   proven: {
-    label: "Proven",
+    // Sweep M2: this status only means the starting test did not flag it; no Lot proves it yet.
+    label: "Passed starting test",
     tone: "bg-verified/10 text-verified border-verified/20",
-    says: "On your resume and not flagged in your starting test.",
+    says: "On your resume and not flagged in your starting test. Not yet proven by a Lot.",
   },
   assessed: {
     label: "Assessed",
@@ -66,7 +68,7 @@ const TopicDialog = ({ r, onClose }: { r: TopicRating | null; onClose: () => voi
               <span className="font-medium">{r.label === "strong" ? "Strong" : r.label === "needs_work" ? "Needs work" : "Building"}</span>
               {" · "}about {Math.round(((r.accuracy_pct ?? 0) * r.attempts) / 100)} of {r.attempts} answers correct
             </p>
-            {r.last_seen && <p className="text-muted-foreground">Last answer on this topic: {format(new Date(r.last_seen), "d MMM yyyy")}</p>}
+            {r.last_seen && <p className="text-muted-foreground">Last answer on this topic: {fmtDay(r.last_seen)}</p>}
             <p className="text-muted-foreground">
               From your quiz answers and daily Lots on this topic. ProofLab keeps the count for each topic,
               not a list of the single answers, so they can't be shown here.
@@ -192,11 +194,11 @@ const StudentSkillsProved = () => {
       <Card>
         <CardContent className="pt-5">
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Skills proved
+            Skills
           </span>
           <p className="mt-1 text-sm">
             <span className="font-mono text-xl font-semibold tabular-nums">{proven}</span>
-            <span className="text-muted-foreground"> of {skills.length} carry evidence.</span>
+            <span className="text-muted-foreground"> of {skills.length} passed the starting test.</span>
           </p>
           {skills.some((s) => s.assessed_score != null) && (
             <p className="mt-1 text-xs text-muted-foreground">
@@ -267,7 +269,7 @@ const StudentSkillsProved = () => {
 
                 {s.last_evidence_at && (
                   <p className="text-xs text-muted-foreground mt-3">
-                    Last evidence {format(new Date(s.last_evidence_at), "d MMM yyyy")}
+                    Last evidence {fmtDay(s.last_evidence_at)}
                   </p>
                 )}
               </CardContent>

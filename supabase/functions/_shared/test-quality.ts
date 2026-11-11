@@ -102,6 +102,11 @@ export function structuralProblems(tests: SandboxTest[], difficulty?: string): s
   if (tests.length >= 2 && outputs.size === 1) {
     problems.push('Every test expects the same output, so printing that one value passes everything.');
   }
+  // Sweep M5: "print the count given on the first line" passed a 5/5 Lot without solving it.
+  const firstLine = (t: SandboxTest) => t.stdin.trim().split(/\r?\n/)[0].trim();
+  if (tests.length >= 2 && tests.every((t) => t.expected_output.trim() === firstLine(t))) {
+    problems.push('Every expected output is just the first input line, so printing that line passes everything.');
+  }
   return problems;
 }
 

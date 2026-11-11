@@ -73,7 +73,7 @@ const AdminDashboardOverview = ({
       const daysBack = parseInt(dateFilter);
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - daysBack);
-      const [signupsRes, proofsRes, collegeSignupsRes, tasksRes] = await Promise.all([supabase.from('student_profiles').select('created_at').gte('created_at', startDate.toISOString()), supabase.from('task_submissions').select('submitted_at:created_at').gte('created_at', startDate.toISOString()), supabase.from('colleges').select('created_at').gte('created_at', startDate.toISOString()), supabase.from('tasks').select('created_at, completed_at').gte('created_at', startDate.toISOString())]);
+      const [signupsRes, proofsRes, collegeSignupsRes, tasksRes] = await Promise.all([supabase.from('student_profiles').select('created_at').gte('created_at', startDate.toISOString()), supabase.from('task_submissions').select('created_at').gte('created_at', startDate.toISOString()), supabase.from('colleges').select('created_at').gte('created_at', startDate.toISOString()), supabase.from('tasks').select('created_at, completed_at').gte('created_at', startDate.toISOString())]);
 
       // Group by day/week based on filter
       const groupSize = daysBack <= 7 ? 1 : 7;
@@ -94,7 +94,7 @@ const AdminDashboardOverview = ({
           return date >= periodStart && date < periodEnd;
         }).length || 0;
         const proofs = proofsRes.data?.filter(p => {
-          const date = new Date(p.submitted_at);
+          const date = new Date(p.created_at);
           return date >= periodStart && date < periodEnd;
         }).length || 0;
         const tasksCreated = tasksRes.data?.filter(t => {
@@ -142,12 +142,20 @@ const AdminDashboardOverview = ({
     color: "text-compete",
     onClick: () => onNavigate?.("startups")
   }, {
-    title: "Pending Proofs",
+    // Sweep M11: two numbers, two cards. Flagged answers waiting for a person...
+    title: "Needs review",
     value: stats?.pendingProofs || 0,
-    // Retest H3: this counts every answer or code check (retries included), not Lots, not voice recordings.
-    subtitle: `${stats?.totalProofs || 0} answer/code tries in all (retries included)`,
+    subtitle: "flagged answers waiting for a person",
     icon: ClipboardCheck,
     color: "text-compete",
+    onClick: () => onNavigate?.("reviewed-submissions")
+  }, {
+    // ...and every answer or code check ever sent (Retest H3: retries included, voice not counted).
+    title: "Answer/code tries",
+    value: stats?.totalProofs || 0,
+    subtitle: "all time, retries included",
+    icon: ClipboardCheck,
+    color: "text-primary",
     onClick: () => onNavigate?.("submissions")
   }, {
     title: "Active Tasks",
@@ -180,7 +188,7 @@ const AdminDashboardOverview = ({
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4">
         {kpiCards.map((kpi, index) => <Card key={index} className="hover:shadow-lg transition-all cursor-pointer hover:scale-105" onClick={kpi.onClick}>
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
@@ -246,7 +254,7 @@ const AdminDashboardOverview = ({
           <CardHeader className="p-4 md:p-6">
             <CardTitle className="flex items-center gap-2 text-base md:text-lg">
               <ClipboardCheck className="h-4 w-4 md:h-5 md:w-5" />
-              Proof Submissions
+              Answer/code tries
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0">

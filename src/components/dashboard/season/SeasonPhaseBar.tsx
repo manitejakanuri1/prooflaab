@@ -1,3 +1,4 @@
+import { fmtDayTime } from "@/lib/ist";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -89,9 +90,7 @@ export const SeasonCompleteCard = ({ status }: { status: SeasonStatus | null }) 
   if (status?.state !== "complete" || !status.last_season) return null;
   const s = status.last_season;
   const opens = status.next_season_at
-    ? new Date(status.next_season_at).toLocaleString("en-IN", {
-        day: "numeric", month: "short", hour: "numeric", minute: "2-digit",
-      })
+    ? fmtDayTime(status.next_season_at)
     : null;
   const podium = [
     { place: "Champion", name: s.champion },

@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { useState } from "react";
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -526,7 +527,7 @@ const TaskOversight = () => {
                       {/* MF-091: a Lot can repeat a title on another day; the date tells the rows apart. */}
                       {task.lot_date && (
                         <span className="block text-[11px] font-normal text-muted-foreground">
-                          Daily Lot · {new Date(task.lot_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                          Daily Lot · {fmtDay(task.lot_date)}
                         </span>
                       )}
                     </TableCell>
@@ -535,7 +536,7 @@ const TaskOversight = () => {
                       <Badge variant="outline">{task.category || 'General'}</Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {new Date(task.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {fmtDay(task.due_date)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -665,7 +666,7 @@ const TaskOversight = () => {
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        <span>{new Date(task.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        <span>{fmtDay(task.due_date)}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Star className="h-3 w-3 fill-primary text-primary" />

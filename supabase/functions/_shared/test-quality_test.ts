@@ -105,3 +105,12 @@ Deno.test('probe programs exist for every runner language', () => {
   assert(constantProgram('ruby', 'a#{b}')!.includes('\\#{'), 'ruby interpolation not escaped');
   assert(constantProgram('php', "it's $x")! === "<?php echo 'it\\'s $x';", 'php literal wrong');
 });
+
+Deno.test('sweep M5: output equal to the first input line is rejected', () => {
+  const tests = [
+    t('t1', '3\npy\njs\nc', '3', true, 'normal'),
+    t('t2', '0', '0', false, 'boundary'),
+    t('t3', '1\njava', '1', false, 'edge'),
+  ];
+  assert(structuralProblems(tests).some((x) => x.includes('first input line')), 'first-line echo not flagged');
+});

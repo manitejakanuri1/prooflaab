@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarks";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -366,7 +367,7 @@ const MockInterview = () => {
                   >
                     <span className="text-sm">
                       {h.target_role || "Mock interview"} ·{" "}
-                      {new Date(h.created_at).toLocaleDateString()}
+                      {fmtDay(h.created_at)}
                     </span>
                     <Badge variant={h.overall_score != null && h.overall_score >= 70 ? "default" : "secondary"}>
                       {of10(h.overall_score)}

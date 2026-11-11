@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { of10 } from "@/lib/lotMarks";
+import { part10 } from "@/lib/lotText";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +18,7 @@ interface FlaggedSubmission {
   student_name: string;
   score: number;
   flags: string[];
-  rubric_scores: { criterion_id: string; points: number; evidence: string }[] | null;
+  rubric_scores: { criterion_id: string; points: number; evidence: string; max_points?: number }[] | null; // max_points: migration 221
   code: string;
   created_at: string;
 }
@@ -113,7 +115,7 @@ const ReviewedSubmissions = () => {
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
                       <p className="font-semibold">{r.task_title}</p>
-                      <p className="text-sm text-muted-foreground">{r.student_name} · score {r.score}%</p>
+                      <p className="text-sm text-muted-foreground">{r.student_name} · answer {of10(r.score)}</p>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {r.flags.map((f) => (
@@ -133,7 +135,7 @@ const ReviewedSubmissions = () => {
                     <ul className="text-sm text-muted-foreground">
                       {r.rubric_scores.map((s) => (
                         <li key={s.criterion_id}>
-                          {s.criterion_id}: {s.points} pts
+                          {s.criterion_id}: {part10(s.points, s.max_points)}
                           {s.evidence && <span className="italic"> — "{s.evidence}"</span>}
                         </li>
                       ))}

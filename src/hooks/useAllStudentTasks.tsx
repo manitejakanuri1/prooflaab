@@ -25,6 +25,7 @@ interface StudentTask {
   work_passed?: boolean;
   /** Retest R5: the scored voice (0-100) of this task, so the card shows "Voice done" instead of "Explain 60s". */
   voice_score?: number | null;
+  voice_owed?: boolean; // Sweep S16: work handed in, the 60s explanation still owed
 }
 
 export const useAllStudentTasks = () => {
@@ -153,6 +154,7 @@ export const useAllStudentTasks = () => {
           title: task.lot_date ? tidyTitle(task.title) : task.title,
           description: task.description ? oneRange(task.description, rangeOf.get(task.id)) : task.description,
           voice_score: voiceScoreOf.get(task.id) ?? null,
+          voice_owed: task.status === 'pending_voice',
           deadline: task.due_date,
           lot_date: task.lot_date,
           status,

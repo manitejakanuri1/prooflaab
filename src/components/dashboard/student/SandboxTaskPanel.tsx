@@ -437,18 +437,25 @@ ${result.hidden_hint.error}` : ""}`}
     <div className={`flex h-full flex-col overflow-y-auto lg:grid lg:overflow-hidden ${voice ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_320px]" : "lg:grid-cols-2"}`}>
       <div className="space-y-4 border-b p-5 lg:overflow-y-auto lg:border-b-0 lg:border-r">
         <h2 className="pr-8 text-lg font-semibold lg:pr-0">{view.title}</h2>
-        <SimpleQuestion taskId={taskId} original={view.description} coding />
-        <GivenMaterial taskId={taskId} language={view.language} />
-        {spec && <FunctionSignature language={view.language} spec={spec} />}
-        <SampleExamples tests={view.visible_tests} spec={spec} />
-        {view.constraints && (
-          <p className="mt-2 font-mono text-xs text-muted-foreground">{view.constraints}</p>
-        )}
-        <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          {view.language} · {daily && !strict ? `${lot?.checks_max ?? 3} checks, your best counts` : "every test must pass"} · {view.visible_tests.length} sample
-          {view.visible_tests.length === 1 ? "" : "s"} + {view.hidden_test_count} hidden test
-          {view.hidden_test_count === 1 ? "" : "s"}
-        </p>
+        {/* Lot screen simplify (owner, 11 Nov 2026): above the editor only the task, the input/output with one
+            sample, and the stdin rule. Size limits, test counts and the rest sit in "More help". */}
+        <SimpleQuestion taskId={taskId} original={view.description} coding
+          moreHelp={
+            <div className="space-y-2">
+              {view.visible_tests.length > 1 && <SampleExamples tests={view.visible_tests.slice(1)} spec={spec} />}
+              {view.constraints && <p className="font-mono text-xs text-muted-foreground">{view.constraints}</p>}
+              <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                {view.language} · {daily && !strict ? `${lot?.checks_max ?? 3} checks, your best counts` : "every test must pass"} · {view.visible_tests.length} sample
+                {view.visible_tests.length === 1 ? "" : "s"} + {view.hidden_test_count} hidden test
+                {view.hidden_test_count === 1 ? "" : "s"}
+              </p>
+            </div>
+          }>
+          <GivenMaterial taskId={taskId} language={view.language} />
+          {spec && <FunctionSignature language={view.language} spec={spec} />}
+          <SampleExamples tests={view.visible_tests.slice(0, 1)} spec={spec} />
+          {!spec && <p className="text-sm font-medium" data-testid="reads-stdin">Your code must read the input (stdin).</p>}
+        </SimpleQuestion>
       </div>
 
       <div className="flex min-h-0 shrink-0 flex-col lg:h-full">

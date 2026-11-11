@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarks";
 import { Fragment, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -190,9 +191,9 @@ const StudentResumeHistoryPage = () => {
               const retestCount = history.filter((h) => h.is_retest).length;
               return (
                 <p className="text-xs text-muted-foreground mb-3">
-                  First tested {new Date(oldest.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+                  First tested {fmtDay(oldest.created_at)}
                   {retestCount > 0 && (
-                    <> · latest retest {new Date(latest.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</>
+                    <> · latest retest {fmtDay(latest.created_at)}</>
                   )}
                   {netDelta !== null && netDelta !== 0 && (
                     <>
@@ -237,7 +238,7 @@ const StudentResumeHistoryPage = () => {
                           onClick={() => toggleExpand(h)}
                         >
                           <td className="py-2 pr-4 whitespace-nowrap">
-                            {new Date(h.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+                            {fmtDay(h.created_at)}
                           </td>
                           <td className="py-2 px-3">
                             {h.is_retest ? (

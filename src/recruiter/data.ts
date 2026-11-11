@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarksText";
 import { supabase } from "@/integrations/supabase/client";
 import type { Candidate, ProofItem, SkillScore } from "./types";
@@ -91,7 +92,7 @@ export function toCandidate(row: Record<string, unknown>): Candidate {
       // recruiter_talent returns no per-skill score; never borrow the communication score.
       // The full profile (loadProfile) carries each skill's own assessed score.
       score: null,
-      verified: i < proven,
+      verified: false, // Sweep M2: "proven" only means the starting test passed; no Lot links to a skill yet.
       assessments: 0,
       proof: [],
     })),
@@ -197,7 +198,7 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
   if (!p || p.error) return null;
 
   // F3 (round 3): this company's Lots for this student, from the same list as the Lots tab (recruiter_lots).
-  const day = (d: unknown) => d ? new Date(String(d)).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }) : "";
+  const day = (d: unknown) => d ? fmtDay(String(d)) : "";
   // Owner rule B: "Passed" only with a voice of 50+. recruiter_lots() has no voice score; company_submissions() does.
   const [lots, subs] = await Promise.all([
     loadLots().catch(() => []),
@@ -231,7 +232,7 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
   const skills: SkillScore[] = (p.skills ?? []).map((s) => ({
     name: s.skill,
     score: s.score ?? null,          // untested stays untested, not 0
-    verified: s.status === "proven",
+    verified: false, // Sweep M2: see above - a starting test is not proof.
     assessments: s.score != null ? 1 : 0,
     proof: skillProof(s),
   }));

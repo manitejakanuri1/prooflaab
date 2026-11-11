@@ -1,3 +1,4 @@
+import { fmtDay, fmtDayTime } from "@/lib/ist";
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -10,7 +11,7 @@ import { useBuildLog, voiceInProgress, type BuildLogEntry } from "@/hooks/useBui
 import { passedLabel, passedNote } from "@/lib/passedNote";
 import { fmtMark, loadLotState, of10, talkCheck, SCORE_HELP } from "@/lib/lotMarks";
 import InfoTip from "@/components/common/InfoTip";
-import { lotStatusText, part10, voiceOwedText, AUTO_TRANSCRIPT_NOTE } from "@/lib/lotText";
+import { lotStatusText, part10, quotes, voiceOwedText, AUTO_TRANSCRIPT_NOTE } from "@/lib/lotText";
 
 const STATUS: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
   passed: { label: "Passed", variant: "default" },
@@ -146,8 +147,8 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
           <div className="min-w-0">
             <CardTitle className="text-base">{e.title}</CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
-              {e.lot_date ? `Lot of ${format(new Date(e.lot_date), "dd MMM yyyy")}` : "Task"}
-              {` · submitted ${format(new Date(e.submitted_at), "dd MMM, HH:mm")}`}
+              {e.lot_date ? `Lot of ${fmtDay(e.lot_date)}` : "Task"}
+              {` · submitted ${fmtDayTime(e.submitted_at)}`}
               {e.attempts > 1 ? ` · ${e.attempts} attempts` : ""}
             </p>
           </div>
@@ -206,9 +207,10 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
               {v?.communication_notes && scored && <p>{v.communication_notes}</p>}
               {breakdown.filter((b) => b.evidence || b.improve).map((b) => (
                 <div key={b.id} className="text-muted-foreground">
-                  <p><span className="text-foreground">{b.name}:</span> {b.evidence ? `"${b.evidence}"` : "nothing quoted"}</p>
+                  <p><span className="text-foreground">{b.name}:</span> {b.evidence ? quotes(b.evidence) : "nothing quoted"}</p>
                   {/* QA round 2 item 28: one plain "to improve" line per part (new answers only). */}
-                  {b.improve && <p data-testid="to-improve">To improve: {b.improve}</p>}
+                  {/* Sweep S5: a part at full marks has nothing to improve. */}
+                  {b.improve && !(b.max != null && b.points >= b.max) && <p data-testid="to-improve">To improve: {b.improve}</p>}
                 </div>
               ))}
               {v?.transcript && (

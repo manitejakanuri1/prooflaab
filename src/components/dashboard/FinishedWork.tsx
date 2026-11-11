@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarks";
 import { format } from "date-fns";
 import type { FinishedWorkItem } from "@/recruiter/types";
@@ -21,7 +22,7 @@ const FinishedWork = ({ work }: { work: FinishedWorkItem[] }) => {
               {w.kind === "code" && w.total_count ? `${w.passed_count ?? 0}/${w.total_count} tests · ` : ""}
               {w.attempts > 1 ? `${w.attempts} tries · ` : ""}
               {w.voice?.score != null ? `voice ${of10(w.voice.score)} · ` : ""}
-              {w.submitted_at ? format(new Date(w.submitted_at), "d MMM") : ""}
+              {w.submitted_at ? fmtDay(w.submitted_at) : ""}
             </span>
           </summary>
           <div className="mt-2 space-y-2">

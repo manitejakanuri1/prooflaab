@@ -78,7 +78,10 @@ export const useBuildLog = () => {
       type V = BuildLogVoice & { task_id: string | null; submission_id: string | null; current_authoritative: boolean };
       const voiceBySubmission = new Map<string, V>();
       const voiceByTask = new Map<string, V>();
+      // Sweep M4: a recording bound to an earlier try of the same Lot still belongs to the Lot.
+      const anyVoiceByTask = new Map<string, V>();
       for (const v of (voices.data ?? []) as unknown as V[]) {
+        if (v.task_id && !anyVoiceByTask.has(v.task_id)) anyVoiceByTask.set(v.task_id, v);
         if (v.submission_id) {
           const have = voiceBySubmission.get(v.submission_id);
           if (!have || (v.current_authoritative && !have.current_authoritative)) voiceBySubmission.set(v.submission_id, v);
@@ -107,7 +110,7 @@ export const useBuildLog = () => {
           submitted_at: s.created_at,
           counted: countedBy.get(s.task_id) ?? null,
           attempts: 1,
-          voice: voiceBySubmission.get(s.id) ?? voiceByTask.get(s.task_id) ?? null,
+          voice: voiceBySubmission.get(s.id) ?? voiceByTask.get(s.task_id) ?? anyVoiceByTask.get(s.task_id) ?? null,
         });
       }
       return [...byTask.values()];

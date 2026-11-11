@@ -44,7 +44,7 @@ import {
   Eye, Download, MoreHorizontal, Trash2, UserX, UserCheck, Filter, Plus
 } from "lucide-react";
 import { ADMIN_LIST_CAP } from "@/lib/listCaps";
-import { fmtIST } from "@/lib/ist";
+import { fmtDay, fmtIST } from "@/lib/ist";
 
 interface UserData {
   id: string;
@@ -430,16 +430,16 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
             user.college_name || 'N/A',
             user.total_xp || 0,
             user.proofs_submitted || 0,
-            user.last_active ? new Date(user.last_active).toLocaleDateString() : 'Never',
+            user.last_active ? fmtDay(user.last_active) : 'Never',
             user.status || 'active',
-            new Date(user.created_at).toLocaleDateString()
+            fmtDay(user.created_at)
           ].join(',');
         } else if (activeTab === 'startups') {
           return [
             ...baseFields,
             user.domain_industry || 'N/A',
             user.verification_status || 'pending',
-            new Date(user.created_at).toLocaleDateString()
+            fmtDay(user.created_at)
           ].join(',');
         } else {
           return [
@@ -447,7 +447,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
             user.student_count || 0,
             user.tasks_assigned || 0,
             user.verification_status || 'pending',
-            new Date(user.created_at).toLocaleDateString()
+            fmtDay(user.created_at)
           ].join(',');
         }
       })
@@ -684,11 +684,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                               </TableCell>
                               <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
                                 {user.last_active 
-                                  ? new Date(user.last_active).toLocaleDateString('en-US', {
-                                    month: 'numeric',
-                                    day: 'numeric',
-                                    year: 'numeric'
-                                  })
+                                  ? fmtDay(user.last_active)
                                   : '—'
                                 }
                               </TableCell>
@@ -698,11 +694,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                             <>
                               <TableCell className="text-muted-foreground hidden md:table-cell">
                                 {user.last_active 
-                                  ? new Date(user.last_active).toLocaleDateString('en-US', {
-                                    month: 'numeric',
-                                    day: 'numeric',
-                                    year: 'numeric'
-                                  })
+                                  ? fmtDay(user.last_active)
                                   : '—'
                                 }
                               </TableCell>
@@ -712,11 +704,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                             <>
                               <TableCell className="text-muted-foreground hidden md:table-cell">
                                 {user.last_active 
-                                  ? new Date(user.last_active).toLocaleDateString('en-US', {
-                                    month: 'numeric',
-                                    day: 'numeric',
-                                    year: 'numeric'
-                                  })
+                                  ? fmtDay(user.last_active)
                                   : '—'
                                 }
                               </TableCell>
@@ -730,11 +718,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                           )}
                            <TableCell>{getStatusBadge(user)}</TableCell>
                            <TableCell className="text-sm text-muted-foreground">
-                             {new Date(user.created_at).toLocaleDateString('en-US', {
-                               month: 'numeric',
-                               day: 'numeric',
-                               year: 'numeric'
-                             })}
+                             {fmtDay(user.created_at)}
                            </TableCell>
                            <TableCell className="text-right">
                            <DropdownMenu>
@@ -943,7 +927,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                   <p><strong>Name:</strong> {activeTab === 'students' ? viewUserSheet.full_name : viewUserSheet.name}</p>
                   <p><strong>Email:</strong> {viewUserSheet.email}</p>
                   <div className="flex items-center gap-2"><strong>Status:</strong> {getStatusBadge(viewUserSheet)}</div>
-                  <p><strong>Created:</strong> {new Date(viewUserSheet.created_at).toLocaleDateString()}</p>
+                  <p><strong>Created:</strong> {fmtDay(viewUserSheet.created_at)}</p>
                 </div>
               </div>
               {activeTab === 'students' && (

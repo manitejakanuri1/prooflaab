@@ -1,3 +1,4 @@
+import { fmtDay, fmtDayTime } from "@/lib/ist";
 import { of10, scoreText10 } from "@/lib/lotMarks";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,7 +42,7 @@ interface Profile {
   } | null;
   activity_30d: { event_type: string; n: number }[];
   skills: { skill: string; status: string; score: number | null; lots: number | null }[];
-  tasks: { assigned: number; completed: number; attempts?: number; failed_attempts?: number };
+  tasks: { assigned: number; completed: number; voice_owed?: number; attempts?: number; failed_attempts?: number };
   voice_recordings: number;
   // migration 122: the rest of what the college and admin follow.
   streak?: { current: number; longest: number; last_active_on: string | null } | null;
@@ -195,7 +196,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                 { k: "Last active", v: data.days_quiet >= 999 ? "never" : `${data.days_quiet}d ago`,
                   hot: data.days_quiet >= 7 },
                 { k: "Total XP", v: data.total_xp ?? 0 },
-                { k: "Lots done", v: `${data.tasks.completed}/${data.tasks.assigned}` },
+                { k: "Lots done", v: `${data.tasks.completed}/${data.tasks.assigned}${data.tasks.voice_owed ? ` · ${data.tasks.voice_owed} voice owed` : ""}` }, // M8: migration 220
                 ...(data.streak !== undefined ? [
                   { k: "Streak", v: data.streak ? `${data.streak.current}d · best ${data.streak.longest}d` : "0d" },
                   { k: "Checks not passed", v: data.tasks.failed_attempts ?? 0, hot: (data.tasks.failed_attempts ?? 0) >= 3 },
@@ -239,7 +240,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                       <span className="min-w-0">
                         <span className={s.done ? "" : "text-muted-foreground"}>{s.step}</span>
                         {s.at && (
-                          <span className="font-mono text-[10px] text-muted-foreground"> · {format(new Date(s.at), "d MMM, HH:mm")}</span>
+                          <span className="font-mono text-[10px] text-muted-foreground"> · {fmtDayTime(s.at)}</span>
                         )}
                         {/* The server writes "0 questions" (alone, or before " · average …") when the list is empty. */}
                         {s.detail && s.detail.replace(/^0 questions(?: · )?/, "") &&
@@ -297,7 +298,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                     >
                       {s.skill}
                       <span className="ml-1.5 opacity-70 font-normal">
-                        {s.status.replace("_", " ")}
+                        {s.status === "proven" ? "passed starting test" : s.status.replace("_", " ")}
                       </span>
                     </Badge>
                   ))}
@@ -320,7 +321,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                       <div className="ml-auto flex items-center gap-3">
                         <span className="font-mono text-xs tabular-nums">{lp.topics_done}/{lp.topics_total} topics</span>
                         <span className="font-mono text-[10px] text-muted-foreground">
-                          {lp.last_active ? format(new Date(lp.last_active), "d MMM") : "not started"}
+                          {lp.last_active ? fmtDay(lp.last_active) : "not started"}
                         </span>
                       </div>
                     </div>
@@ -342,7 +343,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                       <div className="min-w-0">
                         <p className="truncate">{w.task_title ?? w.file_name ?? "Submission"}</p>
                         <p className="font-mono text-[10px] text-muted-foreground">
-                          {w.submitted_at ? format(new Date(w.submitted_at), "d MMM yyyy") : "—"}
+                          {w.submitted_at ? fmtDay(w.submitted_at) : "—"}
                         </p>
                       </div>
                       <div className="ml-auto flex items-center gap-2">
@@ -377,8 +378,9 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                 <div className="space-y-1">
                   {data.interventions.map((i, n) => (
                     <p key={n} className="text-xs text-muted-foreground">
-                      <span className="font-mono">{format(new Date(i.created_at), "d MMM")}</span>
-                      {" · "}{i.type}{" · "}{i.reason}
+                      <span className="font-mono">{fmtDay(i.created_at)}</span>
+                      {/* Sweep M8: older reminders saved "999 days" for a student who had never started. */}
+                      {" · "}{i.type}{" · "}{i.reason.replace(/No activity for 999 days/i, "had not started yet")}
                     </p>
                   ))}
                 </div>

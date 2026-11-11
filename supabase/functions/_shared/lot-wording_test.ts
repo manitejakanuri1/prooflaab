@@ -92,3 +92,9 @@ Deno.test('a coding Lot whose tests feed input it never reads is rejected (item 
   const reads = lotWordingProblems({ title: 'Split', scenario: SPLIT, starter_code: 'import sys\ndata = sys.stdin.read()', test_cases: stdinTests }, 'sandbox');
   assert(!has(reads, 'stdin'), 'starter that reads stdin was rejected');
 });
+
+Deno.test('sweep S15: third-person "the student must" is sent back for a rewrite', () => {
+  const text = 'You help a team.\nYour task: The student must explain why the query works.\nWhat to write: 100-200 words in the answer box explaining it.';
+  const p = lotWordingProblems({ title: 'Explain a query', scenario: text + ' '.repeat(10) + 'Extra context so the task is long enough to read well.' }, 'rubric');
+  if (!p.some((x) => x.includes('third person'))) throw new Error(JSON.stringify(p));
+});

@@ -112,7 +112,7 @@ try {
     const card = done.first().locator("xpath=ancestor::div[contains(@class,'rounded') and .//h3 or contains(@class,'border-l')][1]");
     return /Voice done: [\d.]+\/10/.test(await done.first().innerText()) && (await card.getByRole("button", { name: /Explain 60s/ }).count()) === 0;
   });
-  await check("Lot screen: 'Answer: out of 10 · Voice: out of 10', no points, neutral grey placeholder with the word range (R2)", async () => {
+  await check("Lot screen: 'Answer out of 10 · Voice out of 10 · N–M words' once, More help closed, no points (R2, simplify)", async () => {
     // A finished Lot no longer opens its Lot screen, so use the first open written Lot on Your Tasks.
     await go(page, "/student/tasks/assigned"); await page.waitForTimeout(4000);
     const write = page.getByRole("button", { name: /Write my answer/ }).first();
@@ -122,7 +122,9 @@ try {
     const ph = (await d.locator("textarea").first().getAttribute("placeholder")) ?? "";
     await page.screenshot({ path: `${out}/r2-lot-screen.png` });
     const ok = (await d.getByTestId("marked-out-of-10").count()) > 0 && !/\b\d+ pts\b/.test(text) && !/Aim for/.test(text) && !/of 100/.test(text)
-      && /^Write your answer here \(\d+–\d+ words\)\.$/.test(ph) && (await d.getByRole("button", { name: /Insert example format/ }).count()) === 0
+      && ph === "Write your answer here." && (await d.getByRole("button", { name: /Insert example format/ }).count()) === 0
+      && /Answer out of 10 · Voice out of 10 · \d+–\d+ words/.test(await d.getByTestId("marked-out-of-10").innerText())
+      && (text.match(/\d+–\d+ words/g) ?? []).length === 1 && (await d.getByTestId("more-help-body").count()) === 0
       && !/not solving the task|making the question clear/i.test(text);
     await closeDialog(page); await go(page, "/student/tasks/assigned"); return ok; });
   await go(page, "/student/dashboard?tab=log&view=progress");

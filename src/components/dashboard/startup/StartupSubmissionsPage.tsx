@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarks";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -167,7 +168,7 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
-                    Submitted {format(new Date(s.submitted_at), "MMM dd, yyyy")}
+                    Submitted {fmtDay(s.submitted_at)}
                     {s.attempts > 1 ? ` · attempt ${s.attempts}` : ""}
                   </span>
                   <div className="flex gap-2">

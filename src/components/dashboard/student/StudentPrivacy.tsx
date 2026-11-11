@@ -1,3 +1,4 @@
+import { fmtDayTime } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarks";
 import { useCallback, useEffect, useState } from "react";
 import RecordingPlayback from "./RecordingPlayback";
@@ -135,7 +136,7 @@ const StudentPrivacy = () => {
                   <Mic className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm">
-                      {format(new Date(r.created_at), "d MMM yyyy, h:mm a")}
+                      {fmtDayTime(r.created_at)}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {r.duration_seconds ? `${r.duration_seconds}s` : "—"}

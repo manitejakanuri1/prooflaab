@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { dropHelper, lotStatusText, oneRange, part10, squadUpdateText, triesSummary, voiceOwedText, weekDayText, weekLotsText } from "./lotText.ts";
+import { dropHelper, dropWordRange, lotStatusText, oneRange, part10, squadUpdateText, triesSummary, voiceOwedText, weekDayText, weekLotsText } from "./lotText.ts";
 
 test("one word range: the checker's replaces the one in the text", () => {
   const w = { min: 150, max: 800 };
@@ -60,4 +60,11 @@ test("F2: a Lot with its voice owed is named, not counted as finished", () => {
   assert.equal(weekLotsText([done]), "1 Lot");
   assert.equal(weekDayText(owed), "5.5 + voice owed = 0 (counts when your voice is scored)");
   assert.equal(weekDayText(done), "10 + 7.2 = 17.2");
+});
+
+test("Lot simplify: the word range is said once, on the marking line", () => {
+  assert.equal(dropWordRange("Write your answer in 100–200 words."), "");
+  assert.equal(dropWordRange("You have written a short 100–200 words explanation covering all four points."),
+    "You have written a short explanation covering all four points.");
+  assert.equal(dropWordRange("Say what a LEFT JOIN does."), "Say what a LEFT JOIN does.");
 });

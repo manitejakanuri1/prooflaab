@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import MatchDetailDialog, { type MatchLike } from "@/components/dashboard/season/MatchDetailDialog";
 import { SCORE_HELP } from "@/lib/lotMarks";
 import InfoTip from "@/components/common/InfoTip";
@@ -76,8 +77,6 @@ interface NamingTheme {
   branch: string; theme: string; default_theme: string; customized: boolean;
 }
 
-const daysSince = (iso: string | null) =>
-  iso == null ? 999 : Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
 
 /**
  * Squads — the destination the college dashboard never had.
@@ -122,6 +121,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
   const [savingWeight, setSavingWeight] = useState<string | null>(null);
   const [namingThemes, setNamingThemes] = useState<NamingTheme[]>([]);
   const [reserves, setReserves] = useState<Reserve[]>([]);
+  // Sweep M7: one meaning of "last active" = last Lot try, the same days_quiet the Students list shows.
+  const [quietDays, setQuietDays] = useState<Record<string, number>>({});
   const [newSquadName, setNewSquadName] = useState("");
   const [newSquadCohort, setNewSquadCohort] = useState("");
   const [themeDraft, setThemeDraft] = useState<Record<string, string>>({});
@@ -159,7 +160,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     const memQuery = supabase.from("squad_members")
       .select("student_id, squad_id, contribution, membership_type, student_profiles(full_name, roll_number, last_active)")
       .in("squad_id", ids);
-    const [mem, mat, perf, ach, rules, themes, res] = await Promise.all([
+    const [mem, mat, perf, ach, rules, themes, res, studs] = await Promise.all([
       closedAt
         ? memQuery.or(`left_at.is.null,left_at.gte.${new Date(new Date(closedAt).getTime() - 60_000).toISOString()}`)
         : finished ? memQuery : memQuery.is("left_at", null),
@@ -171,6 +172,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
       supabase.rpc("tpo_scoring_rules" as never),
       supabase.rpc("tpo_naming_themes" as never),
       supabase.rpc("tpo_reserves"),
+      supabase.rpc("tpo_students" as never, { _limit: 5000, _offset: 0 } as never),
     ]);
 
     // E2E: show the squads together with their members, never 0/12 while members are still loading.
@@ -184,6 +186,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     setScoringRules((rules.data ?? []) as unknown as ScoringRule[]);
     setNamingThemes((themes.data ?? []) as unknown as NamingTheme[]);
     setReserves((res.data ?? []) as unknown as Reserve[]);
+    setQuietDays(Object.fromEntries(((studs.data ?? []) as unknown as { student_id: string; days_quiet: number }[])
+      .map((r) => [r.student_id, r.days_quiet])));
     // Functional update and no `selected` dependency. With `[selected]`, choosing
     // a squad rebuilt `load`, the effect below re-ran all ten requests on every
     // click, and this default selection caused a second full load on mount.
@@ -335,7 +339,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
       toast({
         title: "Between seasons",
         description: `${r.between_seasons} students get their squad when the next season starts${r.next_season_at
-          ? ` (${format(new Date(r.next_season_at), "d MMM")})` : ""}.`,
+          ? ` (${fmtDay(r.next_season_at)})` : ""}.`,
       });
       void load();
       return;
@@ -555,7 +559,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                         .indexOf(s.name)
                     : -1;
                   const active = mine.filter(
-                    (m) => daysSince(m.student_profiles?.last_active ?? null) < 7).length;
+                    (m) => (quietDays[m.student_id] ?? 999) < 7).length;
                   const healthy = mine.length === 0 ? false : active / mine.length >= 0.7;
                   return (
                     <tr key={s.id} className="border-t cursor-pointer hover:bg-muted/40"
@@ -643,7 +647,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
               </div>
               {(() => {
                 const quiet = currentMembers.filter(
-                  (m) => daysSince(m.student_profiles?.last_active ?? null) >= 7);
+                  (m) => (quietDays[m.student_id] ?? 999) >= 7);
                 return quiet.length > 0 ? (
                   <div className="text-sm mt-4 flex items-center gap-2 flex-wrap">
                     <span className="text-alert font-medium">{quiet.length} member
@@ -679,7 +683,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
               </thead>
               <tbody>
                 {currentMembers.map((m) => {
-                  const d = daysSince(m.student_profiles?.last_active ?? null);
+                  const d = (quietDays[m.student_id] ?? 999);
                   return (
                     <tr key={m.student_id}
                         className="border-t cursor-pointer hover:bg-muted/40"

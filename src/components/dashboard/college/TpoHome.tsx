@@ -116,7 +116,8 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
     { key: "attention", label: "Needs attention", value: data.needs_attention, icon: AlertTriangle,
       note: data.needs_attention > 0 ? "tap to see who" : "nobody, for once",
       tone: "hot" as const, action: () => onFilterStudents?.("attention") }, // E2E-7b
-    { key: "squads", label: "Squads", value: data.squads, icon: Shield,
+    // Sweep M6: tpo_home counts squads of every past season too; show this season's squads.
+    { key: "squads", label: "Squads", value: standings.length, icon: Shield,
       note: `${data.reserves} in reserve · open standings`,
       action: () => onNavigate?.("squads") },
   ];
@@ -263,7 +264,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
                           <span key={c.bracket}>{c.bracket}: {c.champion ?? "No champion"}</span>))}</span>
                       : season.last_season?.champion ?? "No champion"}
                   </p>
-                ) : data.leader ? (
+                ) : data.leader && data.leader.points > 0 ? ( /* Sweep M14: nobody "leads" on 0 points */
                   <button
                     type="button"
                     className="text-lg font-semibold mt-0.5 flex items-center gap-2 hover:text-primary transition-colors"
@@ -274,7 +275,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
                     <span className="font-mono text-sm text-muted-foreground">{data.leader.points} pts</span>
                   </button>
                 ) : (
-                  <p className="text-sm text-muted-foreground mt-1">No squads yet.</p>
+                  <p className="text-sm text-muted-foreground mt-1">{data.leader ? "No points yet this season." : "No squads yet."}</p>
                 )}
               </div>
             </CardContent>

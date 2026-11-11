@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fmtIST } from "@/lib/ist";
+import { fmtDay, fmtIST } from "@/lib/ist";
 
 // MF-033 (migration 199): who sees it. Publishing sends each of them one bell notice and shows it on their dashboard.
 const AUDIENCES = { all: "Everyone", students: "Students", colleges: "Colleges", companies: "Companies" } as const;
@@ -287,7 +287,7 @@ const ManageAnnouncementsPage = () => {
                       <div className="text-xs text-muted-foreground mt-1">{AUDIENCES[announcement.audience] ?? "Everyone"}{announcement.college_id ? ` · ${collegeName(announcement.college_id) ?? "One college"}` : ""}</div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {new Date(announcement.created_at).toLocaleDateString()}
+                      {fmtDay(announcement.created_at)}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>

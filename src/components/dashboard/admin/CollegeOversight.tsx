@@ -1,3 +1,4 @@
+import { fmtIST } from "@/lib/ist";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -474,7 +475,7 @@ ${college.name}`);
           <div>
             <h1 className="text-3xl font-bold">Colleges</h1>
             <p className="text-muted-foreground">
-              Manage college accounts and activities · Updated {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString('en-GB') : '—'}
+              Manage college accounts and activities · Updated {dataUpdatedAt ? fmtIST(dataUpdatedAt) : '—'}
               <Button variant="link" size="sm" className="h-auto px-2" disabled={isFetching} onClick={() => void refetch()}>
                 {isFetching ? 'Refreshing…' : 'Refresh'}
               </Button>

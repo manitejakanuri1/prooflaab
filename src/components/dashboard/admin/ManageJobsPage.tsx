@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Calendar, MoreVertical, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -280,7 +281,7 @@ const ManageJobsPage = () => {
                     <TableCell>{job.location}</TableCell>
                     <TableCell>{getStatusBadge(job.status || 'approved')}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {new Date(job.created_at).toLocaleDateString()}
+                      {fmtDay(job.created_at)}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>

@@ -5,7 +5,8 @@ import { splitLotSections } from "@/lib/lotSections";
 /** Text with `backtick` spans shown as inline code. No markdown library needed. */
 export const InlineText = ({ text }: { text: string }) => (
   <>
-    {text.split(/(`[^`]+`)/g).map((part, i) =>
+    {/* Sweep S28: some stored task text kept JSON escapes (\"); show plain quotes. */}
+    {text.replace(/\\(["'])/g, "$1").split(/(`[^`]+`)/g).map((part, i) =>
       part.startsWith("`") && part.endsWith("`") && part.length > 2 ? (
         <code key={i} className="rounded bg-muted px-1 py-0.5 font-mono text-[0.9em]">
           {part.slice(1, -1)}
@@ -52,6 +53,7 @@ const TODO = /\b(your job|your task|you need to|you must|you will|you'll|open |w
 export const BriefCards = ({ text, tone = "default" }: { text: string; tone?: "default" | "paper" }) => {
   // A Lot written to the wording contract (3 Oct 2026) carries its own labels:
   // show them as they are, in order, instead of guessing groups from sentences.
+  text = text.replace(/\\(["'])/g, "$1"); // Sweep S28
   const sections = splitLotSections(text);
   if (sections) {
     const box = tone === "paper" ? "border-[#d8d1c1] bg-[#faf7ef]" : "bg-card";

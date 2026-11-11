@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -200,7 +201,7 @@ const SystemSettings = () => {
                   <TableCell>{getRoleBadge(admin.role)}</TableCell>
                   <TableCell>{getStatusBadge(admin.status)}</TableCell>
                   <TableCell>
-                    {new Date(admin.created_at).toLocaleDateString()}
+                    {fmtDay(admin.created_at)}
                   </TableCell>
                   <TableCell className="text-right">
                     {admin.status === 'active' && (

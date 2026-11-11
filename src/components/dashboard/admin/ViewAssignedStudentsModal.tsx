@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
@@ -62,7 +63,7 @@ export function ViewAssignedStudentsModal({ task, open, onClose }: ViewAssignedS
                     <h4 className="font-semibold">{assignment.student_profiles?.full_name || 'Unknown'}</h4>
                     <p className="text-sm text-muted-foreground">{assignment.student_profiles?.student_contact?.email || 'N/A'}</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Assigned: {new Date(assignment.assigned_at).toLocaleDateString()}
+                      Assigned: {fmtDay(assignment.assigned_at)}
                     </p>
                   </div>
                 </div>

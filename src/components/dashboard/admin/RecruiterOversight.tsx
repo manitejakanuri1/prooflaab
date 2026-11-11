@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -144,7 +145,7 @@ const RecruiterOversight = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {new Date(r.created_at).toLocaleDateString()}
+                      {fmtDay(r.created_at)}
                     </TableCell>
                     <TableCell className="text-right">{r.shortlists}</TableCell>
                     <TableCell className="text-right">{r.sponsored}</TableCell>

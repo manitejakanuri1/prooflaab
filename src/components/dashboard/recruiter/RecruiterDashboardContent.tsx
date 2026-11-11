@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarks";
 import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -238,7 +239,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                         </p>
                       </div>
                       <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                        {c.skills_proven} proven · {c.proofs_verified} verified
+                        {c.skills_proven} passed starting test · {c.proofs_verified} verified work
                       </span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </button>
@@ -313,7 +314,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                     <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                       <th className="pb-2 pr-3">Candidate</th>
                       <th className="pb-2 pr-3">Role</th>
-                      {sortHead("skills", "Skills proven")}
+                      {sortHead("skills", "Starting test passed")}
                       {sortHead("work", "Verified work")}
                       {sortHead("speaking", "Voice (of 10)", "Average score of their spoken explanations, out of 10")}
                       <th className="pb-2">Last active</th>
@@ -447,7 +448,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                       </td>
                       <td className="py-2.5 pr-3 font-mono text-xs text-muted-foreground">
                         {/* E2E O5: India date, as the student sees it */}
-                        {l.due_date ? new Date(String(l.due_date)).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }) : ""}
+                        {l.due_date ? fmtDay(String(l.due_date)) : ""}
                       </td>
                       <td className="py-2.5 pr-3">
                         {/* recruiter_lots() reads task_submissions since migration 54 (it read the retired upload table, so nothing ever showed). */}

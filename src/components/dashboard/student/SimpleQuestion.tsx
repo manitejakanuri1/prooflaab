@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { BriefCards, InlineText } from "./ReadableText";
-import { dropHelper, oneRange } from "@/lib/lotText";
+import { dropHelper, dropWordRange, oneRange } from "@/lib/lotText";
 
 interface Brief {
   in_one_line: string;
@@ -94,34 +94,53 @@ const NotReady = ({ retry }: { retry: () => void }) => (
   </p>
 );
 
+const StepList = ({ steps, from = 0 }: { steps: string[]; from?: number }) => (
+  <ol className="mt-2 space-y-1.5 text-sm">
+    {steps.map((s, i) => (
+      <li key={i} className="flex gap-2">
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 font-mono text-[11px] text-primary">{from + i + 1}</span>
+        <span className="leading-relaxed"><InlineText text={s} /></span>
+      </li>
+    ))}
+  </ol>
+);
+
 /**
- * Full question for the task screens (coding and written). QA round 2 item 4: one line of what to do,
- * numbered steps, one example and "You're done when"; the longer explanation and hard words sit behind a link.
+ * Full question for the task screens (coding and written).
+ * Lot screen simplify (owner, 11 Nov 2026): only the task in one line, at most 3 steps and "You're done when"
+ * (coding: the task line only - the sample and the stdin rule come in as `children`). Everything else - the
+ * other steps, the example, "Words to know", the screen's own extras (`moreHelp`) and the original wording -
+ * sits behind one "More help" toggle, closed by default. The word range is said once, on the marking line.
  */
-export const SimpleQuestion = ({ taskId, original, words, coding }: {
+export const SimpleQuestion = ({ taskId, original, words, coding, children, moreHelp }: {
   taskId: string; original: string | null; words?: Words; coding?: boolean;
+  children?: React.ReactNode; moreHelp?: React.ReactNode;
 }) => {
   const { brief: raw, loading, failed, retry } = useSimpleBrief(taskId);
-  const [showOriginal, setShowOriginal] = useState(false);
-  const [showMore, setShowMore] = useState(false);
+  const [open, setOpen] = useState(false);
   const shownOriginal = original ? oneRange(dropHelper(original), words) : null;
 
   // QA week 8 (N1, N2): the simple version can take 10-20 s the first time. Show the original question
   // at once, and swap in the simple version when it is ready, so nobody waits on a spinner.
   if (!raw) {
-    if (!shownOriginal) return null;
+    if (!shownOriginal) return <>{children}</>;
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         <BriefCards text={shownOriginal} />
         {loading ? (
           <p className="flex items-center gap-2 text-xs text-muted-foreground">
             <Loader2 className="h-3.5 w-3.5 animate-spin" /> Writing a simpler version of this question…
           </p>
         ) : failed ? <NotReady retry={retry} /> : null}
+        {children}
+        {moreHelp}
       </div>
     );
   }
   const brief = tidyBrief(raw, words);
+  const steps = brief.steps.map(dropWordRange).filter(Boolean);
+  const shown = coding ? 0 : 3;
+  const doneWhen = dropWordRange(brief.done_when);
 
   return (
     <div className="space-y-3">
@@ -130,59 +149,54 @@ export const SimpleQuestion = ({ taskId, original, words, coding }: {
         <p className="mt-1 text-base font-semibold leading-snug"><InlineText text={brief.in_one_line} /></p>
       </div>
 
+      {/* Checked against everything the student can open, so a rule only in "More help" still counts as shown. */}
       <ExactRules rules={missingRules(shownOriginal, [brief.in_one_line, brief.what_it_means, ...brief.steps,
         brief.example ?? "", brief.done_when].join(" "))} />
 
-      <div className="rounded-lg border p-3">
-        <Label>Steps</Label>
-        <ol className="mt-2 space-y-1.5 text-sm">
-          {brief.steps.map((s, i) => (
-            <li key={i} className="flex gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 font-mono text-[11px] text-primary">{i + 1}</span>
-              <span className="leading-relaxed"><InlineText text={s} /></span>
-            </li>
-          ))}
-        </ol>
-      </div>
-
-      {brief.example && (
+      {shown > 0 && steps.length > 0 && (
         <div className="rounded-lg border p-3">
-          <Label>Example</Label>
-          <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed"><InlineText text={brief.example} /></p>
+          <Label>Steps</Label>
+          <StepList steps={steps.slice(0, shown)} />
         </div>
       )}
 
-      <div className="rounded-lg border border-verified/30 bg-verified/5 p-3 text-sm">
-        <span className="font-medium">You&apos;re done when: </span><InlineText text={brief.done_when} />
-      </div>
+      {!coding && doneWhen && (
+        <div className="rounded-lg border border-verified/30 bg-verified/5 p-3 text-sm">
+          <span className="font-medium">You&apos;re done when: </span><InlineText text={doneWhen} />
+        </div>
+      )}
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1">
-        <button type="button" onClick={() => setShowMore((v) => !v)} data-testid="words-to-know"
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showMore ? "rotate-180" : ""}`} />
-          {brief.words.length > 0 ? "Words to know" : "More detail"}
-        </button>
-        {shownOriginal && (
-          <button type="button" onClick={() => setShowOriginal((v) => !v)}
-                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showOriginal ? "rotate-180" : ""}`} />
-            {showOriginal ? "Hide original wording" : "Show original wording"}
-          </button>
-        )}
-      </div>
-      {showMore && (
-        <div className="rounded-lg border p-3 text-sm space-y-2">
-          <p className="leading-relaxed"><InlineText text={brief.what_it_means} /></p>
-          {brief.words.length > 0 && (
-            <dl className="space-y-1">
-              {brief.words.map((w) => (
-                <div key={w.word}><dt className="inline font-medium">{w.word}:</dt> <dd className="inline text-muted-foreground">{w.meaning}</dd></div>
-              ))}
-            </dl>
+      {children}
+
+      <button type="button" onClick={() => setOpen((v) => !v)} data-testid="more-help" aria-expanded={open}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+        {open ? "Less help" : "More help"}
+      </button>
+      {open && (
+        <div className="space-y-3 rounded-lg border p-3 text-sm" data-testid="more-help-body">
+          {steps.length > shown && (
+            <div><Label>{shown ? "More steps" : "Steps"}</Label><StepList steps={steps.slice(shown)} from={shown} /></div>
           )}
+          {coding && doneWhen && <p><span className="font-medium">You&apos;re done when: </span><InlineText text={doneWhen} /></p>}
+          {brief.example && (
+            <div><Label>Example</Label><p className="mt-1 whitespace-pre-wrap leading-relaxed"><InlineText text={brief.example} /></p></div>
+          )}
+          <div>
+            <Label>Words to know</Label>
+            <p className="mt-1 leading-relaxed"><InlineText text={brief.what_it_means} /></p>
+            {brief.words.length > 0 && (
+              <dl className="mt-1 space-y-1">
+                {brief.words.map((w) => (
+                  <div key={w.word}><dt className="inline font-medium">{w.word}:</dt> <dd className="inline text-muted-foreground">{w.meaning}</dd></div>
+                ))}
+              </dl>
+            )}
+          </div>
+          {moreHelp}
+          {shownOriginal && <div><Label>Original wording</Label><div className="mt-1"><BriefCards text={shownOriginal} /></div></div>}
         </div>
       )}
-      {showOriginal && shownOriginal && <BriefCards text={shownOriginal} />}
     </div>
   );
 };

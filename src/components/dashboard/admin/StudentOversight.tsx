@@ -1,3 +1,4 @@
+import { fmtDay, fmtIST } from "@/lib/ist";
 import { of10, scoreText10 } from "@/lib/lotMarks";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -350,7 +351,7 @@ const StudentOversight = () => {
             <p className="text-muted-foreground">
               {total !== undefined ? `${total.toLocaleString('en-IN')} students` : 'Students'}
               {students && total !== undefined && students.length < total ? ` (list shows the newest ${students.length.toLocaleString('en-IN')}; use search or the college filter)` : ''}
-              {' · '}Updated {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString('en-GB') : '—'}
+              {' · '}Updated {dataUpdatedAt ? fmtIST(dataUpdatedAt) : '—'}
               <Button variant="link" size="sm" className="h-auto px-2" disabled={isFetching} onClick={refreshAll}>
                 {isFetching ? 'Refreshing…' : 'Refresh'}
               </Button>
@@ -444,7 +445,7 @@ const StudentOversight = () => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {new Date(student.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {fmtDay(student.created_at)}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -656,7 +657,7 @@ function AdminReadiness({ student }: { student: { id: string; onboarding_status?
       {card === undefined ? <p className="text-muted-foreground">Loading scores...</p>
         : card === null ? <p className="text-muted-foreground">No resume check yet.</p>
         : <p>Resume score <b>{of10(card.resume_quality_score)}</b> · Interview readiness <b>{of10(card.interview_readiness_score)}</b>
-            <span className="text-muted-foreground"> ({new Date(card.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })})</span></p>}
+            <span className="text-muted-foreground"> ({fmtDay(card.created_at)})</span></p>}
     </div>
   );
 }

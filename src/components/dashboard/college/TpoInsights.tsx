@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
@@ -449,7 +450,7 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
                       {s.squads} squads
                     </span>
                     <span className="ml-auto font-mono text-[10px] text-muted-foreground">
-                      {s.starts_on} → {s.completed_at ? new Date(s.completed_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : s.ends_on}
+                      {s.starts_on} → {s.completed_at ? fmtDay(s.completed_at) : s.ends_on}
                     </span>
                   </div>
                   {s.status === "complete" && s.champions && s.champions.length > 0 ? (
@@ -533,7 +534,7 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
                       <span className="text-sm">{h.student}</span>
                       <span className="text-sm text-muted-foreground">{h.company}</span>
                       <span className="font-mono text-[10px] text-muted-foreground">
-                        {h.hired_on ? new Date(h.hired_on).toLocaleDateString() : "—"}
+                        {h.hired_on ? fmtDay(h.hired_on) : "—"}
                       </span>
                     </div>
                   ))}

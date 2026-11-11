@@ -77,6 +77,10 @@ export function lotWordingProblems(
       problems.push('The tests feed input (stdin), but the task never says to read it and the given code never reads it; say "Read the input from stdin" in the steps and make the starter code read it.');
     }
   }
+  // Sweep S15: the student reads the task, so it talks to them ("you"), not about them.
+  if (/\bthe (student|candidate|learner)s? (must|should|will|needs? to|has to|is asked)\b/i.test(text)) {
+    problems.push('Talks about "the student" in the third person; write to the student directly ("you").');
+  }
   if (VOICE_IN_TASK.test(text)) problems.push('Asks for a recording or video; the voice explanation is a separate step after submitting.');
   return problems;
 }

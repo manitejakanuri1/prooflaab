@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { Fragment, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -116,7 +117,7 @@ export default function AdminSquads() {
                               <ul className="text-sm pl-4 list-disc">
                                 {s.members.map((m) => (
                                   <li key={m.name + m.joined_at}>
-                                    {m.name} · {m.contribution} points · joined {format(new Date(m.joined_at), "d MMM")}
+                                    {m.name} · {m.contribution} points · joined {fmtDay(m.joined_at)}
                                   </li>
                                 ))}
                               </ul>

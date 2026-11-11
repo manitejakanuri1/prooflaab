@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarks";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -76,7 +77,7 @@ export default function ProvenWork({ studentId, rows, emptyText }: { studentId?:
               <Mic className="h-3.5 w-3.5" />
               {w.explanation_score != null ? `Explained · ${of10(w.explanation_score)}` : "Not explained yet"}
             </span>
-            <span>{format(new Date(w.passed_at), "d MMM yyyy")}</span>
+            <span>{fmtDay(w.passed_at)}</span>
             {w.set_by && <span>Set by {w.set_by}</span>}
           </div>
         </li>

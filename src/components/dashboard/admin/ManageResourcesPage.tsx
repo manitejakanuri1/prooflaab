@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, ExternalLink, MoreVertical, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -313,7 +314,7 @@ const ManageResourcesPage = () => {
                     <TableCell>{resource.platform}</TableCell>
                     <TableCell>{getStatusBadge(resource.status || 'approved')}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {new Date(resource.created_at).toLocaleDateString()}
+                      {fmtDay(resource.created_at)}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -365,7 +366,7 @@ const ManageResourcesPage = () => {
               <Badge variant="outline">{previewResource?.platform}</Badge>
               <Badge variant="outline">{previewResource?.category || 'General'}</Badge>
               <Badge variant="outline">
-                {previewResource?.created_at && new Date(previewResource.created_at).toLocaleDateString()}
+                {previewResource?.created_at && fmtDay(previewResource.created_at)}
               </Badge>
             </div>
 

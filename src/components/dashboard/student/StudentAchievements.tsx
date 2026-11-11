@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
@@ -148,7 +149,7 @@ const StudentAchievements = () => {
                     <p className="text-xs text-muted-foreground mt-0.5">{b.description}</p>
                     {got && (
                       <p className="font-mono text-[10px] text-primary mt-1">
-                        earned {format(new Date(earned[b.slug]), "d MMM yyyy")}
+                        earned {fmtDay(earned[b.slug])}
                       </p>
                     )}
                   </div>

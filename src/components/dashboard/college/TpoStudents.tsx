@@ -400,7 +400,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                     <td className="py-2.5 pr-3 font-mono tabular-nums">{r.lots_done}</td>
                     <td className="py-2.5 pr-3">
                       {r.attention === "ok" ? (
-                        <Badge className="bg-verified/15 text-verified hover:bg-verified/15">Trying Lots</Badge>
+                        <Badge className="bg-verified/15 text-verified hover:bg-verified/15" title="Nothing flagged - onboarded, no earlier Lot missed this week, a Lot tried in the last 7 days">Trying Lots</Badge>
                       ) : r.attention === "high" ? (
                         <Badge variant="destructive">Needs attention</Badge>
                       ) : (

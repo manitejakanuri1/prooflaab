@@ -1,3 +1,4 @@
+import { fmtDayTime } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -1357,7 +1358,7 @@ const VoiceExplainModal = ({
     return (
       <div key={e.key} className="space-y-1 border-t pt-2" data-testid={hidden ? "voice-hidden-item" : "voice-aside-item"}>
         <p className="text-xs">
-          Recorded {e.job.createdAt ? new Date(e.job.createdAt).toLocaleString() : "earlier"}
+          Recorded {e.job.createdAt ? fmtDayTime(e.job.createdAt) : "earlier"}
           {e.job.durationSeconds ? ` · ${e.job.durationSeconds}s` : ""}
         </p>
         {state === "saved" && <p className="text-xs text-verified">It is saved on the server for this work — you'll find it in your build-log.</p>}

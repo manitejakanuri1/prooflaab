@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Star, Tag, Clock, Shield, Building2, Briefcase, User } from "lucide-react";
@@ -106,11 +107,7 @@ export function TaskDetailsModal({ task, open, onClose }: TaskDetailsModalProps)
                 <span className="text-sm font-medium">Due Date</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                {new Date(task.due_date).toLocaleDateString('en-US', { 
-                  month: 'long', 
-                  day: 'numeric', 
-                  year: 'numeric' 
-                })}
+                {fmtDay(task.due_date)}
               </p>
             </div>
 
@@ -142,9 +139,9 @@ export function TaskDetailsModal({ task, open, onClose }: TaskDetailsModalProps)
           {/* Additional Metadata */}
           <div className="text-xs text-muted-foreground pt-4 border-t">
             <div className="flex justify-between">
-              <span>Created: {new Date(task.created_at).toLocaleDateString()}</span>
+              <span>Created: {fmtDay(task.created_at)}</span>
               {task.completed_at && (
-                <span>Completed: {new Date(task.completed_at).toLocaleDateString()}</span>
+                <span>Completed: {fmtDay(task.completed_at)}</span>
               )}
             </div>
           </div>

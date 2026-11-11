@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import {
   Dialog,
   DialogContent,
@@ -61,7 +62,7 @@ const TaskDetailsDialog = ({
   const formatDueDate = (deadline: string) => {
     if (!deadline) return "Not Set";
     try {
-      return format(new Date(deadline), "MMMM dd, yyyy");
+      return fmtDay(deadline);
     } catch {
       return deadline;
     }

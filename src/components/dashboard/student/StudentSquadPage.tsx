@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { showNextMatch } from "@/lib/rankText";
 import MatchDetailDialog from "@/components/dashboard/season/MatchDetailDialog";
 import { useUrlTab } from "@/hooks/useUrlTab";
@@ -267,7 +268,8 @@ const StudentSquadPage = () => {
         <h1 className="text-2xl font-extrabold tracking-tight">Your squad</h1>
         <span className="ml-auto font-mono text-xs uppercase tracking-widest text-muted-foreground">
           {/* sectionRank = place inside the section; squads.rank = place in the whole college. */}
-          {shownRank
+          {/* Sweep M14: a place on 0 points means nothing yet. */}
+          {shownRank && squad.points > 0
             ? `${sectionRank ? `#${sectionRank} in ${squad.cohort ?? "section"} · ` : ""}#${shownRank} in college`
             : "Not ranked yet"}
         </span>
@@ -578,7 +580,7 @@ const StudentSquadPage = () => {
                         </div>
                         {a.achieved_at && (
                           <span className="font-mono text-[10px] text-muted-foreground whitespace-nowrap mt-1">
-                            {format(new Date(a.achieved_at), "d MMM yyyy")}
+                            {fmtDay(a.achieved_at)}
                           </span>
                         )}
                       </div>

@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarks";
 import { SCORE_HELP } from "@/lib/lotMarks";
 import InfoTip from "@/components/common/InfoTip";
@@ -221,10 +222,14 @@ const StudentAssignedTasksPage = () => {
     }
   };
 
+  // Sweep S25: a task past its due time and not handed in says so.
+  const overdue = (t: { deadline: string; status: string; voice_owed?: boolean }) =>
+    !!t.deadline && new Date(t.deadline).getTime() < Date.now() && t.status !== 'Completed' && t.status !== 'Under Review' && !t.voice_owed;
+
   const formatDueDate = (deadline: string) => {
     if (!deadline) return "Not Set";
     try {
-      return format(new Date(deadline), "MMM dd, yyyy");
+      return fmtDay(deadline);
     } catch {
       return deadline;
     }
@@ -358,9 +363,9 @@ const StudentAssignedTasksPage = () => {
                             </Badge>
                             <Badge 
                               variant="outline" 
-                              className={getStatusColor(task.status)}
+                              className={getStatusColor(overdue(task) ? 'Overdue' : task.status)}
                             >
-                              {task.status === 'Applied' ? 'Not started' : task.status}
+                              {overdue(task) ? 'Overdue' : task.status === 'Applied' ? 'Not started' : task.voice_owed ? 'Submitted · voice owed' : task.status}
                             </Badge>
                           </div>
                         </div>

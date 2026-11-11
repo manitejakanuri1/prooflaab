@@ -9,6 +9,19 @@ export function oneRange(text: string, words?: { min: number; max: number } | nu
   return text.replace(/\b\d{1,4}\s*(?:–|-|to)\s*\d{2,4}(\s*)words?\b/gi, (_m, sp) => `${words.min}–${words.max}${sp || " "}words`);
 }
 
+/**
+ * Lot screen simplify (11 Nov 2026): the word range is shown once, on the marking line. A step that only
+ * says it is dropped; inside another sentence the range is taken out ("a short 100-200 words explanation").
+ */
+const RANGE = /\s*\b\d{1,4}\s*(?:–|-|to)\s*\d{2,4}[\s-]*words?\b/gi;
+export function dropWordRange(text: string): string {
+  if (/^\s*(write|keep)\b[^.]*\b\d{1,4}\s*(?:–|-|to)\s*\d{2,4}[\s-]*words?\b[^.]*\.?\s*$/i.test(text)) return "";
+  return text.replace(RANGE, "").replace(/\s+([.,])/g, "$1").replace(/\s{2,}/g, " ").trim();
+}
+
+/** Sweep S5: the grader joins several quotes with " | "; show each one as its own quote. */
+export const quotes = (evidence: string) => evidence.split(/\s+\|\s+/).map((q) => `"${q.trim()}"`).join(" … ");
+
 /** QA round 2 item 6: the explainer's own rule ("you are not solving the task now…") is never shown. */
 export const HELPER_LEAK = /[^.!?\n]*\b(not (solving|solve) the task|making the question clear|make the question (crystal )?clear|do not give the answer)\b[^.!?\n]*[.!?]?/gi;
 export const dropHelper = (text: string) => text.replace(HELPER_LEAK, "").trim();
@@ -74,9 +87,10 @@ export function weekLotsText(days: WeekDay[]): string {
 
 /** Retest F2: "5.5 + voice owed = 0 (counts when your voice is scored)" rather than a bare "5.5 + 0 = 0". */
 export function weekDayText(d: WeekDay): string {
-  return d.voice_state === "open" && d.day_total === 0
-    ? `${fmtMark(d.coding_mark)} + voice owed = 0 (counts when your voice is scored)`
-    : `${fmtMark(d.coding_mark)} + ${fmtMark(d.voice_mark)} = ${fmtMark(d.day_total)}`;
+  if (d.voice_state === "open" && d.day_total === 0) return `${fmtMark(d.coding_mark)} + voice owed = 0 (counts when your voice is scored)`;
+  // Sweep M4: "5.5 + 0 = 0" read as a sum gone wrong; a voice that does not count says so.
+  if (d.day_total === 0 && Number(d.coding_mark) > 0 && d.voice_state !== "scored") return `${fmtMark(d.coding_mark)} + no counted voice = 0`;
+  return `${fmtMark(d.coding_mark)} + ${fmtMark(d.voice_mark)} = ${fmtMark(d.day_total)}`;
 }
 
 /** Retest G4: speech-to-text mishears words ("time in WorkSolver"); say so wherever a transcript is shown. */

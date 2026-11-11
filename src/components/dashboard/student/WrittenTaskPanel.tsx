@@ -7,11 +7,11 @@ import { SimpleQuestion } from "./SimpleQuestion";
 import { GivenMaterial } from "./GivenMaterial";
 import CodeRunBox from "./CodeRunBox";
 import { scratchLanguage, scratchLabel, writtenSubmitBody } from "@/lib/scratchpad";
-import { Loader2, Send, Clock, Mic, CheckCircle2, Lightbulb, Play } from "lucide-react";
+import { Loader2, Send, Clock, Mic, CheckCircle2, Play } from "lucide-react";
 import { checkLine, fmtMark, loadLotState, submitLot, type LotState, of10 } from "@/lib/lotMarks";
 import { savedResultLine, type SavedRow } from "@/lib/savedAnswer";
 import { loadSavedAnswer } from "@/lib/savedAnswerLoad";
-import { lotStatusText, part10 } from "@/lib/lotText";
+import { lotStatusText, part10, quotes } from "@/lib/lotText";
 
 /**
  * Retest R2 (11 Nov 2026): the box used to show made-up headings ("Overview & Steps", "What is Tested") that did not
@@ -193,20 +193,30 @@ export default function WrittenTaskPanel({
     <div className="space-y-4 border-b p-5 lg:overflow-y-auto lg:border-b-0 lg:border-r">
       <div>
         <h2 className="pr-8 text-lg font-semibold lg:pr-0">{view.title}</h2>
-        <div className="mt-3"><SimpleQuestion taskId={taskId} original={view.prompt_text} words={{ min: view.min_words, max: view.max_words }} /></div>
-        <div className="mt-3"><GivenMaterial taskId={taskId} /></div>
-        <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          {daily ? (strict ? "one check, its score is final" : `${lot?.checks_max ?? 2} checks, your best counts`) : `pass mark ${view.pass_threshold}%`} · {view.min_words}–{view.max_words} words
-        </p>
-      </div>
-
-      <div className="space-y-1">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">How it is marked</p>
-        {/* QA round 2 item 3: the two marks the student gets; the checker's parts are hints, with no points. */}
-        <p className="text-sm font-medium" data-testid="marked-out-of-10">Answer: out of 10 · Voice: out of 10</p>
-        <ul className="list-disc space-y-0.5 pl-5 text-sm text-muted-foreground">
-          {view.criteria.map((c) => <li key={c.id}>{c.name}</li>)}
-        </ul>
+        <div className="mt-3">
+          <SimpleQuestion taskId={taskId} original={view.prompt_text} words={{ min: view.min_words, max: view.max_words }}
+            moreHelp={
+              // Lot screen simplify: the marking parts, the check rule and the writing tip, one tap away.
+              <div className="space-y-2">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">What the answer is marked on</p>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-5 text-muted-foreground">
+                    {view.criteria.map((c) => <li key={c.id}>{c.name}</li>)}
+                  </ul>
+                </div>
+                <p className="text-muted-foreground">
+                  {daily ? (strict ? "One check - its score is final." : `${lot?.checks_max ?? 2} checks - your best one counts.`) : `Pass mark ${view.pass_threshold}%.`}
+                  {" "}Write in your own words; plain, everyday language is fine.
+                </p>
+              </div>
+            }>
+            <GivenMaterial taskId={taskId} />
+            {/* QA round 2 item 3: the two marks; the word range is said here and nowhere else. */}
+            <p className="text-sm font-medium" data-testid="marked-out-of-10">
+              Answer out of 10 · Voice out of 10 · {view.min_words}–{view.max_words} words
+            </p>
+          </SimpleQuestion>
+        </div>
       </div>
     </div>
 
@@ -222,18 +232,12 @@ export default function WrittenTaskPanel({
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold">{scratch ? "Written answer" : "Your Answer"}</p>
       </div>
-      <div className="rounded-md border border-compete/20 bg-compete/5 px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
-        <Lightbulb className="h-4 w-4 text-compete shrink-0" />
-        <span>
-          <strong>Tip:</strong> Write in your own words focusing on practical steps and direct explanations. Plain, everyday student language is completely fine and preferred over dictionary definitions.
-        </span>
-      </div>
       <Textarea
         value={answer}
         onChange={(e) => saveDraft(e.target.value)}
         readOnly={done}
         rows={12}
-        placeholder={`Write your answer here (${view.min_words}–${view.max_words} words).`}
+        placeholder="Write your answer here."
         className="min-h-[240px] font-normal lg:flex-1"
       />
       <p className={`text-xs ${tooShort || tooLong ? "text-compete" : "text-muted-foreground"}`}>
@@ -318,8 +322,8 @@ export default function WrittenTaskPanel({
                 return (
                   <li key={s.criterion_id}>
                     {c?.name ?? s.criterion_id}: {part10(s.points, c?.max_points)}
-                    {s.evidence && <span className="italic"> — "{s.evidence}"</span>}
-                    {s.to_improve && <div data-testid="to-improve">To improve: {s.to_improve}</div>}
+                    {s.evidence && <span className="italic"> — {quotes(s.evidence)}</span>}
+                    {s.to_improve && !(c?.max_points != null && s.points >= c.max_points) && <div data-testid="to-improve">To improve: {s.to_improve}</div>}
                   </li>
                 );
               })}

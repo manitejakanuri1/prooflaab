@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { SCORE_HELP } from "@/lib/lotMarks";
 import InfoTip from "@/components/common/InfoTip";
 import { useCallback, useEffect, useState } from "react";
@@ -76,7 +77,7 @@ const StudentSeasonReport = () => {
           <p className="text-sm font-semibold">Placed at {placement.company}</p>
           <p className="text-xs text-muted-foreground">
             {placement.since
-              ? `Since ${new Date(placement.since).toLocaleDateString()}. `
+              ? `Since ${fmtDay(placement.since)}. `
               : ""}
             This proof profile is what got you there — keep it current.
           </p>
@@ -125,7 +126,7 @@ const StudentSeasonReport = () => {
 
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {[
-              ...(r.rank ? [{ k: "Your place", v: `#${r.rank.place} of ${r.rank.of}` }] : []),
+              ...(r.rank && (r.totals?.points ?? 0) > 0 ? [{ k: "Your place", v: `#${r.rank.place} of ${r.rank.of}` }] : []), // M14/S10
               { k: "Points", v: r.totals?.points ?? 0, help: SCORE_HELP.seasonPoints },
               ...(r.this_week ? [{ k: `Week ${r.this_week.week} so far`, v: `${r.this_week.points} (${r.this_week.lots} Lots)` }] : []),
               { k: "Best week", v: r.totals?.best_week ?? 0, help: SCORE_HELP.bestWeek },

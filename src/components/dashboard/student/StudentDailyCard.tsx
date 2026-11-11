@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { CLOSES_TONIGHT, lotStatusText, squadUpdateText, voiceOwedText, weekLotsText } from "@/lib/lotText";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -266,10 +267,10 @@ const StudentDailyCard = () => {
   useEffect(() => { void load(); }, [load]);
   // QA week 8: a tab left open overnight kept showing yesterday's Lot and date. Reload when the day changes.
   useEffect(() => {
-    if (FAST_WEEK) return;
+    // Sweep M1: on TEST a week lasts 10 minutes, so an open tab reloads every 2 minutes instead.
     const timer = setInterval(() => {
-      if (format(new Date(), "yyyy-MM-dd") !== format(now, "yyyy-MM-dd")) void load();
-    }, 60_000);
+      if (FAST_WEEK || format(new Date(), "yyyy-MM-dd") !== format(now, "yyyy-MM-dd")) void load();
+    }, FAST_WEEK ? 120_000 : 60_000);
     return () => clearInterval(timer);
   }, [load, now]);
   // MF-116: while a recording is being checked, look again every 15 s so the card shows the result
@@ -288,6 +289,8 @@ const StudentDailyCard = () => {
 
   // Plain words for the streak status (item 23): the streak moved today, the voice is still owed, or nothing yet.
   const todayRow = marks?.days.find((d) => d.task_id === lot?.id);
+  // Sweep S1: answer marks still waiting on their voice this week.
+  const weekOwed = (marks?.days ?? []).filter((d) => d.voice_state === "open").reduce((n, d) => n + Number(d.coding_mark ?? 0), 0);
   const recency = lastActive && isSameDay(new Date(lastActive), now) ? "active"
     : lot?.status === "pending_voice" ? "voice"
     : lastActive ? "idle" : "new";
@@ -406,7 +409,7 @@ const StudentDailyCard = () => {
               {lot.due_date && (
                 <span className="ml-auto inline-flex items-center gap-1 font-mono text-[11px] text-[#6b6559]">
                   <Clock className="h-3 w-3" />
-                  due {format(new Date(lot.due_date), "d MMM")}
+                  due {fmtDay(lot.due_date)}
                 </span>
               )}
             </div>
@@ -566,7 +569,7 @@ const StudentDailyCard = () => {
             ) : nextSeasonAt !== null ? (
               <p className="text-sm text-muted-foreground">
                 The season is over. No Daily Lot until the next season starts
-                {nextSeasonAt ? ` (${format(new Date(nextSeasonAt), "d MMM")})` : ""}. Keep going on your roadmap.
+                {nextSeasonAt ? ` (${fmtDay(nextSeasonAt)})` : ""}. Keep going on your roadmap.
               </p>
             ) : noContent ? (
               <>
@@ -613,6 +616,8 @@ const StudentDailyCard = () => {
               <p className="mt-3 text-sm">
                 <Link to="/student/dashboard?tab=log&view=progress" className="hover:underline">
                   This week: <span className="font-mono font-bold">{fmtMark(marks?.week_total)}</span>
+                  {/* Sweep S1: answer marks waiting on their voice are shown, not hidden in a 0. */}
+                  {weekOwed > 0 && <span className="font-mono" data-testid="week-owed"> + {fmtMark(weekOwed)} (voice owed)</span>}
                 </Link>
                 <span className="text-muted-foreground" data-testid="week-lots"> · {weekLotsText(marks?.days ?? [])}</span>
                 {" "}<InfoTip text={SCORE_HELP.thisWeek} />

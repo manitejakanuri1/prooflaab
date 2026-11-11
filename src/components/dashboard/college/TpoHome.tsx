@@ -181,7 +181,9 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
 
             {data.attention_breakdown.length === 0 ? (
               <p className="text-sm text-muted-foreground mt-4">
-                Nobody is behind. Every student tried a Lot this week and finished onboarding.
+                {/* Retest H5: says exactly what migration 218 checks (Lot tries, not logins). */}
+                Nobody is behind: no student missed an earlier Lot this week or went 7+ days without trying one,
+                and everyone finished onboarding.
               </p>
             ) : (
               <div className="mt-2">

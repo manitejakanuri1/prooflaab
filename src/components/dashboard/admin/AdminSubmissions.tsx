@@ -77,7 +77,16 @@ const AdminSubmissions = () => {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Submissions</CardTitle>
+        <div>
+          <CardTitle>Submissions</CardTitle>
+          {/* Retest H3: say what the rows are, so this list and the Overview count are not compared as one number. */}
+          {!isLoading && !error && (
+            <p className="mt-1 text-xs text-muted-foreground" data-testid="submissions-what">
+              Newest {data.length}{data.length >= 200 ? " (the list stops at 200)" : ""}: {data.filter((r) => !r.voice).length} answer/code tries
+              and {data.filter((r) => r.voice).length} voice recordings, retries included.
+            </p>
+          )}
+        </div>
         <Select value={status} onValueChange={setStatus}>
           <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
           <SelectContent>

@@ -144,7 +144,8 @@ const AdminDashboardOverview = ({
   }, {
     title: "Pending Proofs",
     value: stats?.pendingProofs || 0,
-    subtitle: `${stats?.totalProofs || 0} total submitted`,
+    // Retest H3: this counts every answer or code check (retries included), not Lots, not voice recordings.
+    subtitle: `${stats?.totalProofs || 0} answer/code tries in all (retries included)`,
     icon: ClipboardCheck,
     color: "text-compete",
     onClick: () => onNavigate?.("submissions")

@@ -225,7 +225,7 @@ const StudentSkillsProved = () => {
                   </Badge>
                   {s.assessed_score != null && (
                     <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
-                      Starting test: {of10(s.assessed_score)}
+                      Starting test overall: {of10(s.assessed_score)}
                     </span>
                   )}
                 </div>
@@ -285,7 +285,7 @@ const StudentSkillsProved = () => {
               <div className="space-y-2 text-sm">
                 <p><span className="font-medium">What it means:</span> {(STATUS[openSkill.status] ?? STATUS.claimed).says}</p>
                 {openSkill.assessed_score != null && (
-                  <p><span className="font-medium">Starting test: {of10(openSkill.assessed_score)}</span> - your overall
+                  <p><span className="font-medium">Starting test overall: {of10(openSkill.assessed_score)}</span> - your overall
                     starting-test average. The same number is shown on each skill from your resume.</p>
                 )}
                 <p><span className="font-medium">Where it came from:</span> {openSkill.claimed_from ? `added from ${openSkill.claimed_from.replace(/_/g, " ")}` : "your resume"}

@@ -453,7 +453,7 @@ ${result.hidden_hint.error}` : ""}`}
           <GivenMaterial taskId={taskId} language={view.language} />
           {spec && <FunctionSignature language={view.language} spec={spec} />}
           <SampleExamples tests={view.visible_tests.slice(0, 1)} spec={spec} />
-          {!spec && <p className="text-sm font-medium" data-testid="reads-stdin">Your code must read the input (stdin).</p>}
+          {!spec && <p className="text-sm font-medium" data-testid="reads-stdin">Your code must read the input (stdin) and print the answer.</p>}
         </SimpleQuestion>
       </div>
 

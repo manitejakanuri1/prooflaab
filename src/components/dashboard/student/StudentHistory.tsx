@@ -93,7 +93,7 @@ const StudentHistory = () => {
               History
             </span>
             <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
-              {events.length} of {total}
+              {events.length < total ? `showing ${events.length} of ${total}` : `${total} ${total === 1 ? "event" : "events"}`}
             </span>
           </div>
 

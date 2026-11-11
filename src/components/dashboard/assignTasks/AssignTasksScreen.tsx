@@ -530,7 +530,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
 
     const xpNum = parseInt(xpReward);
     if (!xpReward || isNaN(xpNum) || xpNum <= 0) {
-      errors.xpReward = "XP Reward must be greater than 0";
+      errors.xpReward = "XP for badges must be more than 0";
     }
 
     if (!dueDate) {
@@ -1124,7 +1124,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="xp">XP Reward *</Label>
+                        <Label htmlFor="xp">XP for badges * <span className="font-normal text-muted-foreground">(students do not see XP)</span></Label>
                         <Input
                           id="xp"
                           type="number"
@@ -2060,7 +2060,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="xp">XP Reward *</Label>
+                      <Label htmlFor="xp">XP for badges * <span className="font-normal text-muted-foreground">(students do not see XP)</span></Label>
                       <Input
                         id="xp"
                         type="number"

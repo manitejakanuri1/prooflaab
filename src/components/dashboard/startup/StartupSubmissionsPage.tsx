@@ -160,7 +160,7 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
                   ) : (
                     <span className="text-muted-foreground">
                       {s.voice_status === "pending" ? "Spoken explanation is being processed." :
-                       s.voice_status === "failed" ? "Spoken explanation could not be scored." :
+                       s.voice_status === "failed" ? "Spoken explanation not scored (the recording could not be marked)." :
                        "No spoken explanation yet."}
                     </span>
                   )}
@@ -177,7 +177,7 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
                       <X className="mr-1 h-4 w-4" />Reject
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => { setOpen(s); setDecision("needs_work"); }}>
-                      <RotateCcw className="mr-1 h-4 w-4" />Needs work
+                      <RotateCcw className="mr-1 h-4 w-4" />Ask for changes
                     </Button>
                     <Button size="sm" onClick={() => { setOpen(s); setDecision("accepted"); }}>
                       <CheckCircle className="mr-1 h-4 w-4" />Accept

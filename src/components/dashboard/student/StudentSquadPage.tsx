@@ -281,7 +281,7 @@ const StudentSquadPage = () => {
         <CardContent className="pt-5">
           <h2 className="text-xl font-semibold">{squad.name}</h2>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
-            {squad.cohort ? `${squad.cohort} · ` : ""}{members.length} of {squad.max_members} seats filled
+            {squad.cohort ? `${squad.cohort} · ` : ""}{members.length} of {squad.max_members} places taken (a squad holds up to {squad.max_members})
           </p>
           {ended ? (
             <p className="mt-2 text-sm" data-testid="season-over">

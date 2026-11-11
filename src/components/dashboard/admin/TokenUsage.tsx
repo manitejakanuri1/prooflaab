@@ -3,6 +3,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+
+// N12: plain names for the internal feature codes (admin screen). Unknown codes are shown tidied, never hidden.
+const FEATURE_NAMES: Record<string, string> = {
+  "app-guide-chat": "Help chat", assign_tasks: "Assigning tasks", "company-lot": "Company Lots",
+  "company-lot:guide-gaps": "Company Lots (filling gaps)", "interests-analyze": "Reading interests",
+  "level-content": "Writing lessons", "lot-writer": "Writing Lots", "lot-writer:guide-gaps": "Writing Lots (filling gaps)",
+  "mock-interview-generate": "Mock interview questions", "mock-interview-score": "Mock interview marking",
+  "question-decompose": "Splitting questions", "resume-assessment-submit": "Starting test marking",
+  "resume-coding-generate": "Starting test coding questions", "resume-improve": "Resume tips", "resume-parser": "Reading resumes",
+  "resume-question-generator": "Starting test questions", "resume-roadmap": "Roadmap writing",
+  "submit-written-task": "Marking written answers", "task-explain": "Simple version of questions", "voice-score": "Voice marking",
+};
+const featureName = (code: string | null) =>
+  !code ? "Unknown" : FEATURE_NAMES[code] ?? code.replace(/[-_:]+/g, " ").replace(/^./, (c) => c.toUpperCase());
 import { Loader2, Coins, Users, Layers } from "lucide-react";
 
 interface UsageRow {
@@ -69,7 +83,7 @@ const TokenUsage = () => {
   // Rows with no student are real calls that simply were not attributed, so they
   // still count towards the total — they are just excluded from the per-student view.
   const byStudent = rollUp(rows.filter((r) => r.email), (r) => r.email!);
-  const byFeature = rollUp(rows, (r) => r.feature);
+  const byFeature = rollUp(rows, (r) => featureName(r.feature));
   const unattributed = rows
     .filter((r) => !r.email)
     .reduce((n, r) => n + (Number(r.total_tokens) || 0), 0);

@@ -98,10 +98,10 @@ const AdminOpsHealth = () => {
             <tbody>
               {jobs.map((j) => (
                 <tr key={j.job} className="border-t">
-                  <td className="py-2 pr-3">{j.job}<p className="text-xs text-muted-foreground">{j.what}</p></td>
-                  <td className="py-2 pr-3 text-xs">{j.schedule} IST</td>
-                  <td className="py-2 pr-3 text-xs">{when(j.last_run)}<p className="text-muted-foreground">{j.proof}</p></td>
-                  <td className="py-2 text-xs">{when(j.next_run)}</td>
+                  <td className="py-2 pr-3 align-top w-2/5">{j.job}<p className="text-xs text-muted-foreground">{j.what}</p></td>
+                  <td className="py-2 pr-3 text-xs whitespace-nowrap align-top">{j.schedule} IST</td>
+                  <td className="py-2 pr-3 text-xs align-top">{when(j.last_run)}<p className="text-muted-foreground">{j.proof}</p></td>
+                  <td className="py-2 text-xs whitespace-nowrap align-top">{when(j.next_run)}</td>
                 </tr>
               ))}
             </tbody>

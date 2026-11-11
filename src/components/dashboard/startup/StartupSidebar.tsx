@@ -83,12 +83,14 @@ export function StartupSidebar({ activeTab, onTabChange, isVerified }: StartupSi
                             >
                               <item.icon className="h-4 w-4" />
                               <span className="ml-2">{item.title}</span>
+                              {/* N9: say why it is greyed, also on a phone (no hover). */}
+                              {isDisabled && <span className="ml-auto text-[10px] text-muted-foreground">after approval</span>}
                             </SidebarMenuButton>
                           </div>
                         </TooltipTrigger>
                         {isDisabled && (
                           <TooltipContent side="right">
-                            <p>Action disabled until account verification</p>
+                            <p>Opens once ProofLab approves your company account (usually within a day).</p>
                           </TooltipContent>
                         )}
                       </Tooltip>

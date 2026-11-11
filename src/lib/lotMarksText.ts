@@ -64,7 +64,7 @@ export function talkCheck(match: number | null | undefined): string {
 export const SCORE_HELP = {
   // Each Lot has its own pass line; where the screen does not know it, it says so.
   answer: (passLine?: number | null) =>
-    `Your answer is checked part by part. Points earned ÷ total × 10. ${passLine != null
+    `Your answer is checked part by part. Marks earned ÷ total marks × 10. ${passLine != null
       ? `Pass is ${fmtMark(passLine / 10)}.` : "Pass is usually 7 (each Lot sets its own)."}`,
   // Week 1 of a season gives part marks for coding; from week 2 it is all or nothing (migration 166).
   code: (mode?: string | null) => mode === "graded"
@@ -86,7 +86,6 @@ export const SCORE_HELP = {
   record: "Wins–Draws–Losses.",
   share: "Your season points as a share of all members' points.",
   movement: "Change in college rank since last week.",
-  xp: "Points for finishing Lots, for badges.",
   seasonPoints: "Your points for the whole season so far: your Today scores added up.",
   bestWeek: "Your highest week total this season.",
 } as const;

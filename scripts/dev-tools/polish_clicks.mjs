@@ -90,7 +90,7 @@ try {
   await page.waitForTimeout(1500);
   await page.screenshot({ path: `${out}/d-student-squad.png`, fullPage: true });
   await check("Squad: title 'Your squad', no 'THE LAB'", async () => (await page.getByText("Your squad", { exact: true }).count()) > 0 && (await page.getByText(/THE\s*LAB/).count()) === 0);
-  await check("Squad: 'seats filled' wording", async () => (await page.getByText(/seats filled/).count()) > 0);
+  await check("Squad: 'places taken' wording (N5)", async () => (await page.getByText(/places taken/).count()) > 0);
   await check("Squad: Movement shows words not a dash", async () => (await page.getByText(/^(No change|Not ranked yet|▲\d+|▼\d+)$/).count()) > 0);
   await check("Squad: header never 'Unranked'", async () => (await page.getByText(/^unranked$/i).count()) === 0);
   await check("Squad: member row reads '(you)'", async () => (await page.getByText("(you)").count()) > 0);
@@ -117,7 +117,7 @@ try {
     await go(page, "/student/tasks/assigned"); await page.waitForTimeout(4000);
     const write = page.getByRole("button", { name: /Write my answer/ }).first();
     if (!(await write.count())) return false;
-    await write.click(); await page.waitForTimeout(4000);
+    await write.click(); await page.getByRole("dialog").getByTestId("more-help").waitFor({ timeout: 20000 }).catch(() => {}); await page.waitForTimeout(1000);
     const d = page.getByRole("dialog"); const text = await d.innerText();
     const ph = (await d.locator("textarea[placeholder]").first().getAttribute("placeholder")) ?? "";
     await page.screenshot({ path: `${out}/r2-lot-screen.png` });

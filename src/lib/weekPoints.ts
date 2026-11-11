@@ -15,6 +15,6 @@ export function latestWeeks(rows: WeekRow[], n = 8): { week: number; points: num
 export function weekChangeText(weeks: { week: number; points: number }[]): string {
   if (weeks.length < 2) return "No earlier week";
   const last = weeks[weeks.length - 1].points, before = weeks[weeks.length - 2].points;
-  if (before === 0) return last > 0 ? "up from a quiet week" : "same as the week before";
+  if (before === 0) return last > 0 ? "up from a week with 0 points" : "0 points in both weeks";
   return `${last >= before ? "+" : ""}${Math.round(((last - before) / before) * 100)}% vs the week before`;
 }

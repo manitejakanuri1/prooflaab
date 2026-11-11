@@ -131,12 +131,12 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
   const gate = v?.evaluation?.transcription?.gate;
   const breakdown = (e.kind === "written" ? e.feedback ?? [] : []).map((f) => {
     const l = labelOf(e.task_id, f.criterion_id);
-    return { id: f.criterion_id, name: l?.name ?? f.criterion_id.replace(/_/g, " "), points: f.points, max: l?.max_points, evidence: f.evidence };
+    return { id: f.criterion_id, name: l?.name ?? f.criterion_id.replace(/_/g, " "), points: f.points, max: l?.max_points, evidence: f.evidence, improve: f.to_improve };
   });
   // "Improve" names the criterion that lost the most points - a fact from the stored numbers, not new text.
   const weakest = breakdown.filter((b) => b.max != null && b.points < (b.max as number))
     .sort((a, b) => ((b.max as number) - b.points) - ((a.max as number) - a.points))[0];
-  const hasDetail = Boolean(v?.communication_notes || v?.transcript || breakdown.some((b) => b.evidence) || e.work);
+  const hasDetail = Boolean(v?.communication_notes || v?.transcript || breakdown.some((b) => b.evidence || b.improve) || e.work);
 
   return (
     <Card id={`build-log-${e.task_id}`}>
@@ -203,8 +203,12 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
             <summary className="cursor-pointer text-xs text-muted-foreground">View detailed feedback</summary>
             <div className="mt-2 space-y-3 text-sm">
               {v?.communication_notes && scored && <p>{v.communication_notes}</p>}
-              {breakdown.filter((b) => b.evidence).map((b) => (
-                <p key={b.id} className="text-muted-foreground"><span className="text-foreground">{b.name}:</span> "{b.evidence}"</p>
+              {breakdown.filter((b) => b.evidence || b.improve).map((b) => (
+                <div key={b.id} className="text-muted-foreground">
+                  <p><span className="text-foreground">{b.name}:</span> {b.evidence ? `"${b.evidence}"` : "nothing quoted"}</p>
+                  {/* QA round 2 item 28: one plain "to improve" line per part (new answers only). */}
+                  {b.improve && <p data-testid="to-improve">To improve: {b.improve}</p>}
+                </div>
               ))}
               {v?.transcript && (
                 <div><p className="text-xs text-muted-foreground">What you said</p>

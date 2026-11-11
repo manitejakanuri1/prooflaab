@@ -37,7 +37,7 @@ export interface BuildLogEntry {
   total_count: number | null;
   language: string | null;
   work: string | null;
-  feedback: { criterion_id: string; points: number; evidence: string }[] | null;
+  feedback: { criterion_id: string; points: number; evidence: string; to_improve?: string }[] | null;
   submitted_at: string;
   /** Daily Lot only: the coding/answer mark that counts (my_lot_marks, migration 218), out of 10. */
   counted?: number | null;

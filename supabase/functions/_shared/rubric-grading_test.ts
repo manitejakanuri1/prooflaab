@@ -1,4 +1,4 @@
-import { zeroUnquotedCredit } from './rubric-grading.ts';
+import { parseGrade, zeroUnquotedCredit } from './rubric-grading.ts';
 
 const eq = (a: unknown, b: unknown, m: string) => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m}: ${JSON.stringify(a)}`); };
 const answer = `Q2 is wrong: the chance of two heads is 1/4, not 1/2.
@@ -22,4 +22,13 @@ Deno.test('made-up or too-short evidence still scores 0', () => {
   eq(one('Q2'), 0, 'too short');
   eq(one('a b c d | e f g h | i j k l | m n o p'), 0, 'more than 3 pieces');
   eq(one(''), 0, 'empty');
+});
+
+// QA round 2 item 28: the grader's "to improve" line is kept, trimmed, and never changes points.
+Deno.test('parseGrade keeps a trimmed to_improve line and the same points', () => {
+  const crit = [{ id: 'a', name: 'A', description: '', max_points: 10 }];
+  const g = parseGrade('[{"criterion_id":"a","points":7,"evidence":"x","to_improve":"  Add one real example.  "}]', crit)!;
+  if (g[0].points !== 7 || g[0].to_improve !== 'Add one real example.') throw new Error(JSON.stringify(g));
+  const old = parseGrade('[{"criterion_id":"a","points":7,"evidence":"x"}]', crit)!;
+  if (old[0].points !== 7 || old[0].to_improve !== '') throw new Error('old reply shape broke');
 });

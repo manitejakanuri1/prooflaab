@@ -34,6 +34,7 @@ interface CriterionScore {
   criterion_id: string;
   points: number;
   evidence: string;
+  to_improve?: string;
 }
 
 interface SubmitResult {
@@ -318,6 +319,7 @@ export default function WrittenTaskPanel({
                   <li key={s.criterion_id}>
                     {c?.name ?? s.criterion_id}: {part10(s.points, c?.max_points)}
                     {s.evidence && <span className="italic"> — "{s.evidence}"</span>}
+                    {s.to_improve && <div data-testid="to-improve">To improve: {s.to_improve}</div>}
                   </li>
                 );
               })}

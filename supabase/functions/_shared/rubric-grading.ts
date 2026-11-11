@@ -12,6 +12,8 @@ export interface CriterionScore {
   criterion_id: string;
   points: number;
   evidence: string;
+  /** QA round 2 item 28 (Purna yes, 11 Nov 2026): one plain line on how to do better in this part. Never changes points. */
+  to_improve?: string;
 }
 
 export const DISAGREEMENT_THRESHOLD = 15;
@@ -35,6 +37,7 @@ export function parseGrade(text: string, criteria: Criterion[]): CriterionScore[
       criterion_id: c.id,
       points: Number.isFinite(points) ? Math.max(0, Math.min(c.max_points, points)) : 0,
       evidence: typeof row?.evidence === "string" ? row.evidence : "",
+      to_improve: typeof row?.to_improve === "string" ? row.to_improve.trim().slice(0, 240) : "",
     });
   }
   // Every criterion must be present, or the grade is unusable.
@@ -95,8 +98,10 @@ If the answer is about a different subject, tool or language than the question a
 
 For each rubric criterion, award points from 0 up to its max, and quote the exact short phrase from the answer (8+ characters, copied verbatim) that earned the credit. If the credit comes from several places in the answer, give up to 3 short verbatim quotes separated by " | ". If nothing in the answer earns credit for a criterion, award 0 and leave evidence empty.
 
+For each criterion also write "to_improve": one short plain sentence (under 25 words) telling the student what to add or change to earn more in that part. Speak to the student ("Add one example of..."). If the part already has full points, write what would make it even clearer. It never changes the points.
+
 Reply with JSON only, an array with one object per criterion:
-[{"criterion_id": string, "points": number, "evidence": string}, ...]`;
+[{"criterion_id": string, "points": number, "evidence": string, "to_improve": string}, ...]`;
 
   const { text } = await generateText(prompt, { temperature: 0.3, maxOutputTokens: 1200, json: false }, {
     feature: "submit-written-task",

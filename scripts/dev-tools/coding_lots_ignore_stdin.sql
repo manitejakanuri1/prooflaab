@@ -28,4 +28,6 @@ select l.kind, left(l.id::text, 8) as id, left(l.title, 60) as title, r.language
   from lots l join reads r on r.id = l.sandbox_config_id
  where r.stdin_tests > 0 and not r.starter_reads
    and not (coalesce(l.code_sample, '') ~* '(input\s*\(|sys\.stdin|readline|process\.stdin|Scanner|cin\s*>>|scanf)')
+   -- Same rule as the server's lot-wording check: the text clearly says to read the input.
+   and not (l.text ~* '\m(read|reads|reading)\M[^.\n]{0,40}\m(input|stdin)\M|\mfrom (standard )?input\M|\mstdin\M')
  order by l.kind, (l.text ~* '(read (the |its |from )?(input|stdin)|from (standard )?input|stdin)'), l.title;

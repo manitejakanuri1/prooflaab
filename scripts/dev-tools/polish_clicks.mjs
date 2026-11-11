@@ -165,6 +165,7 @@ try {
     (await page.getByText(/^Active$/).count()) === 0);
   await check("College: a student row opens the drawer", async () => { await page.locator("tbody tr").first().click(); return dialogOpen(page); });
   await check("College: drawer never says '0 questions'", async () => { await page.waitForTimeout(1500); return !/\b0 questions\b/.test(await page.getByRole("dialog").innerText()); });
+  await check("College: drawer never ranks a 0-point squad (squad 0 (#n))", async () => !/squad 0 \(#\d+\)/.test(await page.getByRole("dialog").innerText()));
   await ctx.close();
 
   // ---- admin

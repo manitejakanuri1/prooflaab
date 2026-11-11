@@ -209,7 +209,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                       ? `${data.mock_interviews.completed}/${data.mock_interviews.count} · last ${of10(data.mock_interviews.last_score)}`
                       : "none yet" },
                   { k: "Squad points", v: data.squad
-                      ? `${data.squad.my_season_points ?? 0} mine · squad ${data.squad.points ?? 0}${data.squad.rank ? ` (#${data.squad.rank})` : ""}`
+                      ? `${data.squad.my_season_points ?? 0} mine · squad ${data.squad.points ?? 0}${(data.squad.points ?? 0) > 0 && data.squad.rank ? ` (#${data.squad.rank})` : " (Not ranked yet)"}`
                       : "in reserve" },
                 ] : []),
               ].map((c) => (

@@ -64,6 +64,9 @@ test("F2: a Lot with its voice owed is named, not counted as finished", () => {
 
 test("Lot simplify: the word range is said once, on the marking line", () => {
   assert.equal(dropWordRange("Write your answer in 100–200 words."), "");
+  // Owner 12 Nov 2026: "of N to M words" must not leave a stray "of".
+  assert.equal(dropWordRange("You have typed a spoken-style self introduction of 150 to 250 words that covers your background."),
+    "You have typed a spoken-style self introduction that covers your background.");
   assert.equal(dropWordRange("You have written a short 100–200 words explanation covering all four points."),
     "You have written a short explanation covering all four points.");
   assert.equal(dropWordRange("Say what a LEFT JOIN does."), "Say what a LEFT JOIN does.");

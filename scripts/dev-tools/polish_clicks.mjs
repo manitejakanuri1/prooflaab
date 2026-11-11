@@ -45,6 +45,7 @@ try {
   const dotHrefs = await page.locator('a[href*="tab=log&view=entries&task="]').evaluateAll((as) => as.map((a) => a.getAttribute("href")));
   let tueTask = dotHrefs.length ? new URL(BASE + dotHrefs[0]).searchParams.get("task") : null;
   const anyDoneDot = dotHrefs.length > 0;
+  const dailyWeek = (await page.getByTestId("lot-marks").innerText().catch(() => "")).match(/This week: ([\d.–]+)/)?.[1] ?? null;
   await check("Daily: status label is Done today / Voice owed today / Not done today / Not started", async () =>
     (await page.getByText(/^(Done today|Voice owed today|Not done today|Not started)$/).count()) > 0);
   await check("Daily: 'closes at 11:59 PM' warning while today's Lot is not finished (item 24)", async () => {
@@ -98,7 +99,13 @@ try {
   await go(page, "/student/tasks/assigned");
   await check("Your Tasks: View Submission shown for earlier work", async () => (await page.getByRole("button", { name: /View Submission/ }).count()) > 0);
   await check("Your Tasks: the count is not '0 tasks' while a Daily Lot exists", async () => (await page.getByText(/^0 tasks$/).count()) === 0);
-  await check("Lot screen: 'Answer: out of 10 · Voice: out of 10', no points, template only as grey placeholder", async () => {
+  await check("Your Tasks: a Lot with a scored voice says 'Voice done', no Explain button (R5)", async () => {
+    const done = page.getByTestId("task-voice-done");
+    if (!(await done.count())) return true;
+    const card = done.first().locator("xpath=ancestor::div[contains(@class,'rounded') and .//h3 or contains(@class,'border-l')][1]");
+    return /Voice done: [\d.]+\/10/.test(await done.first().innerText()) && (await card.getByRole("button", { name: /Explain 60s/ }).count()) === 0;
+  });
+  await check("Lot screen: 'Answer: out of 10 · Voice: out of 10', no points, neutral grey placeholder with the word range (R2)", async () => {
     if (!tueTask) {
       await go(page, "/student/dashboard?tab=log&view=entries"); await page.waitForTimeout(3000);
       const id = await page.locator('[id^="build-log-"]').filter({ hasText: "Rewrite a Weak Resume Bullet" }).first().getAttribute("id").catch(() => null);
@@ -110,12 +117,16 @@ try {
     const ph = (await d.locator("textarea").first().getAttribute("placeholder")) ?? "";
     await page.screenshot({ path: `${out}/r2-lot-screen.png` });
     const ok = (await d.getByTestId("marked-out-of-10").count()) > 0 && !/\b\d+ pts\b/.test(text) && !/Aim for/.test(text) && !/of 100/.test(text)
-      && /Overview & Steps|Example 1/.test(ph) && (await d.getByRole("button", { name: /Insert example format/ }).count()) === 0
+      && /^Write your answer here \(\d+–\d+ words\)\.$/.test(ph) && (await d.getByRole("button", { name: /Insert example format/ }).count()) === 0
       && !/not solving the task|making the question clear/i.test(text);
     await closeDialog(page); await go(page, "/student/tasks/assigned"); return ok; });
   await go(page, "/student/dashboard?tab=log&view=progress");
-  await check("Progress: Total Submissions says 'N tries on M Lots (x passed, y not passed)'", async () => /\d+ tries? on \d+ Lots? \(\d+ passed, \d+ not passed/.test(await page.getByTestId("tile-tries").last().innerText()));
-  await check("Progress: Total Submissions opens the list of what was counted", async () => { await page.getByTestId("tile-tries").last().click(); const ok = await dialogOpen(page) && (await page.getByTestId("tries-list").locator("li").count()) > 0; await page.screenshot({ path: `${out}/r2-tries-popup.png` }); await closeDialog(page); return ok; });
+  await check("Progress: Total Submissions says 'N tries on M Lots (x passed, y not passed)'", async () => /\d+ tries? on \d+ Lots? \(\d+ passed, \d+ not passed/.test(await page.getByTestId("tile-total").innerText()));
+  await check("Progress: Total Submissions opens its own list and line, not the pass-rate formula (R4)", async () => { await page.getByTestId("tile-total").click(); const why = await page.getByTestId("list-why-total").innerText().catch(() => ""); const ok = await dialogOpen(page) && (await page.getByTestId("tries-list").locator("li").count()) > 0 && /^Total tries = /.test(why) && !/Pass rate/.test(why); await page.screenshot({ path: `${out}/r2-tries-popup.png` }); await closeDialog(page); return ok; });
+  await check("Progress: This week matches the Daily Card's This week (R3)", async () => {
+    const progress = (await page.getByTestId("tile-week").innerText()).match(/^\s*([\d.–]+)\s*$/m)?.[1];
+    return progress != null && progress === dailyWeek;
+  });
   await check("Progress: This week opens its list with the formula", async () => { await page.getByTestId("tile-week").click(); const ok = await dialogOpen(page) && /Answer or Code/.test(await page.getByRole("dialog").innerText()); await page.screenshot({ path: `${out}/r2-week-popup.png` }); await closeDialog(page); return ok; });
   await check("Progress: 'See Profile → Badges' link shown", async () => (await page.getByRole("link", { name: /Profile → Badges/ }).count()) > 0);
   await check("Progress: badges link goes to Profile -> Badges", async () => { const l = page.getByRole("link", { name: /Profile → Badges/ }); if (!(await l.count())) return true; await l.click(); await page.waitForTimeout(1500); return page.url().includes("view=achievements"); });

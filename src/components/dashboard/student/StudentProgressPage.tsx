@@ -54,7 +54,7 @@ const StudentProgressPage = () => {
   const [submissions, setSubmissions] = useState<{ total: number; passed: number; review: number } | null>(null);
   // QA round 2 item 16: the rows behind the tiles, so a click can list what was counted.
   const [tries, setTries] = useState<Try[]>([]);
-  const [openList, setOpenList] = useState<"tries" | "week" | null>(null);
+  const [openList, setOpenList] = useState<"tries" | "total" | "week" | null>(null);
   // The running week, from the same source as the dashboard's "This week" (my_marks_week).
   const [running, setRunning] = useState<WeekMarks | null>(null);
 
@@ -119,7 +119,7 @@ const StudentProgressPage = () => {
     { title: "Pass Rate", value: `${passRate}%`, icon: Target, help: "Passed tries ÷ all tries × 100.",
       color: "text-primary", bgColor: "bg-primary/10", change: `${sum.passed} of ${sum.tries} tries passed`, list: "tries" as const },
     { title: "Total Submissions", value: submissions.total.toString(), icon: FileCheck, help: "Every check you handed in, on every Lot. A Lot can have more than one try.",
-      color: "text-compete", bgColor: "bg-compete/10", change: sum.text, list: "tries" as const },
+      color: "text-compete", bgColor: "bg-compete/10", change: sum.text, list: "total" as const },
   ];
   // One row per Lot for the popup: its tries and how many passed.
   const perLot = [...tries.reduce((m, t) => {
@@ -170,11 +170,14 @@ const StudentProgressPage = () => {
                 {(running?.days ?? []).length === 0 && <li className="text-muted-foreground">No Lot this week yet.</li>}
               </ul>
             </>
-          ) : openList === "tries" ? (
+          ) : openList ? (
             <>
               <DialogHeader>
                 <DialogTitle>{sum.text}</DialogTitle>
-                <DialogDescription>Pass rate = passed tries ÷ all tries × 100 = {sum.passed} ÷ {sum.tries} = {passRate}%.</DialogDescription>
+                {/* Retest R4: each tile explains its own number. */}
+                <DialogDescription data-testid={`list-why-${openList}`}>{openList === "total"
+                  ? `Total tries = every check you handed in, on every Lot: ${sum.tries} ${sum.tries === 1 ? "try" : "tries"} on ${sum.lots} ${sum.lots === 1 ? "Lot" : "Lots"} (${sum.passed} passed, ${sum.notPassed} not passed).`
+                  : `Pass rate = passed tries ÷ all tries × 100 = ${sum.passed} ÷ ${sum.tries} = ${passRate}%.`}</DialogDescription>
               </DialogHeader>
               <ul className="space-y-2 text-sm" data-testid="tries-list">
                 {perLot.map((r, i) => (

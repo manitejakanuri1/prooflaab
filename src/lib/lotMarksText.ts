@@ -25,6 +25,8 @@ export interface LotState {
 export interface WeekMarks {
   from: string;
   to: string;
+  /** Retest R3 (migration 219): from/to are the calendar week (Mon-Sun, India time); season_to ends the season week. */
+  season_to?: string | null;
   days: { task_id: string; lot_at: string; coding_mark: number; voice_mark: number; voice_state: string; skip_no: number | null; day_total: number }[];
   week_total: number;
   skips: number;

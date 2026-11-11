@@ -53,7 +53,7 @@ export const CLOSES_TONIGHT = "Today's Lot closes at 11:59 PM. Do it to keep you
 
 /**
  * QA round 2 item 25: squad points are added up once a season week ends (daily job, 05:37 IST), not after each Lot.
- * `weekEnds` is the end of the running season week (my_marks_week "to").
+ * `weekEnds` is the end of the running season week (my_marks_week "season_to", migration 219).
  */
 export function squadUpdateText(weekEnds: string | null | undefined, fmt: (d: Date) => string): string {
   const when = weekEnds ? ` Next update: ${fmt(new Date(weekEnds))}, about 5:40 AM.` : "";

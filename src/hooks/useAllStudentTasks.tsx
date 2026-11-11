@@ -1,3 +1,4 @@
+import { oneRange } from "@/lib/lotText";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,6 +23,8 @@ interface StudentTask {
   is_sandbox_task?: boolean;
   /** The work itself passed (completed, or passed with the 60-second explanation still owed). */
   work_passed?: boolean;
+  /** Retest R5: the scored voice (0-100) of this task, so the card shows "Voice done" instead of "Explain 60s". */
+  voice_score?: number | null;
 }
 
 export const useAllStudentTasks = () => {
@@ -99,6 +102,21 @@ export const useAllStudentTasks = () => {
 
       if (directTasksError) throw directTasksError;
 
+      // Retest R5: scored voices per task. Retest R1: the checker's word range for each written Lot, so the card
+      // text names the same range as the answer box (the task text itself is never changed).
+      const writtenLots = (directTasks || []).filter((t) => t.lot_date && t.rubric_config_id).map((t) => t.id);
+      const [{ data: scoredVoices }, ranges] = await Promise.all([
+        supabase.from('voice_explanations').select('task_id, communication_score')
+          .eq('student_id', profile.id).eq('status', 'scored').is('withdrawn_at' as never, null),
+        Promise.all(writtenLots.map((id) => supabase.rpc('rubric_task_view' as never, { _task_id: id } as never)
+          .then(({ data }) => [id, data as unknown as { min_words: number; max_words: number } | null] as const, () => [id, null] as const))),
+      ]);
+      const voiceScoreOf = new Map<string, number>();
+      for (const v of (scoredVoices ?? []) as { task_id: string | null; communication_score: number | null }[]) {
+        if (v.task_id && v.communication_score != null && !voiceScoreOf.has(v.task_id)) voiceScoreOf.set(v.task_id, v.communication_score);
+      }
+      const rangeOf = new Map(ranges.filter(([, r]) => r).map(([id, r]) => [id, { min: r!.min_words, max: r!.max_words }]));
+
       const allTasks: StudentTask[] = [];
       const addedTaskIds = new Set<string>();
 
@@ -133,7 +151,8 @@ export const useAllStudentTasks = () => {
         allTasks.push({
           id: task.id,
           title: task.lot_date ? tidyTitle(task.title) : task.title,
-          description: task.description,
+          description: task.description ? oneRange(task.description, rangeOf.get(task.id)) : task.description,
+          voice_score: voiceScoreOf.get(task.id) ?? null,
           deadline: task.due_date,
           lot_date: task.lot_date,
           status,

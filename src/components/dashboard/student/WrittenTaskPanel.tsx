@@ -14,18 +14,9 @@ import { loadSavedAnswer } from "@/lib/savedAnswerLoad";
 import { lotStatusText, part10 } from "@/lib/lotText";
 
 /**
- * QA round 2 item 2: the example format used to be typed INTO the box and counted as 43 words. It is now
- * grey placeholder text only, so it never counts; an old draft that is just the template is dropped.
+ * Retest R2 (11 Nov 2026): the box used to show made-up headings ("Overview & Steps", "What is Tested") that did not
+ * fit most Lots. It now shows a neutral hint with the checker's range. An old draft that is just a template is dropped.
  */
-function answerTemplate(prompt: string): string {
-  if (/settimeout|timer|execution order|console\.log/i.test(prompt)) {
-    return `// Example 1:\n// (Write your JavaScript snippet here, e.g. with setTimeout / console.log)\n\nExpected Execution Order:\n// (Write your predicted execution order here)\n\nExplanation:\n// (Explain why in plain English)\n`;
-  }
-  if (/code|snippet|function|example/i.test(prompt)) {
-    return `// Example 1:\n// (Write your code snippet here)\n\nExpected Output / Behavior:\n// (Write predicted output here)\n\nExplanation:\n// (Explain your reasoning here in plain English)\n`;
-  }
-  return `1. Overview & Steps:\n// (List the specific rounds or steps in your own words)\n\n2. What is Tested:\n// (Explain what each round or step focuses on)\n\n3. Practical Action Plan:\n// (Describe what you will specifically do or study to prepare)\n`;
-}
 const OLD_TEMPLATE = /^\s*(\/\/ Example 1:|1\. Overview & Steps:)[\s\S]*\/\/ \(/;
 
 interface RubricView {
@@ -241,7 +232,7 @@ export default function WrittenTaskPanel({
         onChange={(e) => saveDraft(e.target.value)}
         readOnly={done}
         rows={12}
-        placeholder={answerTemplate(view.prompt_text)}
+        placeholder={`Write your answer here (${view.min_words}–${view.max_words} words).`}
         className="min-h-[240px] font-normal lg:flex-1"
       />
       <p className={`text-xs ${tooShort || tooLong ? "text-compete" : "text-muted-foreground"}`}>

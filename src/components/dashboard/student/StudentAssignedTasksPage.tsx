@@ -1,3 +1,4 @@
+import { of10 } from "@/lib/lotMarks";
 import { SCORE_HELP } from "@/lib/lotMarks";
 import InfoTip from "@/components/common/InfoTip";
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -436,14 +437,23 @@ const StudentAssignedTasksPage = () => {
                             {/* The second of the two actions the design deck
                                 allows on this screen. Explaining the work out
                                 loud is the part that cannot be pasted. */}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => void explainIfSubmitted(task.id, () => setExplainTask({ id: task.id, title: task.title }))}
-                            >
-                              <Mic className="h-4 w-4 mr-1" />
-                              Explain 60s
-                            </Button>
+                            {/* Retest R5: once the voice is scored there is nothing to record. */}
+                            {task.voice_score != null ? (
+                              <span className="inline-flex items-center rounded-md border border-verified/40 px-3 text-sm font-medium text-verified"
+                                    data-testid="task-voice-done">
+                                <Mic className="h-4 w-4 mr-1" />
+                                Voice done: {of10(task.voice_score)}
+                              </span>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => void explainIfSubmitted(task.id, () => setExplainTask({ id: task.id, title: task.title }))}
+                              >
+                                <Mic className="h-4 w-4 mr-1" />
+                                Explain 60s
+                              </Button>
+                            )}
                           </>
                         )}
                         {(task.status === 'Completed' || task.work_passed) && (

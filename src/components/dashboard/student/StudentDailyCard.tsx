@@ -250,8 +250,8 @@ const StudentDailyCard = () => {
         taskId: prev?.passed ? prev.taskId : row.id,
       });
     }
-    // QA round 2 item 24: the dots show the same 7 days as "This week" (the season week, which can start on any
-    // weekday), so filled dots and the week total never disagree.
+    // QA round 2 item 24 / retest R3: the dots show the same 7 days as "This week" (Monday-Sunday, India time,
+    // migration 219), so filled dots and the week total never disagree.
     const weekStart = weekMarks?.from ? new Date(weekMarks.from) : monday;
     setWeek(
       Array.from({ length: 7 }, (_, i) => {
@@ -683,7 +683,7 @@ const StudentDailyCard = () => {
                   </p>
                   {!squad.last && (
                     <p className="mt-1 text-[11px] text-muted-foreground" data-testid="squad-update-when">
-                      {squadUpdateText(marks?.to, (d) => format(d, "EEE d MMM"))}
+                      {squadUpdateText(marks?.season_to, (d) => format(d, "EEE d MMM"))}
                     </p>
                   )}
                 </>

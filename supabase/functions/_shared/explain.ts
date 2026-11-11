@@ -12,7 +12,10 @@ export async function sha256(text: string) {
   return Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+// QA round 2 item 6: a brief on REAL said "You are not solving the task now; you are just making the question
+// clear." - the prompt's own rule, copied back. Such sentences are dropped (the screen drops them too).
+export const HELPER_LEAK = /[^.!?\n]*\b(not (solving|solve) the task|making the question clear|make the question (crystal )?clear|do not give the answer)\b[^.!?\n]*[.!?]?/gi;
+const str = (v: unknown, max: number) => (typeof v === "string" ? v.replace(HELPER_LEAK, "").trim().slice(0, max) : "");
 
 /** Keep only the shape the screen draws; anything else from the model is dropped. */
 export function clean(raw: any) {

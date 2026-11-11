@@ -1,3 +1,4 @@
+import { lotStatusText } from "@/lib/lotText";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { liveStreak } from "@/lib/streak";
@@ -52,7 +53,6 @@ interface DayMark {
   date: Date;
   taskId: string | null;
   kind: "technical" | "business" | "pitch" | null;
-  done: boolean;
   /** The work passed (completed, or pending_voice): the dot opens its Build-log entry. */
   passed: boolean;
 }
@@ -94,6 +94,8 @@ const StudentDailyCard = () => {
   const [triedLot, setTriedLot] = useState(false);
   // MF-117: the scored spoken explanation (0-100), shown on the card, not only in the popup.
   const [voiceScore, setVoiceScore] = useState<number | null>(null);
+  // QA round 2 item 7: a written Lot's card shows the checker's word range, the same one the answer box checks.
+  const [words, setWords] = useState<{ min: number; max: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [streak, setStreak] = useState(0);
   const [lastActive, setLastActive] = useState<string | null>(null);
@@ -208,6 +210,11 @@ const StudentDailyCard = () => {
         .eq("student_id", profile.id).eq("task_id", today.id).eq("status", "scored").is("withdrawn_at", null)
         .order("created_at", { ascending: false }).limit(1).maybeSingle();
       setVoiceScore((v as { communication_score: number | null } | null)?.communication_score ?? null);
+      if (today.rubric_config_id) {
+        const { data: rv } = await supabase.rpc("rubric_task_view" as never, { _task_id: today.id } as never);
+        const r = rv as unknown as { min_words: number; max_words: number } | null;
+        setWords(r ? { min: r.min_words, max: r.max_words } : null);
+      } else setWords(null);
     }
     setStreak(liveStreak(streakRes.data?.current_days ?? 0, streakRes.data?.last_active_on ?? null, format(clock, "yyyy-MM-dd")));
     setLastActive(streakRes.data?.last_active_on ?? null);
@@ -226,14 +233,13 @@ const StudentDailyCard = () => {
     setEarlierOpen(((weekRes.data ?? []) as { id: string; lot_date: string; status: string | null }[])
       .filter((r) => r.lot_date < todayKey && r.status !== "completed")
       .map((r) => ({ id: r.id, lot_date: r.lot_date })));
-    const byDay = new Map<string, { kind: DayMark["kind"]; done: boolean; passed: boolean; taskId: string | null }>();
+    const byDay = new Map<string, { kind: DayMark["kind"]; passed: boolean; taskId: string | null }>();
     for (const row of (weekRes.data ?? []) as { id: string; lot_date: string; lot_category: string | null; status: string | null }[]) {
       // MF-076: a day can hold two Lots (a company Lot and the daily one); a later open row must not
       // un-fill a day whose Lot is done.
       const prev = byDay.get(row.lot_date);
       byDay.set(row.lot_date, {
         kind: prev?.kind ?? (row.lot_category as DayMark["kind"]) ?? "technical",
-        done: (prev?.done ?? false) || row.status === "completed",
         passed: (prev?.passed ?? false) || row.status === "completed" || row.status === "pending_voice",
         taskId: prev?.passed ? prev.taskId : row.id,
       });
@@ -242,7 +248,7 @@ const StudentDailyCard = () => {
       Array.from({ length: 7 }, (_, i) => {
         const date = addDays(monday, i);
         const d = byDay.get(format(date, "yyyy-MM-dd"));
-        return { date, kind: d?.kind ?? null, done: d?.done ?? false, passed: d?.passed ?? false, taskId: d?.taskId ?? null };
+        return { date, kind: d?.kind ?? null, passed: d?.passed ?? false, taskId: d?.taskId ?? null };
       }),
     );
     setLoading(false);
@@ -417,7 +423,9 @@ const StudentDailyCard = () => {
                 <CheckCircle2 className="h-3.5 w-3.5" />{" "}
                 {/* Owner 1 Nov 2026: a scored voice under 50 is a low voice score. Polish C1: no redo exists, so it says so. */}
                 {/* Minor 10: a Daily Lot is "submitted", not "passed" - its mark can be low. */}
-                {voiceScore != null && voiceScore < LOW_SCORE
+                {lotState?.daily && doneScore == null
+                  ? lotStatusText({ passed: false, submitted: true, mark10: lotState.best_mark })
+                  : voiceScore != null && voiceScore < LOW_SCORE
                   ? (lotState?.daily ? "Submitted · low voice score" : passedLabel(lot.sandbox_config_id ? "code" : "written", voiceScore))
                   : "Done"}
                 {doneScore != null ? ` · ${lot.sandbox_config_id ? "Code" : "Answer"} ${of10(doneScore)}` : ""}
@@ -433,7 +441,7 @@ const StudentDailyCard = () => {
             {lot.status === "pending_voice" && (
               <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-compete/15 px-2.5 py-1 text-xs font-semibold text-compete"
                  data-testid="lot-pending-voice">
-                <Mic className="h-3.5 w-3.5" /> {lotState?.daily ? "Submitted" : lot?.sandbox_config_id ? "Code passed" : "Answer passed"}
+                <Mic className="h-3.5 w-3.5" /> {lotState?.daily ? (doneScore == null ? lotStatusText({ passed: false, submitted: true, mark10: lotState.best_mark }) : "Submitted") : lot?.sandbox_config_id ? "Code passed" : "Answer passed"}
                 {/* M3: after two unusable recordings the spoken part is closed for good; say that instead of "required". */}
                 {lotState?.voice_closed ? " · Spoken part closed (2 recordings could not be used). Your work mark is saved." : " · Spoken explanation required"}
               </p>
@@ -447,7 +455,7 @@ const StudentDailyCard = () => {
             )}
             {lot.description && (
               <div className="mt-3 text-[#2b2a26]">
-                <SimpleQuestionShort taskId={lot.id} original={lot.description} />
+                <SimpleQuestionShort taskId={lot.id} original={lot.description} words={words} />
               </div>
             )}
 
@@ -490,13 +498,20 @@ const StudentDailyCard = () => {
                       <><PenLine className="mr-2 h-4 w-4" /> Write my answer</>
                     )}
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => void explainIfSubmitted(lot.id, () => setExplaining(true))}
-                    className="flex-1 min-w-36 border-[#c6bfae] bg-transparent text-[#191b1f] hover:bg-[#e7e1d2]"
-                  >
-                    <Mic className="mr-2 h-4 w-4" /> Record 60s explain
-                  </Button>
+                  {voiceScore != null || lot.status === "completed" ? (
+                    <span className="flex flex-1 min-w-36 items-center justify-center gap-1.5 rounded-md border border-verified/40 px-3 text-sm font-medium text-verified"
+                          data-testid="voice-done">
+                      <Mic className="h-4 w-4" /> Voice done{voiceScore != null ? `: ${of10(voiceScore)}` : ""}
+                    </span>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={() => void explainIfSubmitted(lot.id, () => setExplaining(true))}
+                      className="flex-1 min-w-36 border-[#c6bfae] bg-transparent text-[#191b1f] hover:bg-[#e7e1d2]"
+                    >
+                      <Mic className="mr-2 h-4 w-4" /> Record 60s explain
+                    </Button>
+                  )}
                 </>
               )}
             </div>
@@ -595,7 +610,7 @@ const StudentDailyCard = () => {
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-alert" /> pitch</span>
             </p>
             <div className="mt-3 flex justify-between">
-              {week.map(({ date, kind, done, passed, taskId }) => {
+              {week.map(({ date, kind, passed, taskId }) => {
                 const today = isSameDay(date, now);
                 // Filled = the Lot was done; ring = it was given and is still open; grey = no Lot.
                 // Full class names, so Tailwind keeps them in the build.
@@ -604,7 +619,8 @@ const StudentDailyCard = () => {
                   business: ["bg-compete", "border-2 border-compete bg-transparent"],
                   pitch: ["bg-alert", "border-2 border-alert bg-transparent"],
                 } as const;
-                const colour = kind ? DOT[kind][done ? 0 : 1] : "bg-muted";
+                // QA round 2 item 14: filled once the Lot is submitted (pending_voice), not only once the voice is scored.
+                const colour = kind ? DOT[kind][passed ? 0 : 1] : "bg-muted";
                 return (
                   <Link key={date.toISOString()}
                         to={taskId && passed ? `/student/dashboard?tab=log&view=entries&task=${encodeURIComponent(taskId)}`

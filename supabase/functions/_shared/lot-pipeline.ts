@@ -1,9 +1,9 @@
 import { explainTask } from "./explain.ts";
 import { pageExcerpt } from "./excerpt.ts";
-import { generateGradedConfig, type AutoConfigMode } from "./auto-config.ts";
+import { generateGradedConfig, type AutoConfigMode, type GenerateConfigParams } from "./auto-config.ts";
 import { explicitCodingProblem, resolveDifficulty } from "./coding-mode.ts";
 import { applyScratchLanguage, scratchLanguageFor } from "./scratch.ts";
-import { lotWordingProblems } from "./lot-wording.ts";
+import { asksForProgram, lotWordingProblems } from "./lot-wording.ts";
 
 /**
  * Writes the Lot behind one piece of real content - once, for everybody.
@@ -141,9 +141,8 @@ export async function writeLotTemplate(supabase: any, sourceContentId: string, a
         ? content.grading_mode_hint
         : guessGradingMode(contentTitle, markdown);
 
-    const genResult = await generateGradedConfig({
+    const genArgs: Omit<GenerateConfigParams, "mode"> = {
       db: supabase,
-      mode: gradingMode,
       content: {
         kind: "scenario",
         promptBody: lotPrompt(contentTitle, realSource),
@@ -157,7 +156,20 @@ export async function writeLotTemplate(supabase: any, sourceContentId: string, a
       sandboxKind: "stdio",
       difficulty: "from_reply",
       explicitSandbox: content.grading_mode_hint === "sandbox",
-    });
+    };
+    let genResult = await generateGradedConfig({ ...genArgs, mode: gradingMode });
+    // QA round 2 (11 Nov 2026): the page said "written" but the Lot asks for a program ("Time and Work Solver").
+    // Write it again as a coding Lot (editor, starter code, run-checked); if that fails, publish nothing.
+    if (genResult.mode === "rubric" && content.grading_mode_hint !== "rubric" && asksForProgram(genResult.scenarioFields)) {
+      console.warn(`LOT REWRITTEN AS CODING for ${sourceContentId}: the written Lot asked for a program`);
+      const asCode = await generateGradedConfig({ ...genArgs, mode: "sandbox" });
+      if (asCode.mode !== "sandbox") {
+        await letGo();
+        console.error(`LOT NOT PUBLISHED (asks for a program, coding version failed) for ${sourceContentId}`);
+        return { written: false, reason: "the Lot asks for a program but no coding version could be made", status: 502 };
+      }
+      genResult = asCode;
+    }
 
     const codingProblem = explicitCodingProblem(content.grading_mode_hint === "sandbox", genResult);
     if (codingProblem) {

@@ -27,6 +27,13 @@ const NAMED_MATERIAL = /\b(raw notes|meeting notes|(the|this|that|these|those)\s
 // "as a PDF", "a script and its output log": things that only make sense as a file.
 const FILE_WORDS = /\b(pdf|output log|log file|(submit|send|share|attach)\s+(the|your|a)\s+(script|file|document))\b/i;
 const FABRICATED_PAST = /\byou\s+(recently\s+|just\s+)?(attended|appeared (in|for)|sat (for|in)|took part in|were (interviewed|selected)|went (to|through))\b/i;
+// QA round 2 (11 Nov 2026): REAL Lots said "pick five from your practice set", "the list given" and "repo excerpt"
+// with nothing shown. A list, set or excerpt the student works from must be in code_sample.
+const GIVEN_MATERIAL = /\b(practice set|(the|this)\s+([\w-]+\s+){0,2}(list|set|data|table|excerpt|questions|answers)\s+(given|provided|shown)|given (list|set|data|table|excerpt)|(repo|code|text|log|file)\s+excerpt)\b/i;
+// QA round 2 item 1: "Time and Work Solver" and "Build a timed aptitude mock test" asked for a program but were
+// made as written Lots (the page decides written vs code before the Lot is written).
+const PROGRAM_ASK = /\b(write|build|create|implement|develop|code)\s+(a|an|the|your|one)?\s*([\w+#-]+\s+){0,4}(program|script|function|solver|calculator|simulator)\b/i;
+const PROGRAM_TITLE = /\b(program|script|solver|calculator|simulator)\b/i;
 const VOICE_IN_TASK = /\b(record (yourself|a (video|voice|audio))|voice (note|recording)|video)\b/i;
 
 /** Problems with this Lot's wording; [] means it may be published. */
@@ -54,7 +61,16 @@ export function lotWordingProblems(lot: { title?: unknown; scenario?: unknown; c
   if (NAMED_MATERIAL.test(text) && !code) problems.push('Names notes, a sheet, an article or a log the student works from, but it is not included; put the material in code_sample or describe the facts in the task itself.');
   if (UNSEEN_MATERIAL.test(text) && !code) problems.push('Refers to material "below/attached/provided" that is not included; put it in code_sample or remove the reference.');
   if (FABRICATED_PAST.test(text)) problems.push('Assumes the student already did something (attended, appeared, was interviewed); describe a situation they can actually work on.');
+  if (GIVEN_MATERIAL.test(text) && !code) problems.push('Points at a list, set or excerpt the student is not shown; put it in code_sample or write the facts into the task itself.');
   if (VOICE_IN_TASK.test(text)) problems.push('Asks for a recording or video; the voice explanation is a separate step after submitting.');
   return problems;
 }
 
+
+/** True when a Lot's title or "Your task:" line asks the student for a program (it must be a coding Lot). */
+export function asksForProgram(lot: { title?: unknown; scenario?: unknown }): boolean {
+  const title = typeof lot.title === 'string' ? lot.title : '';
+  const text = typeof lot.scenario === 'string' ? lot.scenario : '';
+  const task = text.match(/^\s*(\*\*)?your task(\*\*)?\s*:(.*)$/im)?.[3] ?? '';
+  return PROGRAM_TITLE.test(title) || PROGRAM_ASK.test(`${title}\n${task}`);
+}

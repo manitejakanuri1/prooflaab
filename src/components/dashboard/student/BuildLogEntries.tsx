@@ -10,10 +10,10 @@ import { useBuildLog, voiceInProgress, type BuildLogEntry } from "@/hooks/useBui
 import { passedLabel, passedNote } from "@/lib/passedNote";
 import { loadLotState, of10, talkCheck, SCORE_HELP } from "@/lib/lotMarks";
 import InfoTip from "@/components/common/InfoTip";
+import { lotStatusText, part10 } from "@/lib/lotText";
 
 const STATUS: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
   passed: { label: "Passed", variant: "default" },
-  failed: { label: "Not passed yet", variant: "secondary" },
   needs_review: { label: "Being checked", variant: "outline" },
 };
 
@@ -119,6 +119,9 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
     : rejected && e.status === "passed"
     ? { label: `${e.kind === "written" ? "Answer" : "Code"} passed · voice not accepted`, variant: "outline" as const }
     : passLabel && passLabel !== "Passed" ? { label: passLabel, variant: "outline" as const }
+    // QA round 2 item 10: the same words as the Daily Card and the Lot screen.
+    : e.status === "failed" ? { label: lotStatusText({ passed: false, submitted: !!e.lot_date && ["pending_voice", "completed"].includes(e.task_status ?? ""),
+                                                       mark10: e.score != null ? e.score / 10 : null }), variant: "secondary" as const }
     : STATUS[e.status] ?? { label: e.status, variant: "outline" as const };
   const match = v?.evaluation?.content_match;
   const gate = v?.evaluation?.transcription?.gate;
@@ -182,7 +185,7 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
         {breakdown.length > 0 && (
           <div className="space-y-1">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Breakdown</p>
-            {breakdown.map((b) => <Row key={b.id} name={b.name} value={b.max != null ? `${b.points}/${b.max}` : `${b.points} pts`} />)}
+            {breakdown.map((b) => <Row key={b.id} name={b.name} value={part10(b.points, b.max)} />)}
           </div>
         )}
         {weakest && (

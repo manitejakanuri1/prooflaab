@@ -41,6 +41,7 @@ try {
   await check("Daily: Tuesday's done Lot dot opens its Build-log entry", async () => { const l = page.getByRole("link", { name: /^Tue$/ }); return (await l.getAttribute("href") ?? "").includes("tab=log&view=entries&task="); });
   await check("Daily: a week dot opens its entry (done) or the Lot (open)", async () => { await page.getByRole("link", { name: /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)$/ }).first().click(); await page.waitForTimeout(1500); return page.url().includes("tab=log") || page.url().includes("tasks/assigned"); });
   await go(page, "/student/dashboard?tab=lab");
+  await check("Daily: no 'Record 60s explain' once the voice is done", async () => (await page.getByTestId("voice-done").count()) === 0 || (await page.getByRole("button", { name: /Record 60s explain/ }).count()) === 0);
   await check("Daily: squad card names the squad (same as Squad page)", async () => (await page.getByText(/Not in a squad yet/).count()) === 0);
   await check("Daily: squad card goes to Squad", async () => { await page.getByRole("link", { name: /Squad/ }).last().click(); await page.waitForTimeout(1500); return page.url().includes("tab=squad"); });
   await page.waitForTimeout(1500);
@@ -61,7 +62,20 @@ try {
   await check("History: a Lot event opens that Lot in Recent work", async () => { const l = page.getByRole("link", { name: /→$/ }).first(); if (!(await l.count())) return true; await l.click(); await page.waitForTimeout(1500); return page.url().includes("task="); });
   await go(page, "/student/tasks/assigned");
   await check("Your Tasks: View Submission shown for earlier work", async () => (await page.getByRole("button", { name: /View Submission/ }).count()) > 0);
+  await check("Your Tasks: the count is not '0 tasks' while a Daily Lot exists", async () => (await page.getByText(/^0 tasks$/).count()) === 0);
+  await check("Lot screen: 'Answer: out of 10 · Voice: out of 10', no points, template only as grey placeholder", async () => {
+    await page.getByRole("button", { name: /View Submission/ }).first().click(); await page.waitForTimeout(4000);
+    const d = page.getByRole("dialog"); const text = await d.innerText();
+    const ph = (await d.locator("textarea").first().getAttribute("placeholder")) ?? "";
+    await page.screenshot({ path: `${out}/r2-lot-screen.png` });
+    const ok = (await d.getByTestId("marked-out-of-10").count()) > 0 && !/\b\d+ pts\b/.test(text) && !/Aim for/.test(text)
+      && /Overview & Steps|Example 1/.test(ph) && (await d.getByRole("button", { name: /Insert example format/ }).count()) === 0
+      && !/not solving the task|making the question clear/i.test(text);
+    await closeDialog(page); return ok; });
   await go(page, "/student/dashboard?tab=log&view=progress");
+  await check("Progress: Total Submissions says 'N tries on M Lots (x passed, y not passed)'", async () => /\d+ tries? on \d+ Lots? \(\d+ passed, \d+ not passed/.test(await page.getByTestId("tile-tries").last().innerText()));
+  await check("Progress: Total Submissions opens the list of what was counted", async () => { await page.getByTestId("tile-tries").last().click(); const ok = await dialogOpen(page) && (await page.getByTestId("tries-list").locator("li").count()) > 0; await page.screenshot({ path: `${out}/r2-tries-popup.png` }); await closeDialog(page); return ok; });
+  await check("Progress: This week opens its list with the formula", async () => { await page.getByTestId("tile-week").click(); const ok = await dialogOpen(page) && /Answer or Code/.test(await page.getByRole("dialog").innerText()); await page.screenshot({ path: `${out}/r2-week-popup.png` }); await closeDialog(page); return ok; });
   await check("Progress: 'See Profile → Badges' link shown", async () => (await page.getByRole("link", { name: /Profile → Badges/ }).count()) > 0);
   await check("Progress: badges link goes to Profile -> Badges", async () => { const l = page.getByRole("link", { name: /Profile → Badges/ }); if (!(await l.count())) return true; await l.click(); await page.waitForTimeout(1500); return page.url().includes("view=achievements"); });
   await ctx.close();

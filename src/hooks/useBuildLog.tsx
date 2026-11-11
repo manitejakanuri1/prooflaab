@@ -30,6 +30,8 @@ export interface BuildLogEntry {
   lot_category: string | null;
   kind: "code" | "written";
   status: string;                        // passed | failed | needs_review (latest attempt)
+  /** tasks.status: pending_voice / completed = the Daily Lot is handed in (QA round 2 item 10). */
+  task_status?: string | null;
   score: number | null;
   passed_count: number | null;
   total_count: number | null;
@@ -55,7 +57,7 @@ export const useBuildLog = () => {
       if (!profile) return [];
       const [subs, voices] = await Promise.all([
         supabase.from("task_submissions")
-          .select("id, task_id, status, sandbox_score, passed_count, total_count, language, code, rubric_scores, sandbox_config_id, created_at, tasks(title, lot_date, source_jd, lot_category)")
+          .select("id, task_id, status, sandbox_score, passed_count, total_count, language, code, rubric_scores, sandbox_config_id, created_at, tasks(title, lot_date, source_jd, lot_category, status)")
           .eq("student_id", profile.id).order("created_at", { ascending: false }).limit(200),
         supabase.from("voice_explanations")
           .select("id, task_id, submission_id, current_authoritative, attempt_no, status, transcription_status, communication_score, communication_notes, transcript, evaluation, created_at")
@@ -89,6 +91,7 @@ export const useBuildLog = () => {
           lot_category: s.tasks?.lot_category ?? null,
           kind: s.sandbox_config_id ? "code" : "written",
           status: s.status,
+          task_status: s.tasks?.status ?? null,
           score: s.sandbox_score,
           passed_count: s.passed_count,
           total_count: s.total_count,

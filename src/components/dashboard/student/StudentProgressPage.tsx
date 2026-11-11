@@ -9,6 +9,11 @@ import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMark, loadWeekMarks, SCORE_HELP, type WeekMarks } from "@/lib/lotMarks";
 import { latestWeeks, weekChangeText, type WeekRow } from "@/lib/weekPoints";
+import { triesSummary } from "@/lib/lotText";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { format } from "date-fns";
+
+type Try = { task_id: string; status: string; title: string };
 import { Target, Award, FileCheck, CalendarDays } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
@@ -47,6 +52,9 @@ const StudentProgressPage = () => {
   const [weeklyPoints, setWeeklyPoints] = useState<WeekPoint[] | null>(null);
   const [badges, setBadges] = useState<EarnedBadge[] | null>(null);
   const [submissions, setSubmissions] = useState<{ total: number; passed: number; review: number } | null>(null);
+  // QA round 2 item 16: the rows behind the tiles, so a click can list what was counted.
+  const [tries, setTries] = useState<Try[]>([]);
+  const [openList, setOpenList] = useState<"tries" | "week" | null>(null);
   // The running week, from the same source as the dashboard's "This week" (my_marks_week).
   const [running, setRunning] = useState<WeekMarks | null>(null);
 
@@ -60,13 +68,15 @@ const StudentProgressPage = () => {
           .eq("student_id", profile.id).order("computed_at", { ascending: false }).limit(200),
         supabase.from("student_badges").select("awarded_at, badges(name, emoji)")
           .eq("student_id", profile.id).order("awarded_at", { ascending: false }).limit(3),
-        supabase.from("task_submissions").select("status").eq("student_id", profile.id),
+        supabase.from("task_submissions").select("status, task_id, tasks(title)").eq("student_id", profile.id),
         loadWeekMarks().catch(() => null),
       ]);
 
       setRunning(week);
       setWeeklyPoints(latestWeeks((weekly ?? []) as WeekRow[]));
       setBadges((earned ?? []).map((r: any) => ({ name: r.badges?.name ?? "Badge", emoji: r.badges?.emoji ?? "🏅" })));
+      setTries(((proofs ?? []) as unknown as { status: string; task_id: string; tasks: { title: string } | null }[])
+        .map((p) => ({ status: p.status, task_id: p.task_id, title: p.tasks?.title ?? "Lot" })));
       setSubmissions({
         total: (proofs ?? []).length,
         passed: (proofs ?? []).filter((p) => p.status === "passed").length,
@@ -99,16 +109,24 @@ const StudentProgressPage = () => {
     { name: "Not passed", value: submissions.total - submissions.passed - submissions.review, color: "hsl(var(--alert))" },
   ];
 
+  const sum = triesSummary(tries);
+  const titleOf = new Map(tries.map((t) => [t.task_id, t.title]));
   const progressCards = [
     { title: "This week (so far)", value: fmtMark(running?.week_total), icon: CalendarDays, help: SCORE_HELP.thisWeek,
-      color: "text-primary", bgColor: "bg-primary/10", change: `${lotsSoFar} ${lotsSoFar === 1 ? "Lot" : "Lots"} so far` },
+      color: "text-primary", bgColor: "bg-primary/10", change: `${lotsSoFar} ${lotsSoFar === 1 ? "Lot" : "Lots"} so far`, list: "week" as const },
     { title: "Last week", value: fmtMark(lastWeek), icon: Award, help: SCORE_HELP.lastWeek,
-      color: "text-verified", bgColor: "bg-verified/10", change: weekChange },
-    { title: "Pass Rate", value: `${passRate}%`, icon: Target, help: "Lots passed ÷ Lots handed in.",
-      color: "text-primary", bgColor: "bg-primary/10", change: null },
-    { title: "Total Submissions", value: submissions.total.toString(), icon: FileCheck, help: "Every piece of work you have handed in.",
-      color: "text-compete", bgColor: "bg-compete/10", change: null },
+      color: "text-verified", bgColor: "bg-verified/10", change: weekChange, list: null },
+    { title: "Pass Rate", value: `${passRate}%`, icon: Target, help: "Passed tries ÷ all tries × 100.",
+      color: "text-primary", bgColor: "bg-primary/10", change: `${sum.passed} of ${sum.tries} tries passed`, list: "tries" as const },
+    { title: "Total Submissions", value: submissions.total.toString(), icon: FileCheck, help: "Every check you handed in, on every Lot. A Lot can have more than one try.",
+      color: "text-compete", bgColor: "bg-compete/10", change: sum.text, list: "tries" as const },
   ];
+  // One row per Lot for the popup: its tries and how many passed.
+  const perLot = [...tries.reduce((m, t) => {
+    const r = m.get(t.task_id) ?? { title: t.title, tries: 0, passed: 0 };
+    r.tries++; if (t.status === "passed") r.passed++;
+    return m.set(t.task_id, r);
+  }, new Map<string, { title: string; tries: number; passed: number }>()).values()];
 
   return (
     <div className="space-y-6">
@@ -116,7 +134,8 @@ const StudentProgressPage = () => {
         {progressCards.map((card, index) => {
           const Icon = card.icon;
           return (
-            <Card key={index} className="transition-all hover:shadow-md">
+            <Card key={index} className={`transition-all hover:shadow-md ${card.list ? "cursor-pointer" : ""}`}
+                  onClick={card.list ? () => setOpenList(card.list) : undefined} data-testid={card.list ? `tile-${card.list}` : undefined}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="flex items-center gap-1 text-sm font-medium text-muted-foreground">{card.title} <InfoTip text={card.help} /></CardTitle>
                 <div className={`p-2 rounded-lg ${card.bgColor}`}>
@@ -126,11 +145,49 @@ const StudentProgressPage = () => {
               <CardContent>
                 <div className="text-2xl font-bold">{card.value}</div>
                 {card.change && <div className="text-sm text-verified">{card.change}</div>}
+                {card.list && <div className="mt-1 text-xs text-muted-foreground underline">See what was counted</div>}
               </CardContent>
             </Card>
           );
         })}
       </div>
+
+      <Dialog open={openList !== null} onOpenChange={(o) => !o && setOpenList(null)}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
+          {openList === "week" ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>This week: {fmtMark(running?.week_total)} points</DialogTitle>
+                <DialogDescription>{SCORE_HELP.thisWeek} Each Lot: Answer or Code (out of 10) + Voice (out of 10).</DialogDescription>
+              </DialogHeader>
+              <ul className="space-y-2 text-sm" data-testid="week-list">
+                {(running?.days ?? []).map((d) => (
+                  <li key={d.task_id} className="flex justify-between gap-3 border-b pb-2">
+                    <span>{format(new Date(d.lot_at), "EEE d MMM")} · {titleOf.get(d.task_id) ?? "Lot"}</span>
+                    <span className="font-mono tabular-nums">{fmtMark(d.coding_mark)} + {fmtMark(d.voice_mark)} = {fmtMark(d.day_total)}</span>
+                  </li>
+                ))}
+                {(running?.days ?? []).length === 0 && <li className="text-muted-foreground">No Lot this week yet.</li>}
+              </ul>
+            </>
+          ) : openList === "tries" ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>{sum.text}</DialogTitle>
+                <DialogDescription>Pass rate = passed tries ÷ all tries × 100 = {sum.passed} ÷ {sum.tries} = {passRate}%.</DialogDescription>
+              </DialogHeader>
+              <ul className="space-y-2 text-sm" data-testid="tries-list">
+                {perLot.map((r, i) => (
+                  <li key={i} className="flex justify-between gap-3 border-b pb-2">
+                    <span>{r.title}</span>
+                    <span className="shrink-0 font-mono tabular-nums">{r.tries} {r.tries === 1 ? "try" : "tries"} · {r.passed} passed</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <Card>

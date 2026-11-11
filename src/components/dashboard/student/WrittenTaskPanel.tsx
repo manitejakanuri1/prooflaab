@@ -7,10 +7,26 @@ import { SimpleQuestion } from "./SimpleQuestion";
 import { GivenMaterial } from "./GivenMaterial";
 import CodeRunBox from "./CodeRunBox";
 import { scratchLanguage, scratchLabel, writtenSubmitBody } from "@/lib/scratchpad";
-import { Loader2, Send, Clock, Mic, CheckCircle2, Code, Lightbulb, Play } from "lucide-react";
+import { Loader2, Send, Clock, Mic, CheckCircle2, Lightbulb, Play } from "lucide-react";
 import { checkLine, fmtMark, loadLotState, submitLot, type LotState, of10 } from "@/lib/lotMarks";
 import { savedResultLine, type SavedRow } from "@/lib/savedAnswer";
 import { loadSavedAnswer } from "@/lib/savedAnswerLoad";
+import { lotStatusText, part10 } from "@/lib/lotText";
+
+/**
+ * QA round 2 item 2: the example format used to be typed INTO the box and counted as 43 words. It is now
+ * grey placeholder text only, so it never counts; an old draft that is just the template is dropped.
+ */
+function answerTemplate(prompt: string): string {
+  if (/settimeout|timer|execution order|console\.log/i.test(prompt)) {
+    return `// Example 1:\n// (Write your JavaScript snippet here, e.g. with setTimeout / console.log)\n\nExpected Execution Order:\n// (Write your predicted execution order here)\n\nExplanation:\n// (Explain why in plain English)\n`;
+  }
+  if (/code|snippet|function|example/i.test(prompt)) {
+    return `// Example 1:\n// (Write your code snippet here)\n\nExpected Output / Behavior:\n// (Write predicted output here)\n\nExplanation:\n// (Explain your reasoning here in plain English)\n`;
+  }
+  return `1. Overview & Steps:\n// (List the specific rounds or steps in your own words)\n\n2. What is Tested:\n// (Explain what each round or step focuses on)\n\n3. Practical Action Plan:\n// (Describe what you will specifically do or study to prepare)\n`;
+}
+const OLD_TEMPLATE = /^\s*(\/\/ Example 1:|1\. Overview & Steps:)[\s\S]*\/\/ \(/;
 
 interface RubricView {
   task_id: string;
@@ -107,7 +123,8 @@ export default function WrittenTaskPanel({
       setView(data as unknown as RubricView | null);
       let draft: string | null = null;
       try { draft = localStorage.getItem(draftKey); } catch { /* storage blocked */ }
-      if (draft) setAnswer(draft);
+      // A draft that is still the old inserted template (it has its "// (...)" hints) is not an answer.
+      if (draft && !(OLD_TEMPLATE.test(draft) && draft.split("\n").filter((l) => l.trim() && !/^\/\/ \(|:$/.test(l.trim())).length === 0)) setAnswer(draft);
       const st = await loadLotState(taskId);
       if (!cancelled) setLot(st);
       const s = await loadSavedAnswer(taskId);
@@ -127,8 +144,6 @@ export default function WrittenTaskPanel({
   const wordCount = answer.trim().split(/\s+/).filter(Boolean).length;
   const tooShort = view ? wordCount < view.min_words : false;
   const tooLong = view ? wordCount > view.max_words : false;
-  // The task text can name its own range ("100-200 words"); the checker's limits are min/max_words.
-  const aim = view?.prompt_text.match(/(\d{2,4})\s*(?:–|-|to)\s*(\d{2,4})\s*words/i) ?? null;
 
   const submit = async () => {
     setBusy(true); setError(null);
@@ -186,31 +201,20 @@ export default function WrittenTaskPanel({
     <div className="space-y-4 border-b p-5 lg:overflow-y-auto lg:border-b-0 lg:border-r">
       <div>
         <h2 className="pr-8 text-lg font-semibold lg:pr-0">{view.title}</h2>
-        <div className="mt-3"><SimpleQuestion taskId={taskId} original={view.prompt_text} /></div>
+        <div className="mt-3"><SimpleQuestion taskId={taskId} original={view.prompt_text} words={{ min: view.min_words, max: view.max_words }} /></div>
         <div className="mt-3"><GivenMaterial taskId={taskId} /></div>
         <p className="mt-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
           {daily ? (strict ? "one check, its score is final" : `${lot?.checks_max ?? 2} checks, your best counts`) : `pass mark ${view.pass_threshold}%`} · {view.min_words}–{view.max_words} words
         </p>
-        {aim && (aim[1] !== String(view.min_words) || aim[2] !== String(view.max_words)) && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Aim for {aim[1]}–{aim[2]} words, as the task asks. The check accepts {view.min_words}–{view.max_words}.
-          </p>
-        )}
       </div>
 
       <div className="space-y-1">
         <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">How it is marked</p>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {view.criteria.map((c) => (
-            <div key={c.id} className="rounded-lg border p-3 text-sm">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-medium">{c.name}</span>
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[11px] text-primary">{c.max_points} pts</span>
-              </div>
-              <p className="mt-1 text-muted-foreground">{c.description}</p>
-            </div>
-          ))}
-        </div>
+        {/* QA round 2 item 3: the two marks the student gets; the checker's parts are hints, with no points. */}
+        <p className="text-sm font-medium" data-testid="marked-out-of-10">Answer: out of 10 · Voice: out of 10</p>
+        <ul className="list-disc space-y-0.5 pl-5 text-sm text-muted-foreground">
+          {view.criteria.map((c) => <li key={c.id}>{c.name}</li>)}
+        </ul>
       </div>
     </div>
 
@@ -225,26 +229,6 @@ export default function WrittenTaskPanel({
 
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold">{scratch ? "Written answer" : "Your Answer"}</p>
-        {!done && !answer.trim() && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-7 text-xs gap-1.5 border-dashed text-primary hover:text-primary"
-            onClick={() => {
-              const isTimerOrExecution = /settimeout|timer|execution order|console\.log/i.test(view.prompt_text);
-              const isGenericCode = /code|snippet|function|example/i.test(view.prompt_text);
-              const template = isTimerOrExecution
-                ? `// Example 1:\n// (Write your JavaScript snippet here, e.g. with setTimeout / console.log)\n\nExpected Execution Order:\n// (Write your predicted execution order here)\n\nExplanation:\n// (Explain why in plain English)\n\n\n// Example 2:\n// (Write your JavaScript snippet here)\n\nExpected Execution Order:\n// (Write your predicted execution order here)\n\nExplanation:\n// (Explain why in plain English)\n\n\n// Example 3:\n// (Write your JavaScript snippet here)\n\nExpected Execution Order:\n// (Write your predicted execution order here)\n\nExplanation:\n// (Explain why in plain English)\n`
-                : isGenericCode
-                ? `// Example 1:\n// (Write your code snippet here)\n\nExpected Output / Behavior:\n// (Write predicted output here)\n\nExplanation:\n// (Explain your reasoning here in plain English)\n\n\n// Example 2:\n// (Write your code snippet here)\n\nExpected Output / Behavior:\n// (Write predicted output here)\n\nExplanation:\n// (Explain your reasoning here in plain English)\n`
-                : `1. Overview & Steps:\n// (List the specific rounds or steps in your own words)\n\n2. What is Tested:\n// (Explain what each round or step focuses on)\n\n3. Practical Action Plan:\n// (Describe what you will specifically do or study to prepare)\n`;
-              saveDraft(template);
-            }}
-          >
-            <Code className="h-3.5 w-3.5" /> Insert example format
-          </Button>
-        )}
       </div>
       <div className="rounded-md border border-compete/20 bg-compete/5 px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
         <Lightbulb className="h-4 w-4 text-compete shrink-0" />
@@ -257,7 +241,7 @@ export default function WrittenTaskPanel({
         onChange={(e) => saveDraft(e.target.value)}
         readOnly={done}
         rows={12}
-        placeholder="Write your answer here in your own words. Focus on practical steps and direct explanations (plain language is preferred)..."
+        placeholder={answerTemplate(view.prompt_text)}
         className="min-h-[240px] font-normal lg:flex-1"
       />
       <p className={`text-xs ${tooShort || tooLong ? "text-compete" : "text-muted-foreground"}`}>
@@ -299,7 +283,9 @@ export default function WrittenTaskPanel({
         <p className="text-sm text-verified" data-testid="saved-answer">{savedResultLine(saved.row, "written", saved.voice)}</p>
       )}
       {daily && lot?.submitted && !result && !saved && (
-        <p className="text-sm text-verified">Submitted. Your mark: {fmtMark(lot.best_mark)} out of 10.</p>
+        <p className="text-sm text-verified" data-testid="lot-status">
+          {lotStatusText({ passed: Number(lot.best_mark ?? 0) * 10 >= view.pass_threshold, submitted: true, mark10: lot.best_mark })}
+        </p>
       )}
       {daily && !lot?.submitted && !result && (
         <p className="text-xs text-muted-foreground">
@@ -339,7 +325,7 @@ export default function WrittenTaskPanel({
                 const c = view.criteria.find((x) => x.id === s.criterion_id);
                 return (
                   <li key={s.criterion_id}>
-                    {c?.name ?? s.criterion_id}: {s.points}/{c?.max_points ?? "?"}
+                    {c?.name ?? s.criterion_id}: {part10(s.points, c?.max_points)}
                     {s.evidence && <span className="italic"> — "{s.evidence}"</span>}
                   </li>
                 );

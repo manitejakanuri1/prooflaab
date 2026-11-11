@@ -444,7 +444,7 @@ ${result.hidden_hint.error}` : ""}`}
     <div className={`flex h-full flex-col overflow-y-auto lg:grid lg:overflow-hidden ${voice ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_320px]" : "lg:grid-cols-2"}`}>
       <div className="space-y-4 border-b p-5 lg:overflow-y-auto lg:border-b-0 lg:border-r">
         <h2 className="pr-8 text-lg font-semibold lg:pr-0">{view.title}</h2>
-        <SimpleQuestion taskId={taskId} original={view.description} />
+        <SimpleQuestion taskId={taskId} original={view.description} coding />
         <GivenMaterial taskId={taskId} language={view.language} />
         {spec && <FunctionSignature language={view.language} spec={spec} />}
         <SampleExamples tests={view.visible_tests} spec={spec} />

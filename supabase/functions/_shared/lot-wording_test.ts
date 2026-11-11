@@ -1,4 +1,4 @@
-import { lotWordingProblems } from './lot-wording.ts';
+import { asksForProgram, lotWordingProblems } from './lot-wording.ts';
 
 function assert(cond: boolean, msg: string) {
   if (!cond) throw new Error(msg);
@@ -61,4 +61,21 @@ Deno.test('named notes, sheets, articles and PDFs without the material are rejec
   }
   const withSheet = lotWordingProblems({ title: 'Sheet', scenario: cases[1][0], code_sample: 'Q1 ...' }, 'rubric');
   assert(!has(withSheet, 'not included'), 'flagged even though the sheet is in code_sample');
+});
+
+// QA round 2 (11 Nov 2026), REAL: written Lots that asked for a program, and Lots pointing at material not shown.
+Deno.test('a written Lot that asks for a program is spotted (it must be a coding Lot)', () => {
+  assert(asksForProgram({ title: 'Time and Work Solver', scenario: 'Your task: work out the days.' }), 'solver title');
+  assert(asksForProgram({ title: 'Build a timed aptitude mock test', scenario: 'Context.\nYour task: Write a Python program that asks 10 questions and times them.\nWhat to write: the code.' }), 'program in task line');
+  assert(!asksForProgram({ title: 'Write a JOIN query to combine orders', scenario: 'Your task: write the SQL query and explain each join in 100 to 150 words.' }), 'a SQL query is not a program');
+  assert(!asksForProgram({ title: 'Choose Low-Code vs Pro-Code', scenario: 'A team builds a program for clients.\nYour task: recommend one approach in 150 words.' }), 'context words do not count');
+});
+
+Deno.test('material the student is not shown is caught', () => {
+  const base = 'A friend is preparing for placements and asked for help with aptitude.\nYour task: ';
+  const end = '\nWhat to write: 100 to 200 words in the answer box.';
+  for (const s of ['pick five from your practice set and explain each.', 'rank the list given by difficulty.', 'review the repo excerpt and list three risks.']) {
+    assert(has(lotWordingProblems({ title: 'T', scenario: base + s + end }, 'rubric'), 'not shown'), s);
+  }
+  assert(!has(lotWordingProblems({ title: 'T', scenario: base + 'rank the list given by difficulty.' + end, code_sample: '1. a\n2. b' }, 'rubric'), 'not shown'), 'shown in code_sample');
 });

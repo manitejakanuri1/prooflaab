@@ -38,6 +38,7 @@ try {
   await check("Daily: Streak goes to Build-log History", async () => { await page.getByRole("link", { name: /Streak/ }).click(); await page.waitForTimeout(1500); return page.url().includes("view=history"); });
   await page.goBack(); await page.waitForTimeout(2000);
   await check("Back returns to the Daily Card", async () => page.url().includes("tab=lab"));
+  await check("Daily: Tuesday's done Lot dot opens its Build-log entry", async () => { const l = page.getByRole("link", { name: /^Tue$/ }); return (await l.getAttribute("href") ?? "").includes("tab=log&view=entries&task="); });
   await check("Daily: a week dot opens its entry (done) or the Lot (open)", async () => { await page.getByRole("link", { name: /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)$/ }).first().click(); await page.waitForTimeout(1500); return page.url().includes("tab=log") || page.url().includes("tasks/assigned"); });
   await go(page, "/student/dashboard?tab=lab");
   await check("Daily: squad card names the squad (same as Squad page)", async () => (await page.getByText(/Not in a squad yet/).count()) === 0);
@@ -51,7 +52,8 @@ try {
   await check("Squad: member row reads '(you)'", async () => (await page.getByText("(you)").count()) > 0);
   await check("Squad: no '? vs ?'", async () => (await page.getByText(/\?\s*vs\s*\?/).count()) === 0);
   await check("Squad: Matches tab in the URL", async () => { await page.getByRole("tab", { name: "Matches" }).click(); await page.waitForTimeout(800); return page.url().includes("view=matches"); });
-  await check("Squad: a match row opens the match popup", async () => { const row = page.locator("tbody tr.cursor-pointer").first(); if (!(await row.count())) return true; await row.click(); const ok = await dialogOpen(page); await page.screenshot({ path: `${out}/d-match-popup.png` }); await closeDialog(page); return ok; });
+  await check("Squad: match rows say '(your squad)'", async () => (await page.locator("tbody tr.cursor-pointer").count()) === 0 || (await page.locator("tbody tr.cursor-pointer").first().innerText()).includes("(your squad)"));
+  await check("Squad: a match row opens the match popup (with '(your squad)')", async () => { const row = page.locator("tbody tr.cursor-pointer").first(); if (!(await row.count())) return true; await row.click(); const ok = await dialogOpen(page) && (await page.getByRole("dialog").innerText()).includes("(your squad)"); await page.screenshot({ path: `${out}/d-match-popup.png` }); await closeDialog(page); return ok; });
   await go(page, "/student/dashboard?tab=log&view=skills");
   await check("Skills: a skill card opens its popup", async () => { await page.locator('[role="button"].cursor-pointer').filter({ hasText: "Starting test" }).first().click(); const ok = await dialogOpen(page); await page.screenshot({ path: `${out}/d-skill-popup.png` }); await closeDialog(page); return ok; });
   await check("Skills: a topic chip opens its popup (if any topic shows)", async () => { const chip = page.getByText(/ correct/).first(); if (!(await chip.count())) return true; await chip.click(); const ok = await dialogOpen(page); await page.screenshot({ path: `${out}/d-topic-popup.png` }); await closeDialog(page); return ok; });
@@ -73,6 +75,7 @@ try {
   await check("College: a match row opens the match popup", async () => { const row = page.locator("tbody tr.cursor-pointer").first(); if (!(await row.count())) return true; await row.click(); const ok = await dialogOpen(page); await page.screenshot({ path: `${out}/d-college-match-popup.png` }); await closeDialog(page); return ok; });
   await go(page, "/college/dashboard?tab=students");
   await check("College: a student row opens the drawer", async () => { await page.locator("tbody tr").first().click(); return dialogOpen(page); });
+  await check("College: drawer never says '0 questions'", async () => { await page.waitForTimeout(1500); return !/\b0 questions\b/.test(await page.getByRole("dialog").innerText()); });
   await ctx.close();
 
   // ---- admin

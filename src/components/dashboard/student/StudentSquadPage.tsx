@@ -1,3 +1,4 @@
+import { showNextMatch } from "@/lib/rankText";
 import MatchDetailDialog from "@/components/dashboard/season/MatchDetailDialog";
 import { useUrlTab } from "@/hooks/useUrlTab";
 import InfoTip from "@/components/common/InfoTip";
@@ -254,6 +255,8 @@ const StudentSquadPage = () => {
     ? { start: addMinutes(new Date(), -FAST_WEEK_MINUTES), end: addMinutes(new Date(), FAST_WEEK_MINUTES) }
     : { start: weekStart, end: addDays(weekStart, 7) };
   // Same number as the standings table below (s.rank ?? place in it).
+  // Retest: own squad marked "(your squad)" wherever a match names it.
+  const matchNames = { ...names, [squad.id]: `${names[squad.id] ?? squad.name} (your squad)` };
   const shownRank = squad.rank ?? (standings.findIndex((s) => s.id === squad.id) + 1 || null);
   const restWeek = !matches.some((m) =>
     isWithinInterval(new Date(m.scheduled_at), thisWeek));
@@ -350,11 +353,11 @@ const StudentSquadPage = () => {
                   </span>
                 </p>
               )}
-              {next && !restWeek ? (
+              {showNextMatch(next, restWeek) ? (
                 <button type="button" className="mt-2 block text-left hover:underline" onClick={() => setOpenMatch(next)}>
                   <p className="font-semibold">
-                    {names[next.home_squad] ?? "Squad to be set"} <span className="text-muted-foreground font-normal">vs</span>{" "}
-                    {names[next.away_squad] ?? "Squad to be set"}
+                    {matchNames[next.home_squad] ?? "Squad to be set"} <span className="text-muted-foreground font-normal">vs</span>{" "}
+                    {matchNames[next.away_squad] ?? "Squad to be set"}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
                     {format(new Date(next.scheduled_at), "EEEE d MMM, h:mm a")}
@@ -481,7 +484,7 @@ const StudentSquadPage = () => {
                       return (
                         <tr key={m.id} className="border-t cursor-pointer hover:bg-muted/40" onClick={() => setOpenMatch(m)}>
                           <td className="py-2.5 pr-3">
-                            vs {names[home ? m.away_squad : m.home_squad] ?? "Squad to be set"}
+                            {matchNames[squad.id]} vs {names[home ? m.away_squad : m.home_squad] ?? "Squad to be set"}
                           </td>
                           <td className="py-2.5 pr-3 text-muted-foreground">
                             {m.round_number ? `Week ${m.round_number} · ` : ""}{format(new Date(m.scheduled_at), WHEN_FORMAT)}
@@ -594,7 +597,7 @@ const StudentSquadPage = () => {
           <StudentSeasonReport />
         </TabsContent>
       </Tabs>
-      <MatchDetailDialog match={openMatch} names={names} onClose={() => setOpenMatch(null)} />
+      <MatchDetailDialog match={openMatch} names={matchNames} onClose={() => setOpenMatch(null)} />
     </div>
   );
 };

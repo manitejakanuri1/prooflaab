@@ -53,6 +53,8 @@ interface DayMark {
   taskId: string | null;
   kind: "technical" | "business" | "pitch" | null;
   done: boolean;
+  /** The work passed (completed, or pending_voice): the dot opens its Build-log entry. */
+  passed: boolean;
 }
 
 /** The student's current squad, or null when they are still in the reserve pool. */
@@ -224,7 +226,7 @@ const StudentDailyCard = () => {
     setEarlierOpen(((weekRes.data ?? []) as { id: string; lot_date: string; status: string | null }[])
       .filter((r) => r.lot_date < todayKey && r.status !== "completed")
       .map((r) => ({ id: r.id, lot_date: r.lot_date })));
-    const byDay = new Map<string, { kind: DayMark["kind"]; done: boolean; taskId: string | null }>();
+    const byDay = new Map<string, { kind: DayMark["kind"]; done: boolean; passed: boolean; taskId: string | null }>();
     for (const row of (weekRes.data ?? []) as { id: string; lot_date: string; lot_category: string | null; status: string | null }[]) {
       // MF-076: a day can hold two Lots (a company Lot and the daily one); a later open row must not
       // un-fill a day whose Lot is done.
@@ -232,14 +234,15 @@ const StudentDailyCard = () => {
       byDay.set(row.lot_date, {
         kind: prev?.kind ?? (row.lot_category as DayMark["kind"]) ?? "technical",
         done: (prev?.done ?? false) || row.status === "completed",
-        taskId: prev?.done ? prev.taskId : row.id,
+        passed: (prev?.passed ?? false) || row.status === "completed" || row.status === "pending_voice",
+        taskId: prev?.passed ? prev.taskId : row.id,
       });
     }
     setWeek(
       Array.from({ length: 7 }, (_, i) => {
         const date = addDays(monday, i);
         const d = byDay.get(format(date, "yyyy-MM-dd"));
-        return { date, kind: d?.kind ?? null, done: d?.done ?? false, taskId: d?.taskId ?? null };
+        return { date, kind: d?.kind ?? null, done: d?.done ?? false, passed: d?.passed ?? false, taskId: d?.taskId ?? null };
       }),
     );
     setLoading(false);
@@ -592,7 +595,7 @@ const StudentDailyCard = () => {
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-alert" /> pitch</span>
             </p>
             <div className="mt-3 flex justify-between">
-              {week.map(({ date, kind, done, taskId }) => {
+              {week.map(({ date, kind, done, passed, taskId }) => {
                 const today = isSameDay(date, now);
                 // Filled = the Lot was done; ring = it was given and is still open; grey = no Lot.
                 // Full class names, so Tailwind keeps them in the build.
@@ -604,7 +607,7 @@ const StudentDailyCard = () => {
                 const colour = kind ? DOT[kind][done ? 0 : 1] : "bg-muted";
                 return (
                   <Link key={date.toISOString()}
-                        to={taskId && done ? `/student/dashboard?tab=log&view=entries&task=${encodeURIComponent(taskId)}`
+                        to={taskId && passed ? `/student/dashboard?tab=log&view=entries&task=${encodeURIComponent(taskId)}`
                           : taskId ? `/student/tasks/assigned?open=${taskId}` : "/student/dashboard?tab=log&view=history"}
                         className="flex flex-1 flex-col items-center gap-1.5 rounded hover:bg-muted/40">
                     <span

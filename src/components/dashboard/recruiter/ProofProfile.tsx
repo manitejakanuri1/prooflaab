@@ -1,3 +1,4 @@
+import { rankText } from '@/lib/rankText';
 import { of10 } from "@/lib/lotMarks";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -173,8 +174,8 @@ function ProofProfile({ candidate }: { candidate: Candidate }) {
             <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>consistency</div><div className='mt-2 flex items-center justify-between'><div className='text-2xl font-semibold tabular'>{candidate.consistency}</div><div className='text-xs text-muted-foreground'>{candidate.lastActive}</div></div><div className='mt-2'><Progress value={candidate.consistency} /></div></div>
             <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>voice score</div><div className='mt-2'><ScorePill label='Voice' score={candidate.communicationScore} proof={candidate.assessmentScores.find(a => a.category === 'Communication')?.proof ?? []} /></div></div>
             <div className='grid grid-cols-2 gap-3'>
-              <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>squad rank</div><div className='mt-2 text-xl font-semibold tabular'>{candidate.squad.rank ? `${candidate.squad.rank}/${candidate.squad.totalMembers}` : 'Not ranked yet'}</div><div className='mt-1 text-xs text-muted-foreground'>{candidate.squad.squadName}</div></div>
-              <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>season rank</div><div className='mt-2 text-xl font-semibold tabular'>{candidate.seasonRank ? `#${candidate.seasonRank}` : 'Not ranked yet'}</div><div className='mt-1 text-xs text-muted-foreground'>{candidate.squad.seasonPoints} pts</div></div>
+              <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>squad rank</div><div className='mt-2 text-xl font-semibold tabular'>{rankText(candidate.squad.rank, candidate.squad.totalMembers)}</div><div className='mt-1 text-xs text-muted-foreground'>{candidate.squad.squadName}</div></div>
+              <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>season rank</div><div className='mt-2 text-xl font-semibold tabular'>{rankText(candidate.seasonRank)}</div><div className='mt-1 text-xs text-muted-foreground'>{candidate.squad.seasonPoints} pts</div></div>
             </div>
             <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>squad record</div><div className='mt-2 flex items-center justify-between text-sm'><span>Wins</span><span className='font-mono tabular'>{candidate.squad.wins}</span></div><div className='mt-1 flex items-center justify-between text-sm'><span>Losses</span><span className='font-mono tabular'>{candidate.squad.losses}</span></div></div>
           </CardContent>

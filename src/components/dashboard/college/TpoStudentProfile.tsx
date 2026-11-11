@@ -241,7 +241,9 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                         {s.at && (
                           <span className="font-mono text-[10px] text-muted-foreground"> · {format(new Date(s.at), "d MMM, HH:mm")}</span>
                         )}
-                        {s.detail && <span className="block text-xs text-muted-foreground">{scoreText10(s.detail).replace(/^0 questions · /, "")}</span>}
+                        {/* The server writes "0 questions" (alone, or before " · average …") when the list is empty. */}
+                        {s.detail && s.detail.replace(/^0 questions(?: · )?/, "") &&
+                          <span className="block text-xs text-muted-foreground">{scoreText10(s.detail.replace(/^0 questions(?: · )?/, ""))}</span>}
                       </span>
                     </div>
                   ))}

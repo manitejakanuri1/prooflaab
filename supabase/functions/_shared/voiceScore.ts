@@ -52,7 +52,24 @@ export const MIN_SPEECH_SECONDS = 3;
 /** Minimum words before a transcript is worth grading (unchanged). */
 export const MIN_WORDS = 12;
 /** Recorded on every graded row, so a score can be traced to the rules that made it. */
-export const EVALUATOR_VERSION = 'voice-eval-3';
+export const EVALUATOR_VERSION = 'voice-eval-4';
+/**
+ * QA round 2 item 22 (owner yes 11 Nov 2026, TEST): a 12-second clip saying "I didn't finish" scored 82, above full
+ * 60-second explanations. Under SHORT_SPEECH_SECONDS of speech the score is capped at SHORT_SPEECH_CAP (4/10).
+ */
+export const SHORT_SPEECH_SECONDS = 30;
+export const SHORT_SPEECH_CAP = 40;
+
+/** Item 22: seconds of real speech; the detector's figure, else the recording length, else null (unknown). */
+export function spokenSeconds(duration: number | null | undefined, speech: number | null | undefined): number | null {
+  if (typeof speech === 'number' && Number.isFinite(speech)) return speech;
+  return typeof duration === 'number' && Number.isFinite(duration) ? duration : null;
+}
+
+/** Item 22: the cap for a short talk; returns the score unchanged when the talk is long enough or its length unknown. */
+export function capShortTalk(score: number, seconds: number | null): number {
+  return seconds != null && seconds < SHORT_SPEECH_SECONDS ? Math.min(score, SHORT_SPEECH_CAP) : score;
+}
 /** Below this content match the recording is about something else: the score is capped. */
 export const CONTENT_MATCH_FLOOR = 30;
 export const OFF_TOPIC_CAP = 30;
@@ -217,11 +234,15 @@ export async function scoreRecording(
   }
 
   // MF-115: a recording under 20 seconds is refused whatever its words (the browser refuses it too).
-  if (rec.duration_seconds != null && rec.duration_seconds < MIN_VOICE_SECONDS) {
-    console.log(`VOICE-SCORE: too short ${voice_id} (${rec.duration_seconds}s)`);
+  // Item 22: with no length saved, the voice detector's speech time is used instead, so the rule is never skipped.
+  const heardFirst = rec.evaluation?.transcription as { speech_seconds?: unknown; detection_error?: unknown } | undefined;
+  const speechSecs = typeof heardFirst?.speech_seconds === 'number' && !heardFirst.detection_error ? heardFirst.speech_seconds : null;
+  const lengthSecs = rec.duration_seconds ?? speechSecs;
+  if (lengthSecs != null && lengthSecs < MIN_VOICE_SECONDS) {
+    console.log(`VOICE-SCORE: too short ${voice_id} (${lengthSecs}s)`);
     return await failUnderClaim(
       TOO_SHORT_NOTE,
-      'too_short', 200, { success: false, reason: 'recording too short', seconds: rec.duration_seconds }, 'too_short');
+      'too_short', 200, { success: false, reason: 'recording too short', seconds: lengthSecs }, 'too_short');
   }
 
   // Too little speech: decided only now, under this claim, so it can never
@@ -278,7 +299,7 @@ Signs they did:
 - Names a decision they changed their mind about
 - Ordinary spoken grammar, self-correction, their own vocabulary
 - Specific details only the author would know
-- Admits a part they are unsure about or did not finish
+- Admits a part they are unsure about (honest, but saying "I did not finish" or "I did not add it" is not by itself a high mark)
 
 Signs they did not:
 - Textbook phrasing that could describe any project
@@ -287,6 +308,8 @@ Signs they did not:
 - Confident about everything, uncertain about nothing
 
 Be fair to nervous speakers: hesitation and rambling are NOT evidence of cheating. Fluency is not the thing being measured — ownership is.
+
+A high score (70+) needs the student to walk through what they actually built or wrote: the main steps or parts and why. A few sentences that only say what is missing is a low score (under 40), however honest.
 
 Also judge content_match 0-100: is the talk about THIS task and THIS submitted work?
 - 80-100: refers to things that are really in the submission (names, steps, choices, the bug they hit).
@@ -317,6 +340,10 @@ Return ONLY JSON:
   // An explanation of something else cannot carry a high score for this work.
   const offTopic = contentMatch !== null && contentMatch < CONTENT_MATCH_FLOOR;
   if (offTopic && graded.score > OFF_TOPIC_CAP) graded = { ...graded, score: OFF_TOPIC_CAP };
+  // Item 22: a talk under 30 seconds of speech cannot outscore full explanations.
+  const spoken = spokenSeconds(rec.duration_seconds, speechSecs);
+  const shortCapped = capShortTalk(graded.score, spoken) < graded.score;
+  if (shortCapped) graded = { ...graded, score: capShortTalk(graded.score, spoken) };
   // Saved while this call still holds the claim, so a stale claim cannot write it
   // and (migration 61) nothing can change it once the row is scored.
   const { error: evalError } = await supabase.from('voice_explanations')
@@ -324,7 +351,8 @@ Return ONLY JSON:
       // Keeps what the transcriber recorded about the language it heard (migration 69).
       ...(rec.evaluation && typeof rec.evaluation === 'object' ? rec.evaluation : {}),
       evaluator_version: EVALUATOR_VERSION, content_match: contentMatch,
-      flags: offTopic ? ['off_topic'] : [], linked_to_submission: Boolean(work),
+      flags: [...(offTopic ? ['off_topic'] : []), ...(shortCapped ? ['short_talk_cap'] : [])], linked_to_submission: Boolean(work),
+      spoken_seconds: spoken,
     } })
     .eq('id', voice_id).eq('scoring_lease_token', leaseToken).select('id').maybeSingle();
   if (evalError) return dbError('save evaluation', voice_id, evalError);

@@ -1,3 +1,4 @@
+import { capShortTalk, spokenSeconds, SHORT_SPEECH_CAP } from './voiceScore.ts';
 // Targeted tests for _shared/voiceScore.ts (G1 review fixes).
 // Run: npx deno test --allow-env supabase/functions/_shared/voiceScore_test.ts
 //
@@ -92,7 +93,7 @@ class FakeDb {
 const ID = '00000000-0000-0000-0000-000000000001';
 const longRec = (over: Partial<VoiceRec> = {}): VoiceRec => ({
   id: ID, student_id: 's1', transcript: 'one two three four five six seven eight nine ten eleven twelve thirteen',
-  duration_seconds: 20, word_count: 13, task_id: null, communication_score: null, communication_notes: null, ...over,
+  duration_seconds: 60, word_count: 13, task_id: null, communication_score: null, communication_notes: null, ...over,
 });
 const shortRec = () => longRec({ transcript: 'too short', word_count: 2 });
 const ai = (text: string, calls: { n: number } = { n: 0 }, delay = 0) =>
@@ -304,7 +305,7 @@ Deno.test("6c the prompt carries the submitted work, and the evaluation is saved
   assertEquals(r.outcome, 'scored');
   assert(seen.includes('UNIQUE_MARKER') && seen.includes('6 of 6 tests'));
   assertEquals(db.rows.get(ID)!.communication_score, 80);
-  assertEquals((db.updates[0].evaluation as Record<string, unknown>).evaluator_version, 'voice-eval-3');
+  assertEquals((db.updates[0].evaluation as Record<string, unknown>).evaluator_version, 'voice-eval-4');
   assertEquals((db.updates[0].evaluation as Record<string, unknown>).content_match, 90);
 });
 Deno.test("6d an off-topic explanation cannot keep a high score", async () => {
@@ -330,7 +331,7 @@ Deno.test("6f scoring keeps the language metadata the transcriber stored", async
     ai('{"communication_score": 70, "content_match": 80, "notes": "ok"}'));
   const saved = db.updates[0].evaluation as Record<string, unknown>;
   assertEquals((saved.transcription as Record<string, unknown>).language, 'en');
-  assertEquals(saved.evaluator_version, 'voice-eval-3');
+  assertEquals(saved.evaluator_version, 'voice-eval-4');
 });
 
 // ---------- 7. Daily Lots (migration 165, owner plan 29 Oct 2026) ----------
@@ -375,4 +376,22 @@ Deno.test("7e not a Daily Lot (assigned task): off-topic keeps the old cap-and-s
     ai('{"communication_score": 88, "content_match": 10, "notes": "x"}'));
   assertEquals(r.outcome, 'scored');
   assertEquals(db.rows.get(ID)!.communication_score, 30);
+});
+
+
+// QA round 2 item 22: a 12-second "I didn't finish" clip scored 82, above full 60-second explanations.
+Deno.test('a talk under 30 seconds of speech is capped at 4/10 (item 22)', () => {
+  if (capShortTalk(82, spokenSeconds(null, 12)) !== SHORT_SPEECH_CAP) throw new Error('12 s of speech not capped');
+  if (capShortTalk(82, spokenSeconds(60, 12)) !== SHORT_SPEECH_CAP) throw new Error('detector speech time not preferred');
+  if (capShortTalk(30, spokenSeconds(null, 12)) !== 30) throw new Error('a low score was raised');
+  if (capShortTalk(78, spokenSeconds(60, 55)) !== 78) throw new Error('a full talk was capped');
+  if (capShortTalk(78, spokenSeconds(null, null)) !== 78) throw new Error('unknown length was capped');
+});
+
+Deno.test('item 22: no length saved + 12 s of speech is refused by the 20-second rule, no AI call', async () => {
+  const db = new FakeDb({ id: ID });
+  const calls = { n: 0 };
+  const r = await scoreRecording(db, longRec({ duration_seconds: null, evaluation: { transcription: { speech_seconds: 12 } } }), ai('{}', calls));
+  assertEquals(r.outcome, 'too_short');
+  assertEquals(calls.n, 0);
 });

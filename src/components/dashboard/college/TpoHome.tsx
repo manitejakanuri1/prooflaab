@@ -320,7 +320,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
                   {standings.map((s, i) => (
                     <tr key={s.id} className="border-t cursor-pointer hover:bg-muted/40"
                         onClick={() => onOpenSquad?.(s.id)}>
-                      <td className="py-2.5 pr-3 font-mono tabular-nums">{s.rank ?? i + 1}</td>
+                      <td className="py-2.5 pr-3 font-mono tabular-nums">{s.points > 0 ? s.rank ?? i + 1 : "Not ranked yet"}</td>{/* Retest 1: same rule as the Squads tabs */}
                       <td className="py-2.5 pr-3 font-medium">
                         {s.name}
                         {tieNote(standings, s) && (
@@ -329,7 +329,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
                       </td>
                       <td className="py-2.5 pr-3 text-muted-foreground">{s.cohort ?? "—"}</td>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">{s.wins}–{s.draws ?? 0}–{s.losses}</td>
-                      <td className={`py-2.5 font-mono tabular-nums font-semibold ${i === 0 ? "text-primary" : ""}`}>
+                      <td className={`py-2.5 font-mono tabular-nums font-semibold ${i === 0 && s.points > 0 ? "text-primary" : ""}`}>
                         {s.points}
                       </td>
                     </tr>

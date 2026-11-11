@@ -37,6 +37,12 @@ try {
   // QA round 2 item 30: no 404 / 401 from the TEST API while the student pages load.
   const apiErrors = [];
   page.on("response", (r) => { if (r.url().includes("/api/") && [401, 404].includes(r.status())) apiErrors.push(`${r.status()} ${r.url().split("?")[0].split("/api/")[1]}`); });
+  // A check that times out says nothing about why: print each failed or slow call so a slow TEST site shows up.
+  const sent = new Map();
+  page.on("request", (r) => sent.set(r, Date.now()));
+  page.on("response", (r) => { const ms = Date.now() - (sent.get(r.request()) ?? Date.now());
+    if (r.status() >= 500 || ms > 5000) console.log(`SLOW ${r.status()} ${ms}ms ${r.url().split("?")[0].slice(-80)}`); });
+  page.on("requestfailed", (r) => console.log(`SLOW failed ${r.failure()?.errorText} ${r.url().split("?")[0].slice(-80)}`));
   await go(page, "/student/dashboard?tab=lab");
   // The card waits on several reads; check only once its week row is drawn.
   await page.getByText("technical", { exact: true }).first().waitFor({ timeout: 30000 }).catch(() => {});
@@ -87,7 +93,7 @@ try {
   await check("Daily: no 'Record 60s explain' once the voice is done", async () => (await page.getByTestId("voice-done").count()) === 0 || (await page.getByRole("button", { name: /Record 60s explain/ }).count()) === 0);
   await check("Daily: squad card names the squad (same as Squad page)", async () => (await page.getByText(/Not in a squad yet/).count()) === 0);
   await check("Daily: squad card goes to Squad", async () => { await page.getByRole("link", { name: /Squad/ }).last().click(); await page.waitForTimeout(1500); return page.url().includes("tab=squad"); });
-  await page.waitForTimeout(1500);
+  await page.getByText(/places taken/).first().waitFor({ timeout: 30000 }).catch(() => {}); // wait for the squad data, not a fixed 1.5 s
   await page.screenshot({ path: `${out}/d-student-squad.png`, fullPage: true });
   await check("Squad: title 'Your squad', no 'THE LAB'", async () => (await page.getByText("Your squad", { exact: true }).count()) > 0 && (await page.getByText(/THE\s*LAB/).count()) === 0);
   await check("Squad: 'places taken' wording (N5)", async () => (await page.getByText(/places taken/).count()) > 0);

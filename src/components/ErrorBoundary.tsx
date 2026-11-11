@@ -1,4 +1,5 @@
 import { track } from "@/lib/tracker";
+import { looksLikeStaleChunk, reloadForStaleChunk } from "@/lib/staleChunkReload";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
 /**
@@ -30,23 +31,17 @@ interface State {
  * the page. Showing a crash screen first would beat it to the paint and make a
  * self-healing situation look fatal.
  */
-function isStaleChunkError(error: Error): boolean {
-  const m = error.message || "";
-  return (
-    m.includes("Failed to fetch dynamically imported module") ||
-    m.includes("error loading dynamically imported module") ||
-    m.includes("Importing a module script failed")
-  );
-}
 
 class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null, info: null };
 
   static getDerivedStateFromError(error: Error): Partial<State> {
-    return isStaleChunkError(error) ? { error: null } : { error };
+    return looksLikeStaleChunk(error) ? { error: null } : { error };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    // Retest 3: a missing chunk caught here never reaches the window listeners, so reload from here too.
+    if (looksLikeStaleChunk(error)) { reloadForStaleChunk(); return; }
     console.error(`Render error${this.props.area ? ` in ${this.props.area}` : ""}:`, error, info);
     track({ kind: "error", screen: location.pathname, action: `render${this.props.area ? `: ${this.props.area}` : ""}`, status: "error", detail: { message: String(error?.message ?? error).slice(0, 200) } });
     this.setState({ info });

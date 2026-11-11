@@ -128,6 +128,7 @@ const StudentDailyCard = () => {
   // QA round 2 item 30: after sign-out the card unmounts while its reads are still chained; stop there
   // instead of sending more reads with no session (the 401 on voice_explanations).
   const alive = useRef(true);
+  const failedLoads = useRef(0);
   useEffect(() => () => { alive.current = false; }, []);
   // Migration 184: the days off between two seasons - no Lot, the roadmap stays open.
   const [nextSeasonAt, setNextSeasonAt] = useState<string | null>(null);
@@ -166,6 +167,12 @@ const StudentDailyCard = () => {
         .is("left_at", null)
         .maybeSingle(),
     ]);
+
+    // Retest 3: during a deploy the calls can fail (401/5xx) for a few seconds. A failed call is not "no Lot":
+    // keep the loading state and try again (5 s, up to 6 times), instead of telling the student there is none.
+    if (lotRes.error) {
+      if (failedLoads.current++ < 6) { setTimeout(() => { if (alive.current) void load(); }, 5_000); return; }
+    } else failedLoads.current = 0;
 
     let today = ((lotRes.data as Lot[] | null) ?? [])[0] ?? null;
 

@@ -3,6 +3,7 @@ import { of10 } from "@/lib/lotMarks";
 import { format } from "date-fns";
 import type { FinishedWorkItem } from "@/recruiter/types";
 import VoicePlayButton from "./recruiter/VoicePlayButton";
+import { languageLabel } from "@/lib/codeLanguages";
 
 /**
  * Every finished task of one student, opened row by row: the code or written
@@ -19,6 +20,7 @@ const FinishedWork = ({ work }: { work: FinishedWorkItem[] }) => {
           <summary className="flex cursor-pointer items-center gap-3">
             <span className="min-w-0 truncate">{w.title ?? "Task"}</span>
             <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">
+              {w.kind === "code" && w.language ? `${languageLabel(w.language)} · ` : ""}
               {w.kind === "code" && w.total_count ? `${w.passed_count ?? 0}/${w.total_count} tests · ` : ""}
               {w.attempts > 1 ? `${w.attempts} tries · ` : ""}
               {w.voice?.score != null ? `voice ${of10(w.voice.score)} · ` : ""}
@@ -27,7 +29,7 @@ const FinishedWork = ({ work }: { work: FinishedWorkItem[] }) => {
           </summary>
           <div className="mt-2 space-y-2">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              {w.kind === "code" ? `Code${w.language ? ` · ${w.language}` : ""}` : "Written answer"}
+              {w.kind === "code" ? `Code${w.language ? ` · ${languageLabel(w.language)}` : ""}` : "Written answer"}
             </p>
             <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded bg-muted p-2 font-mono text-xs">{w.answer ?? "—"}</pre>
             {w.voice && (

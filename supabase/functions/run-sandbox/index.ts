@@ -3,6 +3,7 @@ import { createClient } from "../_shared/backend.ts";
 import { guard } from "../_shared/rate-limit.ts";
 import { cors } from "../_shared/cors.ts";
 import { gradeSandboxConfig, type SandboxTest } from "../_shared/sandbox.ts";
+import { chosenLanguage } from "../_shared/submission.ts";
 
 /**
  * Practice run for a sandbox task: grades only the VISIBLE tests, never
@@ -87,6 +88,9 @@ serve(async (req) => {
     const { data: cfg } = await db.from("task_sandbox_config")
       .select("kind, language, function_spec, test_cases, time_limit_ms, memory_limit_mb").eq("id", task.sandbox_config_id).maybeSingle();
     if (!cfg) return json({ error: "This coding task has no tests yet" }, 404);
+    // Migration 226: same language rule as submit-sandbox-task.
+    const language = await chosenLanguage(db, taskId, cfg.language, body?.language);
+    if (!language) return json({ error: "That language is not allowed for this task" }, 400);
 
     // Visible tests only — hidden inputs never leave the server through this
     // endpoint. All results returned unredacted since every one shown IS visible.
@@ -95,7 +99,7 @@ serve(async (req) => {
 
     const graded = await gradeSandboxConfig({
       kind: cfg.kind,
-      language: cfg.language,
+      language,
       function_spec: cfg.function_spec,
       test_cases: visible,
       time_limit_ms: cfg.time_limit_ms,

@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { tidyTitle } from "@/lib/utils";
+import { anyLanguageText } from "@/lib/codeLanguages";
 
 interface StudentTask {
   id: string;
@@ -107,14 +108,20 @@ export const useAllStudentTasks = () => {
       // Retest R5: scored voices per task. Retest R1: the checker's word range for each written Lot, so the card
       // text names the same range as the answer box (the task text itself is never changed).
       const writtenLots = (directTasks || []).filter((t) => t.lot_date && t.rubric_config_id).map((t) => t.id);
-      const [{ data: scoredVoices }, ranges, { data: lastTries }] = await Promise.all([
+      // Owner 12 Nov 2026: coding Lots with the language menu say "your code" here too (any_language, migration 228).
+      const codingIds = [...(directTasks || []), ...((assignments || []).map((a) => a.tasks))]
+        .filter((t) => t?.sandbox_config_id).map((t) => t!.id);
+      const [{ data: scoredVoices }, ranges, { data: lastTries }, { data: langRows }] = await Promise.all([
         supabase.from('voice_explanations').select('task_id, communication_score')
           .eq('student_id', profile.id).eq('status', 'scored').is('withdrawn_at' as never, null),
         Promise.all(writtenLots.map((id) => supabase.rpc('rubric_task_view' as never, { _task_id: id } as never)
           .then(({ data }) => [id, data as unknown as { min_words: number; max_words: number } | null] as const, () => [id, null] as const))),
         // Retest 8: the latest try per task, so a handed-in answer that did not pass never reads "Submitted".
         supabase.from('task_submissions').select('task_id, status').eq('student_id', profile.id).order('created_at', { ascending: false }),
+        codingIds.length ? supabase.from('tasks').select('id, any_language' as string).in('id', codingIds) : Promise.resolve({ data: [] }),
       ]);
+      const anyLang = new Set(((langRows ?? []) as unknown as { id: string; any_language: boolean }[]).filter((r) => r.any_language).map((r) => r.id));
+      const lang = (id: string, text: string) => (anyLang.has(id) ? anyLanguageText(text) : text);
       const lastStatusOf = new Map<string, string>();
       for (const t of (lastTries ?? []) as { task_id: string; status: string }[]) if (!lastStatusOf.has(t.task_id)) lastStatusOf.set(t.task_id, t.status);
       const voiceScoreOf = new Map<string, number>();
@@ -156,8 +163,9 @@ export const useAllStudentTasks = () => {
 
         allTasks.push({
           id: task.id,
-          title: task.lot_date ? tidyTitle(task.title) : task.title,
-          description: task.description ? oneRange(task.description, rangeOf.get(task.id)) : task.description,
+          // Owner 12 Nov 2026: a Lot with the language menu says "your code" here too, as on the Lot screen.
+          title: lang(task.id, task.lot_date ? tidyTitle(task.title) : task.title),
+          description: task.description ? lang(task.id, oneRange(task.description, rangeOf.get(task.id))) : task.description,
           voice_score: voiceScoreOf.get(task.id) ?? null,
           voice_owed: task.status === 'pending_voice',
           not_passed: lastStatusOf.get(task.id) === 'failed',
@@ -206,8 +214,8 @@ export const useAllStudentTasks = () => {
 
         allTasks.push({
           id: task.id,
-          title: task.title,
-          description: task.description,
+          title: lang(task.id, task.title),
+          description: task.description ? lang(task.id, task.description) : task.description,
           deadline: task.due_date,
           lot_date: task.lot_date,
           status,

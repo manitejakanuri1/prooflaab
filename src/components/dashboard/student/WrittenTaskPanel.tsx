@@ -312,7 +312,6 @@ export default function WrittenTaskPanel({
               {daily && lot
                 ? `Answer ${fmtMark(result.mark)}/10. ${result.status === "passed" ? "Passed - submitted." : checkLine(result.mark ?? 0, lot)}`
                 : `Answer ${of10(result.score)} ${result.status === "passed" ? "· Passed" : `· Needs ${of10(result.pass_threshold)}`}`}
-              {result.xp_awarded > 0 && ` · +${result.xp_awarded} XP`}
             </p>
           )}
           {result.status !== "needs_review" && (

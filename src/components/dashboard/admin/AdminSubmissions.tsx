@@ -1,3 +1,4 @@
+import { plainCode } from "@/lib/lotText";
 import { of10 } from "@/lib/lotMarks";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
@@ -117,8 +118,8 @@ const AdminSubmissions = () => {
                     <td className="py-2 pr-3">{r.student_profiles?.full_name ?? "—"}</td>
                     <td className="py-2 pr-3">{r.tasks?.title ?? "—"}</td>
                     <td className="py-2 pr-3">{r.voice ? "voice" : r.sandbox_config_id ? `code (${r.passed_count ?? 0}/${r.total_count ?? 0})` : "written"}</td>
-                    <td className="py-2 pr-3"><Badge variant={r.status === "passed" || (r.voice && r.status === "scored") ? "default" : "secondary"}>{r.status}{r.sandbox_score != null ? ` · ${of10(r.sandbox_score)}` : ""}</Badge></td>
-                    <td className="py-2 text-xs text-muted-foreground">{(r.flags ?? []).join(", ") || "—"}</td>
+                    <td className="py-2 pr-3"><Badge variant={r.status === "passed" || (r.voice && r.status === "scored") ? "default" : "secondary"}>{plainCode(r.status)}{r.sandbox_score != null ? ` · ${of10(r.sandbox_score)}` : ""}</Badge></td>
+                    <td className="py-2 text-xs text-muted-foreground">{(r.flags ?? []).map(plainCode).join(", ") || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -137,9 +138,9 @@ const AdminSubmissions = () => {
                 <p><span className="font-medium">Source:</span> {open.tasks?.source ?? "—"}</p>
                 <p><span className="font-medium">Kind:</span> {open.voice ? "voice" : open.sandbox_config_id ? "code" : "written"}</p>
                 {open.total_count != null && <p><span className="font-medium">Tests passed:</span> {open.passed_count ?? 0} of {open.total_count}</p>}
-                <p><span className="font-medium">Result:</span> {open.status}{open.sandbox_score != null ? ` · ${of10(open.sandbox_score)}` : ""}</p>
+                <p><span className="font-medium">Result:</span> {plainCode(open.status)}{open.sandbox_score != null ? ` · ${of10(open.sandbox_score)}` : ""}</p>
                 {open.runner && <p><span className="font-medium">Runner:</span> {open.runner}</p>}
-                <p><span className="font-medium">Flags:</span> {(open.flags ?? []).join(", ") || "—"}</p>
+                <p><span className="font-medium">Flags:</span> {(open.flags ?? []).map(plainCode).join(", ") || "—"}</p>
                 <p className="font-mono text-[10px] text-muted-foreground">id {open.id}</p>
               </div>
             </>

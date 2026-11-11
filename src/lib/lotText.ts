@@ -13,7 +13,7 @@ export function oneRange(text: string, words?: { min: number; max: number } | nu
  * Lot screen simplify (11 Nov 2026): the word range is shown once, on the marking line. A step that only
  * says it is dropped; inside another sentence the range is taken out ("a short 100-200 words explanation").
  */
-const RANGE = /\s*\b\d{1,4}\s*(?:–|-|to)\s*\d{2,4}[\s-]*words?\b/gi;
+const RANGE = /,?\s*(?:\b(?:in\s+)?(?:about|around|roughly|approximately)\s+|\bin\s+)?\b\d{1,4}\s*(?:–|-|to)\s*\d{2,4}[\s-]*words?\b(?:\s+(?:in\s+)?total\b)?/gi;
 export function dropWordRange(text: string): string {
   if (/^\s*(write|keep)\b[^.]*\b\d{1,4}\s*(?:–|-|to)\s*\d{2,4}[\s-]*words?\b[^.]*\.?\s*$/i.test(text)) return "";
   return text.replace(RANGE, "").replace(/\s+([.,])/g, "$1").replace(/\s{2,}/g, " ").trim();
@@ -95,3 +95,20 @@ export function weekDayText(d: WeekDay): string {
 
 /** Retest G4: speech-to-text mishears words ("time in WorkSolver"); say so wherever a transcript is shown. */
 export const AUTO_TRANSCRIPT_NOTE = "Auto transcript, may have errors.";
+
+/** Retest 5: status and flag codes in plain words ("needs_review" -> "Waiting for a person"). */
+const PLAIN: Record<string, string> = {
+  passed: "Passed", failed: "Not passed", needs_review: "Waiting for a person", scored: "Scored", pending: "Waiting",
+  completed: "Finished", copied_answer: "Looks copied", off_topic: "Off topic", silence: "No speech heard",
+  too_short: "Too short", no_audio: "No sound recorded",
+};
+export const plainCode = (code: string | null | undefined): string =>
+  !code ? "—" : PLAIN[code] ?? code.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+
+/** Sweep S28 + retest 11: shown text only (stored task text is never changed) - plain quotes, and old Lots that talk
+ *  about "the student" read as talking to them. */
+export const tidyShown = (t: string) => t
+  .replace(/\\(["'])/g, "$1")
+  .replace(/\bthe (student|candidate|learner)s? (must|should|will|needs to|has to|is asked to)\b/gi, (_m, _w, v: string) =>
+    `you ${({ "needs to": "need to", "has to": "have to", "is asked to": "are asked to" } as Record<string, string>)[v.toLowerCase()] ?? v.toLowerCase()}`)
+  .replace(/(^|[.!?]\s+|\n)you /g, (_m, p: string) => `${p}You `);

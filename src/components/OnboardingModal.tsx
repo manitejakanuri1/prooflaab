@@ -127,7 +127,7 @@ const OnboardingModal = ({ user, onComplete }: OnboardingModalProps) => {
           benefits: [
             { icon: <Target className="h-5 w-5 text-primary" />, text: "Get real internship tasks" },
             { icon: <Brain className="h-5 w-5 text-primary" />, text: "Build skill-based proof of work" },
-            { icon: <Star className="h-5 w-5 text-primary" />, text: "Earn XP, badges, and a trusted portfolio" }
+            { icon: <Star className="h-5 w-5 text-primary" />, text: "Earn badges and a trusted portfolio" }
           ],
           ctaText: "Start My First Task",
           ctaAction: () => handleComplete('/dashboard/student/tasks')

@@ -1,3 +1,4 @@
+import { plainCode } from "@/lib/lotText";
 import { of10, talkCheck } from "@/lib/lotMarks";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -118,7 +119,7 @@ const DailyLots = () => {
                   {s && (
                     <>
                       <p>
-                        Result: {s.status}{s.score != null ? ` · ${of10(s.score)}` : ""}
+                        Result: {plainCode(s.status)}{s.score != null ? ` · ${of10(s.score)}` : ""}
                         {s.total ? ` · tests ${s.passed ?? 0}/${s.total}` : ""} · {s.attempts} attempt{s.attempts === 1 ? "" : "s"}
                         {s.flags?.length ? ` · flags: ${s.flags.join(", ")}` : ""}
                       </p>

@@ -1,3 +1,5 @@
+import InfoTip from "@/components/common/InfoTip";
+import { plainCode } from "@/lib/lotText";
 import { fmtDay, fmtDayTime } from "@/lib/ist";
 import { of10, scoreText10 } from "@/lib/lotMarks";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -196,7 +198,8 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                 { k: "Last active", v: data.days_quiet >= 999 ? "never" : `${data.days_quiet}d ago`,
                   hot: data.days_quiet >= 7 },
                 { k: "Total XP", v: data.total_xp ?? 0 },
-                { k: "Lots done", v: `${data.tasks.completed}/${data.tasks.assigned}${data.tasks.voice_owed ? ` · ${data.tasks.voice_owed} voice owed` : ""}` }, // M8: migration 220
+                { k: "Lots done", v: `${data.tasks.completed}/${data.tasks.assigned}${data.tasks.voice_owed ? ` · ${data.tasks.voice_owed} voice owed` : ""}`, // M8: migration 220
+                  help: "Finished Lots (answer passed and voice done) / every Lot this student has been given so far. Each student joined on a different day, so the second number differs." },
                 ...(data.streak !== undefined ? [
                   { k: "Streak", v: data.streak ? `${data.streak.current}d · best ${data.streak.longest}d` : "0d" },
                   { k: "Checks not passed", v: data.tasks.failed_attempts ?? 0, hot: (data.tasks.failed_attempts ?? 0) >= 3 },
@@ -214,6 +217,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                   <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                     {c.k}
                   </span>
+                  {"help" in c && c.help ? <> <InfoTip text={c.help as string} /></> : null}
                   <div className={`font-mono text-lg font-semibold tabular-nums mt-0.5 ${
                     c.hot ? "text-alert" : ""}`}>{c.v}</div>
                 </div>
@@ -354,7 +358,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                           <span className="font-mono text-xs tabular-nums">{of10(w.ai_score)}</span>
                         )}
                         <Badge variant={w.status === "passed" ? "default" : "outline"}>
-                          {w.status}
+                          {plainCode(w.status)}
                         </Badge>
                       </div>
                     </div>

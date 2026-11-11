@@ -21,7 +21,7 @@ import TaskVoicePanel from "./TaskVoicePanel";
 import { SimpleQuestionShort } from "./SimpleQuestion";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 import { tidyTitle } from "@/lib/utils";
-import { fmtMark, loadLotState, loadWeekMarks, of10, SCORE_HELP, SKIP_WARNING, type LotState, type WeekMarks } from "@/lib/lotMarks";
+import { fmtMark, loadLotState, loadWeekMarks, of10, SCORE_HELP, scoreText10, SKIP_WARNING, type LotState, type WeekMarks } from "@/lib/lotMarks";
 import InfoTip from "@/components/common/InfoTip";
 import { LOW_SCORE, passedLabel } from "@/lib/passedNote";
 import { FAST_WEEK } from "@/lib/testClock";
@@ -473,7 +473,7 @@ const StudentDailyCard = () => {
             {/* Why it was chosen is written when the Lot is made, so it is only true until the first try. */}
             {lot.why_selected && !triedLot && (
               <p className="mt-2 rounded-md bg-[#efe9dc] px-3 py-2 text-xs text-[#4a463d]">
-                <span className="font-semibold">Why this Lot: </span>{lot.why_selected}
+                <span className="font-semibold">Why this Lot: </span>{scoreText10(lot.why_selected)}
                 {lot.lot_skills && lot.lot_skills.length > 0 && <> · Skills: {lot.lot_skills.join(", ")}</>}
               </p>
             )}
@@ -685,7 +685,7 @@ const StudentDailyCard = () => {
                   <p className="mt-1 truncate text-sm font-semibold">{squad.name}</p>
                   <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
                     {squad.last ? "Last season · " : ""}{squad.cohort ? `${squad.cohort} · ` : ""}
-                    {squad.points ?? 0} pts
+                    {squad.points ?? 0} squad points
                     {squad.rank && (squad.points ?? 0) > 0 ? ` · rank #${squad.rank}` : ""}
                   </p>
                   {!squad.last && (

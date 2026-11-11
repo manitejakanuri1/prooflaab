@@ -1,3 +1,4 @@
+import { plainCode } from "@/lib/lotText";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +19,7 @@ interface FlaggedSubmission {
   student_name: string;
   score: number;
   flags: string[];
-  rubric_scores: { criterion_id: string; points: number; evidence: string; max_points?: number }[] | null; // max_points: migration 221
+  rubric_scores: { criterion_id: string; points: number; evidence: string; max_points?: number; name?: string }[] | null; // max_points: migration 221, name: 224
   code: string;
   created_at: string;
 }
@@ -135,7 +136,7 @@ const ReviewedSubmissions = () => {
                     <ul className="text-sm text-muted-foreground">
                       {r.rubric_scores.map((s) => (
                         <li key={s.criterion_id}>
-                          {s.criterion_id}: {part10(s.points, s.max_points)}
+                          {s.name ?? plainCode(s.criterion_id)}: {part10(s.points, s.max_points)}
                           {s.evidence && <span className="italic"> — "{s.evidence}"</span>}
                         </li>
                       ))}

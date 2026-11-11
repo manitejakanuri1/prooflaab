@@ -28,12 +28,12 @@ const STATUS: Record<string, { label: string; tone: string; says: string }> = {
     // Sweep M2: this status only means the starting test did not flag it; no Lot proves it yet.
     label: "Passed starting test",
     tone: "bg-verified/10 text-verified border-verified/20",
-    says: "On your resume and not flagged in your starting test. Not yet proven by a Lot.",
+    says: "On your resume and not flagged in your starting test. No Lot has checked it yet.",
   },
   assessed: {
     label: "Assessed",
     tone: "bg-primary/10 text-primary border-primary/20",
-    says: "You have been tested on it. Submit work using it to move it to proven.",
+    says: "You have been tested on it. Your score is shown here.",
   },
   claimed: {
     label: "Claimed",

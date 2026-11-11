@@ -101,6 +101,14 @@ export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: 
                 A Lot is set for a candidate you have shortlisted. Choose one below and press
                 "Send a task": a coding Lot gets real tests, a written Lot gets its own checklist.
               </p>
+              {/* Sweep S26: with nobody shortlisted this tab looked like it had no form; say where to start. */}
+              <p className="text-sm max-w-prose">
+                Nobody on your shortlist yet?{" "}
+                <button type="button" className="underline text-primary" onClick={() => go("talent")}>
+                  Find a candidate in Talent
+                </button>{" "}
+                and press Shortlist, then come back here.
+              </p>
               <RecruiterDashboardContent activeTab="shortlist" onTabChange={go} />
             </div>
           )}

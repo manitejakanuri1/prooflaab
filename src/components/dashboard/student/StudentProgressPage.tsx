@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { Link } from "react-router-dom";
 import InfoTip from "@/components/common/InfoTip";
 import { useEffect, useState } from "react";
@@ -13,7 +14,7 @@ import { triesSummary, weekDayText, weekLotsText } from "@/lib/lotText";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
 
-type Try = { task_id: string; status: string; title: string };
+type Try = { task_id: string; status: string; title: string; lot_date: string | null };
 import { Target, Award, FileCheck, CalendarDays } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
@@ -68,15 +69,15 @@ const StudentProgressPage = () => {
           .eq("student_id", profile.id).order("computed_at", { ascending: false }).limit(200),
         supabase.from("student_badges").select("awarded_at, badges(name, emoji)")
           .eq("student_id", profile.id).order("awarded_at", { ascending: false }).limit(3),
-        supabase.from("task_submissions").select("status, task_id, tasks(title)").eq("student_id", profile.id),
+        supabase.from("task_submissions").select("status, task_id, tasks(title, lot_date)").eq("student_id", profile.id),
         loadWeekMarks().catch(() => null),
       ]);
 
       setRunning(week);
       setWeeklyPoints(latestWeeks((weekly ?? []) as WeekRow[]));
       setBadges((earned ?? []).map((r: any) => ({ name: r.badges?.name ?? "Badge", emoji: r.badges?.emoji ?? "🏅" })));
-      setTries(((proofs ?? []) as unknown as { status: string; task_id: string; tasks: { title: string } | null }[])
-        .map((p) => ({ status: p.status, task_id: p.task_id, title: p.tasks?.title ?? "Lot" })));
+      setTries(((proofs ?? []) as unknown as { status: string; task_id: string; tasks: { title: string; lot_date: string | null } | null }[])
+        .map((p) => ({ status: p.status, task_id: p.task_id, title: p.tasks?.title ?? "Lot", lot_date: p.tasks?.lot_date ?? null })));
       setSubmissions({
         total: (proofs ?? []).length,
         passed: (proofs ?? []).filter((p) => p.status === "passed").length,
@@ -110,6 +111,8 @@ const StudentProgressPage = () => {
 
   const sum = triesSummary(tries);
   const titleOf = new Map(tries.map((t) => [t.task_id, t.title]));
+  // Retest 2: a row is dated by its Lot's own day, not the day it was counted.
+  const lotDayOf = new Map(tries.map((t) => [t.task_id, t.lot_date]));
   const progressCards = [
     { title: "This week (so far)", value: fmtMark(running?.week_total), icon: CalendarDays, help: SCORE_HELP.thisWeek,
       color: "text-primary", bgColor: "bg-primary/10", change: `${weekLotsText(running?.days ?? [])} so far`, list: "week" as const },
@@ -162,7 +165,7 @@ const StudentProgressPage = () => {
               <ul className="space-y-2 text-sm" data-testid="week-list">
                 {(running?.days ?? []).map((d) => (
                   <li key={d.task_id} className="flex justify-between gap-3 border-b pb-2">
-                    <span>{format(new Date(d.lot_at), "EEE d MMM")} · {titleOf.get(d.task_id) ?? "Lot"}</span>
+                    <span>{lotDayOf.get(d.task_id) ? `Lot of ${fmtDay(lotDayOf.get(d.task_id)!)}` : format(new Date(d.lot_at), "EEE d MMM")} · {titleOf.get(d.task_id) ?? "Lot"}</span>
                     <span className="font-mono tabular-nums">{weekDayText(d)}</span>
                   </li>
                 ))}
@@ -198,7 +201,14 @@ const StudentProgressPage = () => {
             <p className="text-xs text-muted-foreground">One bar per finished week: that week's Lot marks added up (up to 20 per Lot). The running week is in "This week".</p>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
-            {weeklyPoints.length > 0 ? (
+            {/* Retest 13: weeks that all scored 0 drew an empty chart; say so in words. */}
+            {weeklyPoints.length > 0 && weeklyPoints.every((w) => !w.points) ? (
+              <div className="h-[250px] flex items-center justify-center text-center px-6">
+                <p className="text-sm text-muted-foreground">
+                  {weeklyPoints.length} finished {weeklyPoints.length === 1 ? "week" : "weeks"} this season, 0 points in each. Finish a Lot (answer + voice) inside a week to score.
+                </p>
+              </div>
+            ) : weeklyPoints.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={weeklyPoints}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />

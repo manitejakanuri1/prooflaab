@@ -119,7 +119,7 @@ try {
     if (!(await write.count())) return false;
     await write.click(); await page.waitForTimeout(4000);
     const d = page.getByRole("dialog"); const text = await d.innerText();
-    const ph = (await d.locator("textarea").first().getAttribute("placeholder")) ?? "";
+    const ph = (await d.locator("textarea[placeholder]").first().getAttribute("placeholder")) ?? "";
     await page.screenshot({ path: `${out}/r2-lot-screen.png` });
     const ok = (await d.getByTestId("marked-out-of-10").count()) > 0 && !/\b\d+ pts\b/.test(text) && !/Aim for/.test(text) && !/of 100/.test(text)
       && ph === "Write your answer here." && (await d.getByRole("button", { name: /Insert example format/ }).count()) === 0

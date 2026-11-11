@@ -26,6 +26,7 @@ interface StudentTask {
   /** Retest R5: the scored voice (0-100) of this task, so the card shows "Voice done" instead of "Explain 60s". */
   voice_score?: number | null;
   voice_owed?: boolean; // Sweep S16: work handed in, the 60s explanation still owed
+  not_passed?: boolean; // Retest 8: the latest try did not pass
 }
 
 export const useAllStudentTasks = () => {
@@ -106,12 +107,16 @@ export const useAllStudentTasks = () => {
       // Retest R5: scored voices per task. Retest R1: the checker's word range for each written Lot, so the card
       // text names the same range as the answer box (the task text itself is never changed).
       const writtenLots = (directTasks || []).filter((t) => t.lot_date && t.rubric_config_id).map((t) => t.id);
-      const [{ data: scoredVoices }, ranges] = await Promise.all([
+      const [{ data: scoredVoices }, ranges, { data: lastTries }] = await Promise.all([
         supabase.from('voice_explanations').select('task_id, communication_score')
           .eq('student_id', profile.id).eq('status', 'scored').is('withdrawn_at' as never, null),
         Promise.all(writtenLots.map((id) => supabase.rpc('rubric_task_view' as never, { _task_id: id } as never)
           .then(({ data }) => [id, data as unknown as { min_words: number; max_words: number } | null] as const, () => [id, null] as const))),
+        // Retest 8: the latest try per task, so a handed-in answer that did not pass never reads "Submitted".
+        supabase.from('task_submissions').select('task_id, status').eq('student_id', profile.id).order('created_at', { ascending: false }),
       ]);
+      const lastStatusOf = new Map<string, string>();
+      for (const t of (lastTries ?? []) as { task_id: string; status: string }[]) if (!lastStatusOf.has(t.task_id)) lastStatusOf.set(t.task_id, t.status);
       const voiceScoreOf = new Map<string, number>();
       for (const v of (scoredVoices ?? []) as { task_id: string | null; communication_score: number | null }[]) {
         if (v.task_id && v.communication_score != null && !voiceScoreOf.has(v.task_id)) voiceScoreOf.set(v.task_id, v.communication_score);
@@ -155,6 +160,7 @@ export const useAllStudentTasks = () => {
           description: task.description ? oneRange(task.description, rangeOf.get(task.id)) : task.description,
           voice_score: voiceScoreOf.get(task.id) ?? null,
           voice_owed: task.status === 'pending_voice',
+          not_passed: lastStatusOf.get(task.id) === 'failed',
           deadline: task.due_date,
           lot_date: task.lot_date,
           status,

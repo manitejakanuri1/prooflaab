@@ -80,7 +80,7 @@ export const SCORE_HELP = {
   streak: "A day counts when you finish that day's Lot on the same day: hand in your answer or code, then record "
     + "your 60-second voice and get it scored. Passing is not needed. Code that never passes, or a Lot with no "
     + "voice, does not count. Sunday is rest. Miss a day and the streak starts again from 1.",
-  squad: "All members' weekly points added up. More points wins.",
+  squad: "Squad points = every member's Today scores added up. More points wins.",
   lowVoice: "Low voice score. Next time talk about what you tried and changed.",
   squadSeason: "Squad total for the whole season so far.",
   record: "Wins–Draws–Losses.",

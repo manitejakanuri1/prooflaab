@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { RecruiterHeader } from "@/components/public/RecruiterHeader";
 import {
   Mail,
-  Trophy, Star,
+  Trophy,
   Briefcase
 } from "lucide-react";
 import { getInitials } from "@/lib/utils";
@@ -194,7 +194,6 @@ const Portfolio = () => {
     );
   }
 
-  const totalXP = portfolio?.student_profiles?.total_xp || 0;
 
   return (
     <BrandPage>
@@ -247,10 +246,6 @@ const Portfolio = () => {
 
               {/* Stats Row */}
               <div className="flex flex-wrap gap-6 justify-center md:justify-start text-sm mb-6">
-                <div className="flex items-center gap-2 bg-background/50 px-4 py-2 rounded-full border border-border">
-                  <Star className="h-5 w-5 text-compete" />
-                  <span className="font-semibold">{totalXP} XP</span>
-                </div>
                 <div className="flex items-center gap-2 bg-background/50 px-4 py-2 rounded-full border border-border">
                   <Briefcase className="h-5 w-5 text-primary" />
                   <span className="font-semibold">{provenWork.length} Lots passed</span>

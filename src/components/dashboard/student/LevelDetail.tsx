@@ -19,7 +19,6 @@ import {
   Loader2,
   PartyPopper,
   RotateCcw,
-  Sparkles,
   Trophy,
   X,
 } from "lucide-react";
@@ -471,11 +470,6 @@ const LevelDetail = ({ trackSlug, levelNumber, onOpenChange, onCleared, onContin
                       : `Next up: ${result.next_level?.skill}.`
                     : "Read the explanations below, then have another go. Nothing is lost."}
                 </p>
-                {result.xp_awarded > 0 && (
-                  <Badge variant="secondary" className="mt-2 gap-1">
-                    <Sparkles className="h-3 w-3" />+{result.xp_awarded} XP
-                  </Badge>
-                )}
               </div>
 
               {/* The answers come back only now. This is where the actual

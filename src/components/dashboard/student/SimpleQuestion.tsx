@@ -140,7 +140,9 @@ export const SimpleQuestion = ({ taskId, original, words, coding, children, more
   const brief = tidyBrief(raw, words);
   const steps = brief.steps.map(dropWordRange).filter(Boolean);
   const shown = coding ? 0 : 3;
-  const doneWhen = dropWordRange(brief.done_when);
+  // Owner 11 Nov 2026: "covering all four points" no longer matches the 3 steps shown; point at the steps instead.
+  const doneWhen = dropWordRange(brief.done_when)
+    .replace(/\ball (the )?(two|three|four|five|six|seven|\d+) (points|parts|steps|things)( (that )?the task asks for)?/gi, "all the steps above");
 
   return (
     <div className="space-y-3">
@@ -150,8 +152,9 @@ export const SimpleQuestion = ({ taskId, original, words, coding, children, more
       </div>
 
       {/* Checked against everything the student can open, so a rule only in "More help" still counts as shown. */}
-      <ExactRules rules={missingRules(shownOriginal, [brief.in_one_line, brief.what_it_means, ...brief.steps,
-        brief.example ?? "", brief.done_when].join(" "))} />
+      {/* The word range is said once, on the marking line, so it is taken out of these rules too. */}
+      <ExactRules rules={missingRules(shownOriginal && dropWordRange(shownOriginal), [brief.in_one_line, brief.what_it_means,
+        ...brief.steps, brief.example ?? "", brief.done_when].join(" "))} />
 
       {shown > 0 && steps.length > 0 && (
         <div className="rounded-lg border p-3">

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { dropHelper, dropWordRange, lotStatusText, oneRange, part10, squadUpdateText, triesSummary, voiceOwedText, weekDayText, weekLotsText } from "./lotText.ts";
+import { dropHelper, dropWordRange, plainCode, tidyShown, lotStatusText, oneRange, part10, squadUpdateText, triesSummary, voiceOwedText, weekDayText, weekLotsText } from "./lotText.ts";
 
 test("one word range: the checker's replaces the one in the text", () => {
   const w = { min: 150, max: 800 };
@@ -67,4 +67,16 @@ test("Lot simplify: the word range is said once, on the marking line", () => {
   assert.equal(dropWordRange("You have written a short 100–200 words explanation covering all four points."),
     "You have written a short explanation covering all four points.");
   assert.equal(dropWordRange("Say what a LEFT JOIN does."), "Say what a LEFT JOIN does.");
+});
+
+test("plainCode turns codes into words", () => {
+  assert.equal(plainCode("needs_review"), "Waiting for a person");
+  assert.equal(plainCode("off_topic"), "Off topic");
+  assert.equal(plainCode("some_new_code"), "Some new code");
+});
+
+test("tidyShown: plain quotes, and text about the student reads as talking to them", () => {
+  assert.equal(tidyShown('Say \\"hi\\".'), 'Say "hi".');
+  assert.equal(tidyShown("The student must explain the query. Then the student has to say why."),
+    "You must explain the query. Then you have to say why.");
 });

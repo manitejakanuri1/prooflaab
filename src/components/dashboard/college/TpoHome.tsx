@@ -1,3 +1,4 @@
+import InfoTip from "@/components/common/InfoTip";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
@@ -107,17 +108,17 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
   // the officer has to act on by hand. The only one that stays inert is a zero
   // — there is nothing to show behind "0 need attention".
   const cards = [
-    { key: "students", label: "Students", value: data.students, icon: Users,
+    { key: "students", label: "Students", help: "Students your college uploaded. The line below counts who handed in an answer or code this week (Mon-Sun).", value: data.students, icon: Users,
       note: `${data.active_this_week} tried a Lot this week · open the list`,
       action: () => onNavigate?.("students") },
-    { key: "today", label: "Tried a Lot today", value: data.active_today, icon: Activity,
+    { key: "today", label: "Tried a Lot today", help: "Students who handed in an answer or code today (India time). This is what \"active\" means on college screens.", value: data.active_today, icon: Activity,
       note: data.active_today > 0 ? "handed in an answer or code today" : "nobody yet today",
       tone: "good" as const, action: () => onFilterStudents?.("active_today") },
-    { key: "attention", label: "Needs attention", value: data.needs_attention, icon: AlertTriangle,
+    { key: "attention", label: "Needs attention", help: "Students flagged: not onboarded yet, missed an earlier Lot this week, or no Lot tried in 7 days.", value: data.needs_attention, icon: AlertTriangle,
       note: data.needs_attention > 0 ? "tap to see who" : "nobody, for once",
       tone: "hot" as const, action: () => onFilterStudents?.("attention") }, // E2E-7b
     // Sweep M6: tpo_home counts squads of every past season too; show this season's squads.
-    { key: "squads", label: "Squads", value: standings.length, icon: Shield,
+    { key: "squads", label: "Squads", help: "Squads in this season only. Students in reserve wait for a free place.", value: standings.length, icon: Shield,
       note: `${data.reserves} in reserve · open standings`,
       action: () => onNavigate?.("squads") },
   ];
@@ -155,6 +156,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
                   <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                     {c.label}
                   </span>
+                  <InfoTip text={c.help} />
                 </div>
                 <div className={`font-mono text-3xl font-bold tabular-nums mt-1 ${
                   c.tone === "hot" && c.value > 0 ? "text-alert"
@@ -272,7 +274,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
                   >
                     <Trophy className="h-4 w-4 text-primary" />
                     {data.leader.name}
-                    <span className="font-mono text-sm text-muted-foreground">{data.leader.points} pts</span>
+                    <span className="font-mono text-sm text-muted-foreground">{data.leader.points} squad points</span>
                   </button>
                 ) : (
                   <p className="text-sm text-muted-foreground mt-1">{data.leader ? "No points yet this season." : "No squads yet."}</p>

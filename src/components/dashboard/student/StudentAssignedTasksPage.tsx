@@ -1,7 +1,5 @@
 import { fmtDay } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarks";
-import { SCORE_HELP } from "@/lib/lotMarks";
-import InfoTip from "@/components/common/InfoTip";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +11,6 @@ import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { format, parseISO } from "date-fns";
 import {
   Calendar,
-  Award,
   Play, Search,
   Eye,
   CheckCircle,
@@ -322,8 +319,6 @@ const StudentAssignedTasksPage = () => {
                 <SelectContent className="bg-background border border-border z-50">
                   <SelectItem value="Due Date (ASC)">Due Date (Soonest)</SelectItem>
                   <SelectItem value="Due Date (DESC)">Due Date (Latest)</SelectItem>
-                  <SelectItem value="XP (DESC)">XP (High to Low)</SelectItem>
-                  <SelectItem value="XP (ASC)">XP (Low to High)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -365,7 +360,7 @@ const StudentAssignedTasksPage = () => {
                               variant="outline" 
                               className={getStatusColor(overdue(task) ? 'Overdue' : task.status)}
                             >
-                              {overdue(task) ? 'Overdue' : task.status === 'Applied' ? 'Not started' : task.voice_owed ? 'Submitted · voice owed' : task.status}
+                              {overdue(task) ? 'Overdue' : task.status === 'Applied' ? 'Not started' : task.voice_owed ? (task.not_passed ? 'Not passed · voice owed' : 'Submitted · voice owed') : task.status}
                             </Badge>
                           </div>
                         </div>
@@ -390,10 +385,6 @@ const StudentAssignedTasksPage = () => {
                             ) : (
                               <span>{formatDueDate(task.deadline)}</span>
                             )}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-compete font-medium">
-                            <Award className="h-3 w-3 sm:h-4 sm:w-4" />
-                            <span>{task.xp_reward || 0} XP</span> <InfoTip text={SCORE_HELP.xp} />
                           </div>
                         </div>
                       </div>

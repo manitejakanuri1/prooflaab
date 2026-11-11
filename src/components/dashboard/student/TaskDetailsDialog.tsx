@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Award, Play, Upload } from "lucide-react";
+import { Calendar, Play, Upload } from "lucide-react";
 import { format } from "date-fns";
 
 interface TaskDetailsDialogProps {
@@ -100,13 +100,6 @@ const TaskDetailsDialog = ({
                 <div>
                   <p className="text-xs text-muted-foreground">Due Date</p>
                   <p className="text-sm font-medium">{formatDueDate(task.deadline)}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Award className="h-5 w-5 text-compete" />
-                <div>
-                  <p className="text-xs text-muted-foreground">XP Reward</p>
-                  <p className="text-sm font-medium text-compete">{task.xp_reward || 0} XP</p>
                 </div>
               </div>
             </div>

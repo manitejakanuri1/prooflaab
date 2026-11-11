@@ -1,16 +1,16 @@
-import { SCORE_HELP } from "@/lib/lotMarks";
-import InfoTip from "@/components/common/InfoTip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { usePortfolio } from "@/hooks/usePortfolio";
-import { Award, Share, Star, CheckCircle, Users } from "lucide-react";
+import { Award, Share, CheckCircle, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ProvenWork, { useProvenWork } from "@/components/portfolio/ProvenWork";
 import { getInitials } from "@/lib/utils";
 import { useUrlTab } from "@/hooks/useUrlTab";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const StudentPortfolioPage = () => {
   const { profile, loading: profileLoading } = useStudentProfile();
@@ -19,6 +19,14 @@ const StudentPortfolioPage = () => {
   const { portfolio, loading: portfolioLoading } = usePortfolio();
   const { toast } = useToast();
   const [, setView] = useUrlTab("view", "");
+  // Sweep S13: the skills page reads my_skills_proved; show the same list here when the portfolio has none typed in.
+  const { data: provedSkills = [] } = useQuery({
+    queryKey: ["my_skills_proved_names"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("my_skills_proved" as never);
+      return ((data ?? []) as unknown as { skill: string }[]).map((x) => x.skill);
+    },
+  });
   if (profileLoading || portfolioLoading) {
     return (
       <Card>
@@ -97,16 +105,7 @@ const StudentPortfolioPage = () => {
               <h2 className="text-xl sm:text-2xl font-bold text-foreground text-center sm:text-left">{profile?.full_name}</h2>
               <p className="text-muted-foreground mb-3 sm:mb-4 text-sm sm:text-base text-center sm:text-left truncate">{profile?.email}</p>
               
-              <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <Card className="bg-card border-border">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">Total XP <InfoTip text={SCORE_HELP.xp} /></div>
-                      <Star className="h-5 w-5 text-compete" />
-                    </div>
-                    <div className="text-3xl font-bold text-foreground">{profile?.total_xp || 0}</div>
-                  </CardContent>
-                </Card>
+              <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 
                 <Card className="bg-card border-border">
                   <CardContent className="p-4">
@@ -155,8 +154,8 @@ const StudentPortfolioPage = () => {
             <div>
               <h4 className="font-medium text-foreground mb-2">Skills</h4>
               <div className="flex flex-wrap gap-2">
-                {portfolio?.skills && portfolio.skills.length > 0 ? (
-                  portfolio.skills.map((skill, index) => (
+                {(portfolio?.skills?.length ? portfolio.skills : provedSkills).length > 0 ? (
+                  (portfolio?.skills?.length ? portfolio.skills : provedSkills).map((skill, index) => (
                     <Badge key={index} variant="outline" className="bg-primary/10 text-primary">
                       {skill}
                     </Badge>

@@ -110,6 +110,9 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
   const [openStudent, setOpenStudent] = useState<string | null>(null);
   const [openMatch, setOpenMatch] = useState<MatchLike | null>(null);
   const [performance, setPerformance] = useState<Performance[]>([]);
+  // Retest 1 (M14): no rank while a squad has 0 points; Standings, Overview and Performance use the same rank.
+  const order = (id: string) => { const i = (squads ?? []).findIndex((q) => q.id === id); return i < 0 ? 999 : i; };
+  const rankText = (q?: { rank: number | null; points: number }) => (q && q.points > 0 && q.rank ? `#${q.rank}` : "Not ranked yet");
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   // Keyed by squad, not one box for all of them: with a single string, typing
   // into one squad's name field and pressing Save on another renamed the wrong
@@ -564,7 +567,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                   return (
                     <tr key={s.id} className="border-t cursor-pointer hover:bg-muted/40"
                         onClick={() => { setSelected(s.id); setTab("members"); }}>
-                      <td className="py-2.5 pr-3 font-mono tabular-nums">{place}</td>
+                      <td className="py-2.5 pr-3 font-mono tabular-nums">{s.points > 0 ? place : "Not ranked yet"}</td>
                       <td className="py-2.5 pr-3 font-medium">
                         {s.name}
                         <ChevronRight className="h-3.5 w-3.5 inline-block ml-1.5 text-muted-foreground" />
@@ -634,7 +637,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
               <h2 className="text-xl font-semibold">{current.name}</h2>
               <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {[
-                  { k: "Rank", v: current.rank ? `#${current.rank}` : "—" },
+                  { k: "Rank", v: rankText(current) },
                   { k: "Points", v: current.points },
                   { k: "Record", v: `${current.wins}–${current.draws ?? 0}–${current.losses}` },
                   { k: "Members", v: `${currentMembers.length} of ${current.max_members} seats filled` },
@@ -1107,7 +1110,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {performance.map((p) => (
+                  {/* Retest 1: one ranking everywhere - the season standings, not the weekly row order. */}
+                  {[...performance].sort((a, b) => order(a.squad_id) - order(b.squad_id) || a.week - b.week).map((p) => (
                     <tr key={p.squad_id + "-" + p.week} className="border-t cursor-pointer hover:bg-muted/40"
                         onClick={() => { setSelected(p.squad_id); setTab("members"); }}>
                       <td className="py-2.5 pr-3 font-mono tabular-nums">{p.week}</td>
@@ -1130,7 +1134,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                         {p.active_members}/{p.total_members}
                         <span className="text-muted-foreground"> · {Number(p.participation)}%</span>
                       </td>
-                      <td className="py-2.5 font-mono tabular-nums">{p.rank ? "#" + p.rank : "—"}</td>
+                      <td className="py-2.5 font-mono tabular-nums">{rankText(squads?.find((q) => q.id === p.squad_id))}</td>
                     </tr>
                   ))}
                 </tbody>

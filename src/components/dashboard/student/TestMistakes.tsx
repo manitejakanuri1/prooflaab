@@ -38,7 +38,7 @@ const TestMistakes = ({ mistakes, onGoToTasks }: { mistakes: TestMistake[]; onGo
             <RotateCcw className="h-3 w-3" /> Revise
           </Badge>
           <span className="text-sm font-medium">{m.title}</span>
-          <span className="ml-auto text-xs text-muted-foreground">{STATUS_LABEL[m.status]} · 30 XP</span>
+          <span className="ml-auto text-xs text-muted-foreground">{STATUS_LABEL[m.status]}</span>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">{m.why}</p>
         <p className="mt-0.5 text-xs">Next step: {m.action}</p>

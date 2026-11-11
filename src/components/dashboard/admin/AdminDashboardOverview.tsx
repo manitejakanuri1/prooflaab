@@ -1,3 +1,4 @@
+import InfoTip from "@/components/common/InfoTip";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -122,6 +123,7 @@ const AdminDashboardOverview = ({
   });
   const kpiCards = [{
     title: "Total Students",
+    help: "Every student account. \"Active\" here = account status active (not removed or paused), not who did a Lot.",
     value: stats?.totalStudents || 0,
     subtitle: `${stats?.activeStudents || 0} active`,
     icon: Users,
@@ -129,6 +131,7 @@ const AdminDashboardOverview = ({
     onClick: () => onNavigate?.("students")
   }, {
     title: "Active Colleges",
+    help: "Colleges whose account is approved, out of all colleges that signed up.",
     value: stats?.activeColleges || 0,
     subtitle: `${stats?.totalColleges || 0} total`,
     icon: Building2,
@@ -136,6 +139,7 @@ const AdminDashboardOverview = ({
     onClick: () => onNavigate?.("colleges")
   }, {
     title: "Active companies",
+    help: "Companies whose account is approved, out of all that signed up.",
     value: stats?.activeStartups || 0,
     subtitle: `${stats?.totalStartups || 0} total`,
     icon: Rocket,
@@ -144,6 +148,7 @@ const AdminDashboardOverview = ({
   }, {
     // Sweep M11: two numbers, two cards. Flagged answers waiting for a person...
     title: "Needs review",
+    help: "Answers the checker flagged for a person to look at. Opens the list.",
     value: stats?.pendingProofs || 0,
     subtitle: "flagged answers waiting for a person",
     icon: ClipboardCheck,
@@ -152,6 +157,7 @@ const AdminDashboardOverview = ({
   }, {
     // ...and every answer or code check ever sent (Retest H3: retries included, voice not counted).
     title: "Answer/code tries",
+    help: "Every answer or code hand-in ever, retries counted. The chart below shows the last days.",
     value: stats?.totalProofs || 0,
     subtitle: "all time, retries included",
     icon: ClipboardCheck,
@@ -159,6 +165,7 @@ const AdminDashboardOverview = ({
     onClick: () => onNavigate?.("submissions")
   }, {
     title: "Active Tasks",
+    help: "Tasks not finished yet (pending or in progress), out of every task ever made.",
     value: stats?.activeTasks || 0,
     subtitle: `${stats?.totalTasks || 0} total posted`,
     icon: Eye,
@@ -193,7 +200,7 @@ const AdminDashboardOverview = ({
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs md:text-sm font-medium text-muted-foreground">{kpi.title}</p>
+                  <p className="text-xs md:text-sm font-medium text-muted-foreground">{kpi.title} <InfoTip text={kpi.help} /></p>
                   <p className="text-xl md:text-2xl font-bold">{kpi.value}</p>
                   <p className="text-xs text-muted-foreground">{kpi.subtitle}</p>
                 </div>
@@ -229,6 +236,10 @@ const AdminDashboardOverview = ({
               <TrendingUp className="h-4 w-4 md:h-5 md:w-5" />
               Signups Trend
             </CardTitle>
+            {/* Retest 13: an all-zero chart looked broken; say it is just no sign-ups in this period. */}
+            {analyticsData && analyticsData.every((d: { studentSignups?: number; collegeSignups?: number }) => !d.studentSignups && !d.collegeSignups) && (
+              <p className="text-xs text-muted-foreground">No new sign-ups in this period. Pick a longer time range to see older ones.</p>
+            )}
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0">
             <div className="h-48 md:h-64">

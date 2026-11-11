@@ -307,7 +307,6 @@ export default function SandboxTaskPanel({
                 ? `All ${totalTests} tests passed. Score 10 - submitted.`
                 : `${totalTests - (result.failed_tests ?? 0)} of ${totalTests} tests passed. ${checkLine(result.mark ?? 0, lot)}`
               : submitScoreLine(result)}
-            {result.xp_awarded > 0 && ` · +${result.xp_awarded} XP`}
           </p>
           {result.already_completed && !result.passed && (
             <p className="mt-1 text-sm text-muted-foreground">You already completed this task.</p>

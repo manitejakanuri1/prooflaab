@@ -57,7 +57,7 @@ const AdminAnalytics = () => {
       ]);
       const fillRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-      return { totalProofs, activeStudents, taskFillRate: fillRate };
+      return { totalProofs, activeStudents, taskFillRate: fillRate, totalTasks, completedTasks };
     }
   });
 
@@ -65,20 +65,23 @@ const AdminAnalytics = () => {
     queryKey: ['weekly-proof-uploads', dateRange],
     queryFn: async () => {
       // The chart shows the last 7 days whatever the range (as before), so only those 7 days are counted.
+      // Sweep S30: India days. Local date + toISOString (UTC) could repeat one day and skip the next (Mon 9 Nov).
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
       const days = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (6 - i));
-        return date.toISOString().split('T')[0];
+        const d = new Date(`${today}T00:00:00Z`);
+        d.setUTCDate(d.getUTCDate() - (6 - i));
+        return d.toISOString().slice(0, 10);
       });
       const counts = await Promise.all(days.map((day) => {
-        const next = new Date(`${day}T00:00:00Z`);
-        next.setUTCDate(next.getUTCDate() + 1);
+        const start = new Date(`${day}T00:00:00+05:30`);
+        const end = new Date(start.getTime() + 86_400_000);
         return count(supabase.from('task_submissions').select('id', { count: 'exact', head: true })
-          .gte('created_at', `${day}T00:00:00Z`).lt('created_at', next.toISOString()));
+          .gte('created_at', start.toISOString()).lt('created_at', end.toISOString()));
       }));
 
       return days.map((day, i) => ({
-        date: new Date(day).toLocaleDateString('en-US', {
+        date: new Date(`${day}T00:00:00Z`).toLocaleDateString('en-GB', {
+          timeZone: 'UTC',
           weekday: dateRange === "weekly" ? 'short' : undefined,
           month: 'short',
           day: 'numeric'
@@ -106,8 +109,11 @@ const AdminAnalytics = () => {
         }
       });
 
+      // Retest 13: "Growth" is the running total (39 -> 59), not new sign-ups per month (39 -> 20 looked like a fall).
+      let total = 0;
       return Object.entries(monthlyData)
         .sort(([a], [b]) => a.localeCompare(b))
+        .map(([month, count]) => [month, (total += count)] as const)
         .slice(-monthsCount)
         .map(([month, count]) => ({
           month: new Date(month + '-01').toLocaleDateString('en-US', { 
@@ -205,6 +211,8 @@ const AdminAnalytics = () => {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Tasks completed (%)</p>
                 <p className="text-3xl font-bold text-accent">{kpiStats?.taskFillRate || 0}%</p>
+                {/* Sweep S30: all tasks ever made, so the % is small; show the counts behind it. */}
+                <p className="text-xs text-muted-foreground">{kpiStats?.completedTasks ?? 0} of {kpiStats?.totalTasks ?? 0} tasks ever made</p>
               </div>
               <div className="p-3 rounded-full bg-accent/10">
                 <Target className="h-6 w-6 text-accent" />

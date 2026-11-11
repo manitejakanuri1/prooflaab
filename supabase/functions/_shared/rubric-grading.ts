@@ -41,12 +41,25 @@ export function parseGrade(text: string, criteria: Criterion[]): CriterionScore[
   return out.length === criteria.length ? out : null;
 }
 
-/** A credit only counts when the grader quotes something the student actually wrote. */
+/**
+ * Lower case, straight quotes and dashes, one space: a quote that differs from the answer only in line
+ * breaks, curly quotes or dashes is still the student's own words (QA round 2 item 9, 11 Nov 2026).
+ */
+export function tidyForQuote(text: string): string {
+  return text.toLowerCase().replace(/[‘’`]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-")
+    .replace(/\s+/g, " ").trim();
+}
+
+/**
+ * A credit only counts when the grader quotes something the student actually wrote.
+ * A part that needs several places of the answer ("names Q2, Q4 and Q5") may carry up to 3 short quotes,
+ * separated by " | " or "...": every piece must be 8+ characters and found in the answer.
+ */
 export function zeroUnquotedCredit(scores: CriterionScore[], answer: string): CriterionScore[] {
-  const normalized = answer.toLowerCase();
+  const normalized = tidyForQuote(answer);
   return scores.map((s) => {
-    const evidence = s.evidence.trim().toLowerCase();
-    const quoted = evidence.length >= 8 && normalized.includes(evidence);
+    const pieces = tidyForQuote(s.evidence).split(/\s*(?:\||\.\.\.|…)\s*/).map((p) => p.trim()).filter(Boolean);
+    const quoted = pieces.length > 0 && pieces.length <= 3 && pieces.every((p) => p.length >= 8 && normalized.includes(p));
     return quoted ? s : { ...s, points: 0 };
   });
 }
@@ -80,7 +93,7 @@ Focus on student intent, practical understanding, and substance over formal voca
 
 If the answer is about a different subject, tool or language than the question asks for (for example a SQL answer to a Pandas question), it is off-topic: award 0 for every criterion and leave evidence empty, however good it is.
 
-For each rubric criterion, award points from 0 up to its max, and quote the exact short phrase from the answer (8+ characters, copied verbatim) that earned the credit. If nothing in the answer earns credit for a criterion, award 0 and leave evidence empty.
+For each rubric criterion, award points from 0 up to its max, and quote the exact short phrase from the answer (8+ characters, copied verbatim) that earned the credit. If the credit comes from several places in the answer, give up to 3 short verbatim quotes separated by " | ". If nothing in the answer earns credit for a criterion, award 0 and leave evidence empty.
 
 Reply with JSON only, an array with one object per criterion:
 [{"criterion_id": string, "points": number, "evidence": string}, ...]`;

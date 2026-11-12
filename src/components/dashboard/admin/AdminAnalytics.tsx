@@ -183,7 +183,7 @@ const AdminAnalytics = () => {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   {/* MF-090/106: this counts only the chosen period, unlike Overview's all-time total; say so. */}
-                  Work submitted, last {dateRange === "weekly" ? "7 days" : dateRange === "monthly" ? "month" : "12 months"}
+                  Answers sent (all tries), last {dateRange === "weekly" ? "7 days" : dateRange === "monthly" ? "month" : "12 months"}
                 </p>
                 <p className="text-3xl font-bold text-primary">{kpi(kpiStats?.totalProofs)}</p>
               </div>
@@ -212,10 +212,10 @@ const AdminAnalytics = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Tasks completed (%)</p>
+                <p className="text-sm font-medium text-muted-foreground">Tasks fully done (%)</p>
                 <p className="text-3xl font-bold text-accent">{kpi(kpiStats?.taskFillRate, "%")}</p>
                 {/* Sweep S30: all tasks ever made, so the % is small; show the counts behind it. */}
-                {kpiStats && <p className="text-xs text-muted-foreground">{kpiStats.completedTasks} of {kpiStats.totalTasks} tasks ever made</p>}
+                {kpiStats && <p className="text-xs text-muted-foreground">{kpiStats.completedTasks} of {kpiStats.totalTasks} tasks ever made: answer passed and voice done</p>}
               </div>
               <div className="p-3 rounded-full bg-accent/10">
                 <Target className="h-6 w-6 text-accent" />
@@ -232,7 +232,7 @@ const AdminAnalytics = () => {
           <CardHeader className="p-4 md:pb-4">
             <CardTitle className="flex items-center gap-2 text-base md:text-lg">
               <Activity className="h-4 w-4 md:h-5 md:w-5 text-primary" />
-              Proof Uploads Trend
+              Answers sent per day (last 7 days)
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
@@ -262,6 +262,7 @@ const AdminAnalytics = () => {
                   <Area 
                     type="monotone" 
                     dataKey="uploads" 
+                    name="Answers sent (all tries)"
                     stroke="hsl(var(--primary))" 
                     strokeWidth={2}
                     fillOpacity={1}

@@ -1,3 +1,4 @@
+import { fmtDay } from "@/lib/ist";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,7 +78,7 @@ const ContentLibrary = () => {
           { k: "Pages", v: data.pages.length },
           { k: "Available for Lots", v: shown },
           { k: "Sites", v: data.sources.length },
-          { k: "Newest page", v: data.newest_fetch ? new Date(data.newest_fetch).toLocaleDateString("en-GB") : "—" },
+          { k: "Newest page", v: data.newest_fetch ? fmtDay(data.newest_fetch) : "—" },
         ].map((c) => (
           <Card key={c.k}><CardContent className="pt-5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{c.k}</p>
@@ -136,7 +137,7 @@ const ContentLibrary = () => {
                       {p.college && <div className="text-xs text-primary">Submitted by {p.college}</div>}
                     </td>
                     <td className="py-2.5 pr-3 text-muted-foreground">{p.site ?? p.domain}<div className="text-[10px] font-mono">{p.fetch_method}</div></td>
-                    <td className="py-2.5 pr-3 text-muted-foreground">{new Date(p.fetched_at).toLocaleDateString("en-GB")}</td>
+                    <td className="py-2.5 pr-3 text-muted-foreground">{fmtDay(p.fetched_at)}</td>
                     <td className="py-2.5 pr-3 font-mono tabular-nums">{p.chars < 1000 ? `${p.chars} chars` : `${Math.round(p.chars / 1000)}k`}</td>
                     <td className="py-2.5 pr-3">{p.lot_written ? <Badge variant="outline">written</Badge> : <span className="text-xs text-muted-foreground">not yet</span>}</td>
                     <td className="py-2.5 pr-3 font-mono tabular-nums">{p.times_given}×</td>

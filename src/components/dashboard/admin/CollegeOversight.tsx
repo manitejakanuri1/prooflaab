@@ -1,4 +1,5 @@
-import { fmtIST } from "@/lib/ist";
+import { plural } from "@/lib/plural";
+import { fmtDay, fmtIST } from "@/lib/ist";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -358,7 +359,7 @@ const CollegeOversight = () => {
       const total = await countStudents(college.id);
       if (!total) { toast({ title: `${college.name} has no students` }); return; }
       if (!(await ask({
-        title: `Remove all ${total.toLocaleString("en-IN")} students of ${college.name}?`,
+        title: `Remove all ${plural(total, "student")} of ${college.name}?`,
         points: ["Their work, scores and logins are deleted", "Locked test accounts are skipped", "Keep this page open until it finishes"],
         action: "Remove all",
       }))) return;
@@ -393,7 +394,7 @@ const CollegeOversight = () => {
     try {
       const total = await countStudents(college.id);
       if (total) {
-        toast({ title: "Not deleted", description: `${college.name} still has ${total} students. Remove them first.`, variant: "destructive" });
+        toast({ title: "Not deleted", description: `${college.name} still has ${plural(total, "student")}. Remove them first.`, variant: "destructive" });
         return;
       }
       if (!(await ask({
@@ -583,7 +584,7 @@ ${college.name}`);
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden lg:table-cell">
                       {college.last_active 
-                        ? new Date(college.last_active).toLocaleDateString('en-GB')
+                        ? fmtDay(college.last_active)
                         : "—"
                       }
                     </TableCell>
@@ -598,7 +599,7 @@ ${college.name}`);
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden lg:table-cell">
-                      {new Date(college.created_at).toLocaleDateString('en-GB')}
+                      {fmtDay(college.created_at)}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -661,7 +662,7 @@ ${college.name}`);
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6">
               <p className="text-sm text-muted-foreground">
-                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, colleges?.length || 0)} of {colleges?.length || 0} colleges
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, colleges?.length || 0)} of {plural(colleges?.length, "college")}
               </p>
               <div className="flex items-center gap-2">
                 <Button
@@ -747,14 +748,14 @@ ${college.name}`);
                   <div>
                     <label className="text-sm font-medium mb-2 block">Created Date</label>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(selectedCollege.created_at).toLocaleDateString('en-GB')}
+                      {fmtDay(selectedCollege.created_at)}
                     </p>
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-2 block">Last Active</label>
                     <p className="text-sm text-muted-foreground">
                       {selectedCollege.last_active 
-                        ? new Date(selectedCollege.last_active).toLocaleDateString('en-GB')
+                        ? fmtDay(selectedCollege.last_active)
                         : "—"
                       }
                     </p>

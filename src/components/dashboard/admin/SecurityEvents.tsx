@@ -225,7 +225,8 @@ const SecurityEvents = () => {
                         {r.source === "client"
                           ? "reported by a browser (before 28 Oct)"
                           : Object.entries(r.detail ?? {}).filter(([k]) => k !== "forwarded")
-                            .map(([k, v]) => `${k}: ${tech ? String(v) : maskAll(String(v).replace(/_/g, " "))}`).join(", ") || "—"}
+                            // P7f: the database role word "startup" is shown as "Company".
+                            .map(([k, v]) => `${k}: ${k === "role" && v === "startup" ? "Company" : tech ? String(v) : maskAll(String(v).replace(/_/g, " "))}`).join(", ") || "—"}
                       </TableCell>
                     </TableRow>
                   ))}

@@ -1,3 +1,4 @@
+import { plural } from "@/lib/plural";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,7 +79,7 @@ const Timeline = ({ tech }: { tech: boolean }) => {
               <button key={s.student_id} type="button" onClick={() => void open(s)}
                 className={`w-full rounded-md border px-3 py-2 text-left text-sm hover:bg-muted ${picked?.student_id === s.student_id ? "border-primary bg-muted" : ""}`}>
                 <div className="font-medium">{s.full_name ?? "(no name)"}</div>
-                <div className="font-mono text-[11px] text-muted-foreground">{s.events_7d} steps in 7 days{s.last_seen ? ` · last ${fmtIST(s.last_seen)}` : " · never seen"}</div>
+                <div className="font-mono text-[11px] text-muted-foreground">{plural(s.events_7d, "step")} in 7 days{s.last_seen ? ` · last ${fmtIST(s.last_seen)}` : " · never seen"}</div>
               </button>
             ))}
           </CardContent>
@@ -143,7 +144,7 @@ const Funnels = () => {
               <CardContent className="space-y-3">
                 {steps.map((s) => (
                   <div key={s.step_label}>
-                    <div className="flex items-baseline justify-between text-sm"><span>{s.step_label}</span><span className="font-mono text-xs">{s.students} students{s.errors > 0 ? ` · ${s.errors} failed` : ""}</span></div>
+                    <div className="flex items-baseline justify-between text-sm"><span>{s.step_label}</span><span className="font-mono text-xs">{plural(s.students, "student")}{s.errors > 0 ? ` · ${s.errors} failed` : ""}</span></div>
                     <div className="mt-1 h-2 rounded bg-muted"><div className="h-2 rounded bg-primary" style={{ width: `${Math.round((s.students / top) * 100)}%` }} /></div>
                   </div>
                 ))}

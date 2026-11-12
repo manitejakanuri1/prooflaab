@@ -16,6 +16,7 @@ import { joinCodeFiles, MAX_HELPER_FILES, splitCodeFiles, validHelperName } from
 import { checkLine, fmtMark, loadLotState, submitLot, type LotState } from "@/lib/lotMarks";
 import { savedResultLine, type SavedRow } from "@/lib/savedAnswer";
 import { loadSavedAnswer } from "@/lib/savedAnswerLoad";
+import { announceTaskScored } from "@/lib/taskEvents";
 import { languageLabel, STARTERS } from "@/lib/codeLanguages";
 
 interface SandboxView {
@@ -112,6 +113,8 @@ interface SandboxTaskPanelProps {
   /** MF-114: the server's verdict on the recording; "Fully Completed" only when scored. */
   voiceStatus?: VoiceStatus | null;
   onFinish?: () => void;
+  /** Owner E2E S4: "Set by <name> · Due <date>" for an assigned task, under the title. */
+  meta?: ReactNode;
 }
 
 /**
@@ -128,6 +131,7 @@ export default function SandboxTaskPanel({
   voiceSaved,
   voiceStatus,
   onFinish,
+  meta,
 }: SandboxTaskPanelProps) {
   const [view, setView] = useState<SandboxView | null>(null);
   // MF-020: a finished task shows the saved answer and result from the server, not an empty draft.
@@ -230,6 +234,7 @@ export default function SandboxTaskPanel({
     }
     const r = data as SubmitResult;
     setResult(r);
+    announceTaskScored();
     if (r.lot) setLot(r.lot);
     if (r.passed || r.lot?.submitted) {
       onPassedChange?.(true);
@@ -469,6 +474,7 @@ ${result.hidden_hint.error}` : ""}`}
     <div className={`flex h-full flex-col overflow-y-auto lg:grid lg:overflow-hidden ${voice ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_320px]" : "lg:grid-cols-2"}`}>
       <div className="space-y-4 border-b p-5 lg:overflow-y-auto lg:border-b-0 lg:border-r">
         <h2 className="pr-8 text-lg font-semibold lg:pr-0">{view.title}</h2>
+        {meta && <p className="mt-1 text-xs text-muted-foreground" data-testid="task-origin">{meta}</p>}
         {/* Lot screen simplify (owner, 11 Nov 2026): above the editor only the task, the input/output with one
             sample, and the stdin rule. Size limits, test counts and the rest sit in "More help". */}
         <SimpleQuestion taskId={taskId} original={view.description} coding anyLanguage={anyLanguage}

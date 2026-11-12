@@ -1,5 +1,7 @@
 import { oneRange } from "@/lib/lotText";
+import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { onTaskScored } from "@/lib/taskEvents";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { tidyTitle } from "@/lib/utils";
@@ -31,11 +33,16 @@ interface StudentTask {
   company?: string | null; // Migration 257: the company that set a company Lot
   /** Migration 300: the company's review of the latest handed-in try (returned = sent back for changes). */
   review?: { decision: 'accepted' | 'needs_work' | 'rejected'; note: string | null; at: string; returned: boolean } | null;
+  /** Owner E2E S4 (migration 317): who set the task - the company, the college's name, ProofLab admin, ... */
+  assigned_by?: string | null;
 }
 
 export const useAllStudentTasks = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // S7: a scored answer anywhere (Daily Card or task window) refreshes the task list at once.
+  useEffect(() => onTaskScored(() => { void queryClient.invalidateQueries({ queryKey: ['all-student-tasks'] }); }), [queryClient]);
 
   const query = useQuery({
     queryKey: ['all-student-tasks', user?.id],
@@ -247,6 +254,13 @@ export const useAllStudentTasks = () => {
         });
         addedTaskIds.add(task.id);
       });
+
+      // S4: the setter's name (assigned_by, migration 317). A failed read only leaves the name out.
+      if (allTasks.length) {
+        const { data: byRows } = await supabase.from('tasks').select('id, assigned_by' as string).in('id', allTasks.map((t) => t.id));
+        const byOf = new Map(((byRows ?? []) as unknown as { id: string; assigned_by: string | null }[]).map((r) => [r.id, r.assigned_by]));
+        for (const t of allTasks) t.assigned_by = byOf.get(t.id) ?? null;
+      }
 
       return allTasks;
     },

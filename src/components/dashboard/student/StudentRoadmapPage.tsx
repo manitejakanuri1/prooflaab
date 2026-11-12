@@ -6,6 +6,7 @@ import { parseStages, type RoadmapStage } from "./RoadmapStages";
 import type { TestMistake } from "./TestMistakes";
 import LevelMap from "./LevelMap";
 import ThisWeekPlan from "./ThisWeekPlan";
+import LoadFailed from "@/components/common/LoadFailed";
 
 interface StageTask {
   roadmap_stage_index: number;
@@ -19,13 +20,18 @@ const StudentRoadmapPage = () => {
   const [taskStatusByStage, setTaskStatusByStage] = useState<Record<number, StageTask["status"]>>({});
   const [taskIdByStage, setTaskIdByStage] = useState<Record<number, string>>({});
   const [codingByStage, setCodingByStage] = useState<Record<number, boolean>>({});
+  // S2/S9: a failed read (502) left the roadmap empty and "Start Task" without its task, so it went to the list
+  // and looked like it did nothing. Now the failure is said, with Try again.
+  const [failed, setFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     (async () => {
       if (!user) return;
-      const { data: profile } = await supabase.from("student_profiles").select("id").eq("user_id", user.id).single();
-      if (!profile) return;
-      const { data: scorecard } = await supabase
+      setFailed(false);
+      const { data: profile, error: pErr } = await supabase.from("student_profiles").select("id").eq("user_id", user.id).single();
+      if (pErr || !profile) { setFailed(true); return; }
+      const { data: scorecard, error: sErr } = await supabase
         .from("resume_scorecards")
         .select("id, roadmap")
         .eq("student_id", profile.id)
@@ -33,13 +39,15 @@ const StudentRoadmapPage = () => {
         .limit(1)
         .maybeSingle();
 
+      if (sErr) { setFailed(true); return; }
       if (!scorecard) return;
       setStages(parseStages(scorecard.roadmap));
 
-      const { data: tasks } = await supabase
+      const { data: tasks, error: tErr } = await supabase
         .from("tasks")
         .select("id, roadmap_stage_index, started_at, status, sandbox_config_id, task_submissions(status, created_at)")
         .eq("roadmap_scorecard_id", scorecard.id);
+      if (tErr) { setFailed(true); return; }
 
       const statusMap: Record<number, StageTask["status"]> = {};
       const idMap: Record<number, string> = {};
@@ -63,7 +71,7 @@ const StudentRoadmapPage = () => {
       setTaskIdByStage(idMap);
       setCodingByStage(codingMap);
     })();
-  }, [user]);
+  }, [user, reloadKey]);
 
   // The test's roadmap, shown on the ladder: each stage under the step whose
   // skill it names (anything unmatched goes in the "Other" box on the map).
@@ -84,6 +92,7 @@ const StudentRoadmapPage = () => {
         Your learning path: lessons and quizzes, step by step. Your one task for today is on the Daily Card.
       </p>
       <ThisWeekPlan />
+      {failed && <LoadFailed what="your roadmap tasks" onRetry={() => setReloadKey((k) => k + 1)} />}
       <div id="ladder">
         <LevelMap mistakes={mistakes} onGoToTasks={(taskId) => navigate(taskId ? `/student/tasks/assigned?open=${taskId}` : "/student/tasks/assigned")} />
       </div>

@@ -1,3 +1,4 @@
+import LoadFailed from "@/components/common/LoadFailed";
 import { fmtDay } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarks";
 import { percentShares } from "@/lib/percentShares";
@@ -70,20 +71,26 @@ const StudentResumeHistoryPage = () => {
     setAnswersLoading(null);
   };
 
+  // S8/Y4: a failed read showed "No assessments yet". Now it says it could not load, with Try again.
+  const [failed, setFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
     (async () => {
       if (!user) return;
-      const { data: profile } = await supabase.from("student_profiles").select("id").eq("user_id", user.id).single();
-      if (!profile) {
+      setFailed(false);
+      const { data: profile, error: pErr } = await supabase.from("student_profiles").select("id").eq("user_id", user.id).single();
+      if (pErr || !profile) {
+        setFailed(Boolean(pErr));
         setLoading(false);
         return;
       }
-      const { data } = await supabase
+      const { data, error: hErr } = await supabase
         .from("resume_scorecards")
         .select("id, created_at, resume_quality_score, ats_match_score, skill_proof_score, voice_authenticity_score, coding_score, interview_readiness_score, project_proof_score, reasoning_score, skill_gap, is_retest, assessment_id")
         .eq("student_id", profile.id)
         .order("created_at", { ascending: false })
         .limit(20);
+      if (hErr) { setFailed(true); setLoading(false); return; }
       const { data: v } = await supabase.from("voice_explanations").select("communication_score")
         .eq("student_id", profile.id).eq("status", "scored").not("task_id", "is", null)
         .order("created_at", { ascending: false }).limit(1).maybeSingle();
@@ -98,7 +105,7 @@ const StudentResumeHistoryPage = () => {
         setAnswersByAssessment((prev) => ({ ...prev, [latestId]: (graded?.answer_scores as unknown as AnswerScore[]) || [] }));
       }
     })();
-  }, [user]);
+  }, [user, reloadKey]);
 
   return (
     <Card>
@@ -111,6 +118,8 @@ const StudentResumeHistoryPage = () => {
       <CardContent>
         {loading ? (
           <div className="animate-pulse h-24 bg-muted rounded" />
+        ) : failed ? (
+          <LoadFailed what="your test history" onRetry={() => { setLoading(true); setReloadKey((k) => k + 1); }} />
         ) : history.length === 0 ? (
           <p className="text-sm text-muted-foreground">No assessments yet — confirm your resume and take the assessment first.</p>
         ) : (

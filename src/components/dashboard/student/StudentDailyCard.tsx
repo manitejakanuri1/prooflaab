@@ -6,6 +6,7 @@ import { liveStreak } from "@/lib/streak";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
+import { onTaskScored } from "@/lib/taskEvents";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -286,6 +287,8 @@ const StudentDailyCard = () => {
   // even when the popup was closed during the upload.
   // MF-040: the card itself also waits for the score while the Lot says "Spoken explanation required"
   // (recorded from the card's own popup, or the task screen was closed), so it turns Done by itself.
+  // S7: a Lot checked from the task list below (its own window) updates this card at once.
+  useEffect(() => onTaskScored(() => { void load(); }), [load]);
   useLiveRefresh(async () => {
     if (!lot || !profile?.id) return;
     if (voiceStatus !== "checking" && lot.status !== "pending_voice") return;

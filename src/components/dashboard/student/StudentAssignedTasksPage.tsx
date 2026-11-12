@@ -137,7 +137,9 @@ const StudentAssignedTasksPage = () => {
     if (!id || loading) return;
     setParams({}, { replace: true });              // only once
     const task = allTasks.find((t) => t.id === id);
-    if (!task || (task.status !== "Applied" && task.status !== "In Progress")) return;
+    // S2: never silent - a task that could not be found (list failed to load) says so.
+    if (!task) { toast.error("Could not open that task. Refresh the page and try again."); return; }
+    if (task.status !== "Applied" && task.status !== "In Progress") { setSelectedTaskForDetails(id); return; }
     void (async () => {
       try {
         if (task.can_start) { await startTask(id); toast.success("Task started successfully!"); }
@@ -181,6 +183,15 @@ const StudentAssignedTasksPage = () => {
     "Company Lot": "Set by a company",
   };
   const sourceLabel = (source: string) => SOURCE_LABEL[source] ?? (source || "Task");
+  // Owner E2E S4: the task window says who set the task and when it is due.
+  const originOf = (taskId: string) => {
+    const t = allTasks.find((x) => x.id === taskId);
+    if (!t) return undefined;
+    const named = t.company ?? (["College", "Admin", "Company", "Company Lot"].includes(t.source) ? t.assigned_by : null);
+    const by = named ? `Set by ${named}` : sourceLabel(t.source || "");
+    const when = t.lot_date ? `Lot day ${format(parseISO(t.lot_date), "EEE d MMM")}` : `Due ${formatDueDate(t.deadline)}`;
+    return `${by} · ${when}`;
+  };
   const sourceCounts = Object.entries(
     assignedTasks.reduce<Record<string, number>>((acc, t) => {
       const k = sourceLabel(t.source || "");
@@ -407,7 +418,7 @@ const StudentAssignedTasksPage = () => {
                       </div>
 
                       {/* Right: Actions */}
-                      <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-shrink-0">
+                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:flex-shrink-0">
                         {task.status === 'Applied' && task.can_start && (
                           <Button
                             size="sm"
@@ -525,6 +536,7 @@ const StudentAssignedTasksPage = () => {
           <DialogContent className={TASK_SCREEN_CLASS}>
             <SandboxTaskPanel
               taskId={codingTaskId}
+              meta={originOf(codingTaskId)}
               voice={voiceFor(codingTaskId)}
               onCompleted={() => { explainAfter(codingTaskId); setCodingTaskId(null); refetchTasks(); }}
             />
@@ -537,6 +549,7 @@ const StudentAssignedTasksPage = () => {
           <DialogContent className={TASK_SCREEN_CLASS}>
             <WrittenTaskPanel
               taskId={writingTaskId}
+              meta={originOf(writingTaskId)}
               voice={voiceFor(writingTaskId)}
               onPassedChange={() => void refetchTasks()}
               onCompleted={() => { explainAfter(writingTaskId); setWritingTaskId(null); refetchTasks(); }}

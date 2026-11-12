@@ -1,3 +1,4 @@
+import LoadFailed from "@/components/common/LoadFailed";
 import { fmtDay } from "@/lib/ist";
 import { Link } from "react-router-dom";
 import InfoTip from "@/components/common/InfoTip";
@@ -58,13 +59,17 @@ const StudentProgressPage = () => {
   const [openList, setOpenList] = useState<"tries" | "total" | "week" | null>(null);
   // The running week, from the same source as the dashboard's "This week" (my_marks_week).
   const [running, setRunning] = useState<WeekMarks | null>(null);
+  // S8/Y4: a failed read said nothing (blank or zeros). Now it says so, with Try again.
+  const [failed, setFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!profile?.id) return;
     (async () => {
+      setFailed(false);
       // student_weekly_scores holds FINISHED weeks only (written when a week is scored).
       // The newest season's latest 8 finished weeks, in week order (latestWeeks).
-      const [{ data: weekly }, { data: earned }, { data: proofs }, week] = await Promise.all([
+      const [{ data: weekly, error: e1 }, { data: earned, error: e2 }, { data: proofs, error: e3 }, week] = await Promise.all([
         supabase.from("student_weekly_scores").select("season_id, week, points, computed_at")
           .eq("student_id", profile.id).order("computed_at", { ascending: false }).limit(200),
         supabase.from("student_badges").select("awarded_at, badges(name, emoji)")
@@ -74,6 +79,7 @@ const StudentProgressPage = () => {
         loadWeekMarks().catch(() => null).then((w) => w ?? loadWeekMarks().catch(() => null)),
       ]);
 
+      if (e1 || e2 || e3) { setFailed(true); return; }
       setRunning(week);
       setWeeklyPoints(latestWeeks((weekly ?? []) as WeekRow[]));
       setBadges((earned ?? []).map((r: any) => ({ name: r.badges?.name ?? "Badge", emoji: r.badges?.emoji ?? "🏅" })));
@@ -84,8 +90,9 @@ const StudentProgressPage = () => {
         passed: (proofs ?? []).filter((p) => p.status === "passed").length,
       });
     })();
-  }, [profile?.id]);
+  }, [profile?.id, reloadKey]);
 
+  if (failed) return <LoadFailed what="your progress" onRetry={() => setReloadKey((k) => k + 1)} />;
   if (profileLoading || weeklyPoints === null || submissions === null) {
     return (
       <div className="space-y-6">

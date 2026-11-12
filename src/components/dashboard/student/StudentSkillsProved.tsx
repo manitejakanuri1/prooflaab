@@ -20,6 +20,8 @@ interface Skill {
   topics_total: number;
   needs_improvement: boolean;
   last_evidence_at: string | null;
+  /** Migration 316: this skill's own questions in the latest graded test (0-100), null when none. */
+  test_score?: number | null;
 }
 
 /** Claimed → assessed → proven, and the fourth one nobody wants to be in. */
@@ -187,6 +189,8 @@ const StudentSkillsProved = () => {
   }
 
   const proven = skills.filter((s) => s.status === "proven").length;
+  // Owner E2E S10: the overall test average is one number - said once here, not copied onto every skill.
+  const overall = skills.find((s) => s.assessed_score != null)?.assessed_score ?? null;
 
   return (
     <div className="space-y-4">
@@ -200,9 +204,10 @@ const StudentSkillsProved = () => {
             <span className="font-mono text-xl font-semibold tabular-nums">{proven}</span>
             <span className="text-muted-foreground"> of {skills.length} passed the starting test.</span>
           </p>
-          {skills.some((s) => s.assessed_score != null) && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Starting test = your overall starting-test average, shown on each skill from your resume. Tap a skill for details.
+          {overall != null && (
+            <p className="mt-1 text-xs text-muted-foreground" data-testid="skills-test-overall">
+              Starting test overall: <span className="font-mono">{of10(overall)}</span>. A skill shows its own test
+              score when the test asked about it. Tap a skill for details.
             </p>
           )}
         </CardContent>
@@ -223,9 +228,9 @@ const StudentSkillsProved = () => {
                   <Badge variant="outline" className={`text-[10px] font-normal ${meta.tone}`}>
                     {meta.label}
                   </Badge>
-                  {s.assessed_score != null && (
+                  {s.test_score != null && (
                     <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
-                      Starting test overall: {of10(s.assessed_score)}
+                      Starting test: {of10(s.test_score)}
                     </span>
                   )}
                 </div>
@@ -284,9 +289,12 @@ const StudentSkillsProved = () => {
               <DialogHeader><DialogTitle>{openSkill.skill}: {(STATUS[openSkill.status] ?? STATUS.claimed).label}</DialogTitle></DialogHeader>
               <div className="space-y-2 text-sm">
                 <p><span className="font-medium">What it means:</span> {(STATUS[openSkill.status] ?? STATUS.claimed).says}</p>
-                {openSkill.assessed_score != null && (
-                  <p><span className="font-medium">Starting test overall: {of10(openSkill.assessed_score)}</span> - your overall
-                    starting-test average. The same number is shown on each skill from your resume.</p>
+                {openSkill.test_score != null ? (
+                  <p><span className="font-medium">Starting test on {openSkill.skill}: {of10(openSkill.test_score)}</span> - the
+                    average of the test questions on this skill.</p>
+                ) : openSkill.assessed_score != null && (
+                  <p><span className="font-medium">Starting test overall: {of10(openSkill.assessed_score)}</span> - the test
+                    had no separate question score for {openSkill.skill}, so this is your overall average.</p>
                 )}
                 <p><span className="font-medium">Where it came from:</span> {openSkill.claimed_from ? `added from ${openSkill.claimed_from.replace(/_/g, " ")}` : "your resume"}
                   {`; Lots on it: ${openSkill.proven_lots}; explained out loud: ${openSkill.proven_voice}`}

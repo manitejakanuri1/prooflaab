@@ -315,7 +315,7 @@ const StudentSquadPage = () => {
               { k: "Points", v: squad.points, help: SCORE_HELP.squadSeason },
               { k: "Record", v: `${squad.wins}–${squad.draws ?? 0}–${squad.losses}`, help: SCORE_HELP.record },
               { k: "My share", v: `${myShare}%`, help: SCORE_HELP.share },
-              { k: "Movement", v: movement == null || squad.points <= 0 ? "Not ranked yet" : movement === 0 ? "No change" : movement > 0 ? `▲${movement}` : `▼${-movement}`, help: SCORE_HELP.movement },
+              { k: "Movement", v: !(shownRank && squad.points > 0) ? "Not ranked yet" : movement == null ? `#${shownRank}, first ranking` : movement === 0 ? "No change" : movement > 0 ? `▲${movement}` : `▼${-movement}`, help: SCORE_HELP.movement },
             ].map(({ k, v, help }) => (
               <div key={k} className="rounded-lg bg-muted/50 p-3">
                 <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{k} <InfoTip text={help} /></span>

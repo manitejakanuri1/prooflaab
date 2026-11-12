@@ -8,10 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, NotebookPen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBuildLog, voiceInProgress, type BuildLogEntry } from "@/hooks/useBuildLog";
-import { passedLabel, passedNote } from "@/lib/passedNote";
+import { LOW_SCORE, passedNote } from "@/lib/passedNote";
 import { fmtMark, loadLotState, of10, talkCheck, SCORE_HELP } from "@/lib/lotMarks";
 import InfoTip from "@/components/common/InfoTip";
-import { lotStatusText, part10, quotes, voiceOwedText, AUTO_TRANSCRIPT_NOTE } from "@/lib/lotText";
+import { lotLine, part10, quotes, voiceOwedText, AUTO_TRANSCRIPT_NOTE } from "@/lib/lotText";
 
 const STATUS: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
   passed: { label: "Passed", variant: "default" },
@@ -112,23 +112,19 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
     if (!e.lot_date || v?.status !== "failed") return;
     loadLotState(e.task_id).then((s) => setClosed(Boolean(s?.voice_closed)), () => {});
   }, [e.task_id, e.lot_date, v?.status]);
-  // Owner 1 Nov 2026: green "Passed" needs the voice at 50+ too (passedLabel).
-  const passLabel = e.status === "passed" ? passedLabel(e.kind, scored ? v!.communication_score : null) : null;
   const rejected = v?.status === "failed" && !closed;
-  const st = closed && e.status === "passed"
-    ? { label: `${e.kind === "written" ? "Answer" : "Code"} passed · spoken part closed`, variant: "outline" as const }
-    : rejected && e.status === "passed"
-    // Retest F4: the same words as "Code passed - record your 60s explanation to finish", for a rejected voice.
-    ? { label: `${e.kind === "written" ? "Answer" : "Code"} passed - voice not accepted - record again${e.lot_date === format(new Date(), "yyyy-MM-dd") ? " (due today)" : ""}`, variant: "outline" as const }
+  // Y1/Y2 (12 Nov 2026): one status line, the same words as the college and admin screens (lotLine);
+  // the student also gets what to do next. Green "Passed" still needs the voice at 50+ (owner 1 Nov 2026).
+  const mark10 = e.score != null ? e.score / 10 : null;
+  const dueToday = e.lot_date === format(new Date(), "yyyy-MM-dd");
+  const line = lotLine({ answer: e.status, mark10, voice: closed ? "closed" : busy ? "checking" : v?.status ?? null,
+                         reason: v?.evaluation?.attempt_fail, voiceScore: scored ? v!.communication_score : null });
+  const st = e.status === "passed" && scored && (v!.communication_score ?? 0) >= LOW_SCORE ? STATUS.passed
     // Item 21: work handed in, voice never recorded - the same words as the Daily Card.
     : !v && e.lot_date && e.task_status === "pending_voice"
-    ? { label: voiceOwedText({ coding: e.kind === "code", passed: e.status === "passed", mark10: e.score != null ? e.score / 10 : null,
-                               dueToday: e.lot_date === format(new Date(), "yyyy-MM-dd") }), variant: "outline" as const }
-    : passLabel && passLabel !== "Passed" ? { label: passLabel, variant: "outline" as const }
-    // QA round 2 item 10: the same words as the Daily Card and the Lot screen.
-    : e.status === "failed" ? { label: lotStatusText({ passed: false, submitted: !!e.lot_date && ["pending_voice", "completed"].includes(e.task_status ?? ""),
-                                                       mark10: e.score != null ? e.score / 10 : null }), variant: "secondary" as const }
-    : STATUS[e.status] ?? { label: e.status, variant: "outline" as const };
+    ? { label: voiceOwedText({ coding: e.kind === "code", passed: e.status === "passed", mark10, dueToday }), variant: "outline" as const }
+    : rejected && e.status === "passed" ? { label: `${line} - record again${dueToday ? " (due today)" : ""}`, variant: "outline" as const }
+    : { label: line, variant: e.status === "failed" ? "secondary" as const : "outline" as const };
   const match = v?.evaluation?.content_match;
   const gate = v?.evaluation?.transcription?.gate;
   const breakdown = (e.kind === "written" ? e.feedback ?? [] : []).map((f) => {

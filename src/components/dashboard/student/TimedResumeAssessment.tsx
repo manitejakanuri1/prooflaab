@@ -1,3 +1,4 @@
+import { of10 } from "@/lib/lotMarksText";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TASK_SCREEN_CLASS } from "./SandboxTaskPanel";
@@ -1039,32 +1040,32 @@ const TimedResumeAssessment = ({ open, onOpenChange, assessmentId, source, quest
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="border rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold">{pendingResult.resume_quality_score ?? "—"}</div>
+                  <div className="text-2xl font-bold">{of10(pendingResult.resume_quality_score)}</div>
                   <div className="text-xs text-muted-foreground mt-1">Resume Quality</div>
                 </div>
                 <div className="border rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold">{pendingResult.ats_match_score ?? "—"}</div>
+                  <div className="text-2xl font-bold">{of10(pendingResult.ats_match_score)}</div>
                   <div className="text-xs text-muted-foreground mt-1">ATS Match</div>
                 </div>
                 <div className="border rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold">{pendingResult.skill_proof_score}</div>
+                  <div className="text-2xl font-bold">{of10(pendingResult.skill_proof_score)}</div>
                   <div className="text-xs text-muted-foreground mt-1">Skill Proof</div>
                 </div>
                 <div className="border rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold">{pendingResult.coding_score ?? "—"}</div>
+                  <div className="text-2xl font-bold">{of10(pendingResult.coding_score)}</div>
                   <div className="text-xs text-muted-foreground mt-1">Coding</div>
                   {pendingResult.coding_score != null && <CodingBreakdown assessmentId={assessmentId} />}
                 </div>
                 <div className="border rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold">{pendingResult.project_proof_score ?? "—"}</div>
+                  <div className="text-2xl font-bold">{of10(pendingResult.project_proof_score)}</div>
                   <div className="text-xs text-muted-foreground mt-1">Project Proof</div>
                 </div>
                 <div className="border rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold">{pendingResult.reasoning_score ?? "—"}</div>
+                  <div className="text-2xl font-bold">{of10(pendingResult.reasoning_score)}</div>
                   <div className="text-xs text-muted-foreground mt-1">Reasoning</div>
                 </div>
                 <div className="border rounded-lg p-3 text-center col-span-2 sm:col-span-2">
-                  <div className="text-2xl font-bold">{pendingResult.interview_readiness_score ?? "—"}</div>
+                  <div className="text-2xl font-bold">{of10(pendingResult.interview_readiness_score)}</div>
                   <div className="text-xs text-muted-foreground mt-1">Interview Readiness</div>
                 </div>
               </div>

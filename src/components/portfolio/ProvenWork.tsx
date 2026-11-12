@@ -34,7 +34,7 @@ export const useProvenWork = (studentId?: string | null) =>
   });
 
 /**
- * What a student has proven: the Lots they passed, with the checked score and the
+ * What a student has proven: the Lots they finished (passed + voice accepted, migration 320), with the checked score and the
  * score of their spoken explanation. Read from portfolio_work() (task_submissions +
  * voice_explanations) - the retired proof uploads are not shown. No code or answers
  * are shown here, only what was passed and when.
@@ -63,8 +63,9 @@ export default function ProvenWork({ studentId, rows, emptyText }: { studentId?:
         <li key={w.task_id} className="rounded-xl border bg-card p-4">
           <div className="flex items-start justify-between gap-3">
             <p className="font-medium leading-snug">{tidyTitle(w.title)}</p>
-            {/* Owner rule B: "Passed" only with a spoken explanation of 50+. */}
-            <Badge className="shrink-0">{passedLabel(w.kind, w.explanation_score)}{w.score != null ? ` · ${of10(w.score)}` : ""}</Badge>
+            {/* Owner rule B: "Passed" only with a spoken explanation of 50+. S6 (migration 320): every row here is done
+                (voice accepted); the score comes only when 50+, so a missing one is a low voice score. */}
+            <Badge className="shrink-0">{passedLabel(w.kind, w.explanation_score ?? 0)}{w.score != null ? ` · ${of10(w.score)}` : ""}</Badge>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
@@ -75,7 +76,7 @@ export default function ProvenWork({ studentId, rows, emptyText }: { studentId?:
             </span>
             <span className="inline-flex items-center gap-1">
               <Mic className="h-3.5 w-3.5" />
-              {w.explanation_score != null ? `Explained · ${of10(w.explanation_score)}` : "Not explained yet"}
+              {w.explanation_score != null ? `Explained · ${of10(w.explanation_score)}` : "Explained"}
             </span>
             <span>{fmtDay(w.passed_at)}</span>
             {w.set_by && <span>Set by {w.set_by}</span>}

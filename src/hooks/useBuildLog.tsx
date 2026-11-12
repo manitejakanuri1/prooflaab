@@ -18,7 +18,7 @@ export interface BuildLogVoice {
   communication_notes: string | null;
   transcript: string | null;
   /** evaluator metadata: content_match (0-100), flags, and what the transcriber heard. */
-  evaluation: { content_match?: number | null; flags?: string[]; transcription?: { gate?: string; language?: string } } | null;
+  evaluation: { content_match?: number | null; flags?: string[]; attempt_fail?: string; transcription?: { gate?: string; language?: string } } | null;
   created_at: string;
 }
 

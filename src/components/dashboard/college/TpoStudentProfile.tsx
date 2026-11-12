@@ -1,5 +1,5 @@
 import InfoTip from "@/components/common/InfoTip";
-import { lotRowText } from "@/lib/lotText";
+import { lotLine } from "@/lib/lotText";
 import { fmtDay, fmtDayTime } from "@/lib/ist";
 import { of10, scoreText10 } from "@/lib/lotMarks";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -53,7 +53,8 @@ interface Profile {
   mock_interviews?: { count: number; completed: number; last_score: number | null; last_at: string | null };
   recent_work: {
     id: string; file_name: string | null; task_title: string | null;
-    status: string; task_status?: string | null; ai_score: number | null; submitted_at: string | null; attempts?: number;
+    status: string; task_status?: string | null; ai_score: number | null;
+    voice?: { status: string; reason: string | null; score: number | null } | null; submitted_at: string | null; attempts?: number; // voice: migration 320
   }[];
   interventions: { type: string; reason: string; created_at: string }[];
   error?: string;
@@ -392,11 +393,10 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                         {(w.attempts ?? 1) > 1 && (
                           <span className="font-mono text-[10px] text-muted-foreground">{w.attempts} tries</span>
                         )}
-                        {w.ai_score != null && (
-                          <span className="font-mono text-xs tabular-nums">{of10(w.ai_score)}</span>
-                        )}
                         <Badge variant={w.status === "passed" ? "default" : "outline"}>
-                          {lotRowText(w.status, w.task_status)}
+                          {/* Y1/Y2: the student's own words - "Not passed · 1.9/10 · voice not done" (lotLine). */}
+                          {lotLine({ answer: w.status, mark10: w.ai_score != null ? w.ai_score / 10 : null, voice: w.voice?.status ?? null,
+                                     reason: w.voice?.reason, voiceScore: w.voice?.score })}
                         </Badge>
                       </div>
                     </div>

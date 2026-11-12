@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { lotRowText, copiedNoteText, dropHelper, dropWordRange, plainCode, tidyShown, lotStatusText, oneRange, part10, squadUpdateText, triesSummary, voiceOwedText, weekDayText, weekLotsText } from "./lotText.ts";
+import { lotLine, pickVoice, lotRowText, copiedNoteText, dropHelper, dropWordRange, plainCode, tidyShown, lotStatusText, oneRange, part10, squadUpdateText, triesSummary, voiceOwedText, weekDayText, weekLotsText } from "./lotText.ts";
 
 test("one word range: the checker's replaces the one in the text", () => {
   const w = { min: 150, max: 800 };
@@ -18,8 +18,8 @@ test("the explainer's own rule is dropped", () => {
 });
 
 test("one Lot status everywhere", () => {
-  assert.equal(lotStatusText({ passed: false, submitted: true, mark10: 6.5 }), "Submitted, not passed (6.5/10)");
-  assert.equal(lotStatusText({ passed: false, submitted: false, mark10: 6 }), "Not passed yet (6/10)");
+  assert.equal(lotStatusText({ passed: false, submitted: true, mark10: 6.5 }), "Not passed · 6.5/10");
+  assert.equal(lotStatusText({ passed: false, submitted: false, mark10: 6 }), "Not passed · 6/10");
   assert.equal(lotStatusText({ passed: true, submitted: true, mark10: 8 }), "Passed");
 });
 
@@ -41,9 +41,9 @@ test("Progress tiles: tries, Lots, passed and not passed in one line", () => {
 
 test("voice owed reads one way everywhere (QA round 2 item 21)", () => {
   assert.equal(voiceOwedText({ coding: true, passed: true, dueToday: true }),
-    "Code passed - record your 60s explanation to finish (due today)");
+    "Passed · voice not done - record your 60s explanation to finish (due today)");
   assert.equal(voiceOwedText({ coding: false, passed: false, mark10: 6.5, dueToday: false }),
-    "Submitted, not passed (6.5/10) - record your 60s explanation to finish");
+    "Not passed · 6.5/10 · voice not done - record your 60s explanation to finish");
 });
 
 test("squad card says when points update (item 25)", () => {
@@ -99,7 +99,21 @@ test("done-when: 'and your answer is N to M words' goes with its range (overnigh
 
 test("college drawer: a Lot's state uses the same words as the header and the student", () => {
   assert.equal(lotRowText("passed", "completed"), "Passed");
-  assert.equal(lotRowText("passed", "pending_voice"), "Passed · voice owed");
-  assert.equal(lotRowText("failed", "pending"), "Not passed yet");
+  assert.equal(lotRowText("passed", "pending_voice"), "Passed · voice not done");
+  assert.equal(lotRowText("failed", "pending"), "Not passed");
   assert.equal(lotRowText("needs_review"), "Waiting for a person");
+});
+
+test("Y1/Y2: one status line for a Lot on every screen", () => {
+  assert.equal(lotLine({ answer: "failed", mark10: 1.9, voice: null }), "Not passed · 1.9/10 · voice not done");
+  assert.equal(lotLine({ answer: "passed", mark10: 10, voice: "failed", reason: "off_topic" }), "Passed · 10/10 · voice not accepted - off topic");
+  assert.equal(lotLine({ answer: "passed", mark10: 10, voice: "scored", voiceScore: 72 }), "Passed · 10/10 · voice done");
+  assert.equal(lotLine({ answer: "passed", voice: "scored", voiceScore: 30 }), "Passed · low voice score");
+  assert.equal(lotLine({ answer: "passed", voice: "processing" }), "Passed · voice being checked");
+  assert.equal(lotLine({ answer: "failed", mark10: 1.9 }), "Not passed · 1.9/10");
+  assert.equal(lotLine({ answer: "needs_review" }), "Waiting for a person");
+  const v = (status: string, created_at: string, withdrawn_at: string | null = null) => ({ status, created_at, withdrawn_at });
+  assert.equal(pickVoice([v("failed", "2026-11-02"), v("scored", "2026-11-01")])?.status, "scored");
+  assert.equal(pickVoice([v("failed", "2026-11-01"), v("processing", "2026-11-02")])?.status, "processing");
+  assert.equal(pickVoice([v("scored", "2026-11-01", "2026-11-03")]), null);
 });

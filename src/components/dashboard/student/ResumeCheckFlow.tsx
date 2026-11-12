@@ -1,3 +1,4 @@
+import { fmtMark, of10 } from "@/lib/lotMarksText";
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -557,12 +558,12 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="border rounded-lg p-3">
-                <div className="text-2xl font-bold">{claim.resume_quality_score ?? "—"}</div>
+                <div className="text-2xl font-bold">{of10(claim.resume_quality_score)}</div>
                 <div className="text-xs text-muted-foreground mt-1 mb-2">Resume Quality</div>
                 {!claim.improved_applied_at && <p className="text-sm text-muted-foreground">{claim.resume_quality_notes}</p>}
               </div>
               <div className="border rounded-lg p-3">
-                <div className="text-2xl font-bold">{claim.ats_match_score ?? "—"}</div>
+                <div className="text-2xl font-bold">{of10(claim.ats_match_score)}</div>
                 <div className="text-xs text-muted-foreground mt-1 mb-2">ATS Match</div>
                 {!claim.improved_applied_at && <p className="text-sm text-muted-foreground">{claim.ats_match_notes}</p>}
               </div>
@@ -572,8 +573,8 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
               {tier === "bad"
                 ? fixed
                   ? `The one-time AI fix is done. Use the steps below to improve it further.`
-                  : `Below ${ATS_GATE}% ATS match — use the one-time Auto-fix, or edit and re-upload.`
-                : `${ATS_GATE}-85% ATS match — solid. The notes above say what would make it stronger.`}
+                  : `ATS match below ${of10(ATS_GATE)} — use the one-time Auto-fix, or edit and re-upload.`
+                : `ATS match ${of10(ATS_GATE)} to 8.5/10 — solid. The notes above say what would make it stronger.`}
             </p>
 
             {fixed && claim && (
@@ -587,8 +588,8 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
                     <div key={label} className="rounded-md border p-2">
                       <div className="text-xs text-muted-foreground">{label}: old resume → new resume</div>
                       <div className="font-mono">
-                        {before ?? "—"} → <b className={(after ?? 0) >= ATS_GATE ? "text-verified" : "text-compete"}>{after ?? "—"}</b>
-                        {before != null && after != null && <span className="text-muted-foreground"> ({after - before >= 0 ? "+" : ""}{after - before})</span>}
+                        {of10(before)} → <b className={(after ?? 0) >= ATS_GATE ? "text-verified" : "text-compete"}>{of10(after)}</b>
+                        {before != null && after != null && <span className="text-muted-foreground"> ({after - before >= 0 ? "+" : ""}{fmtMark((after - before) / 10)})</span>}
                       </div>
                     </div>
                   ))}
@@ -658,11 +659,11 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="border rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold">{claim.resume_quality_score ?? "—"}</div>
+                <div className="text-2xl font-bold">{of10(claim.resume_quality_score)}</div>
                 <div className="text-xs text-muted-foreground mt-1">Resume Quality</div>
               </div>
               <div className="border rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold">{claim.ats_match_score ?? "—"}</div>
+                <div className="text-2xl font-bold">{of10(claim.ats_match_score)}</div>
                 <div className="text-xs text-muted-foreground mt-1">ATS Match</div>
               </div>
             </div>
@@ -853,8 +854,8 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
               <div className="rounded-lg border border-compete/40 bg-compete/10 p-3">
                 <p className="text-sm font-medium">Rebuild your resume first</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  It scores {claim.ats_match_score ?? 0}% against your target role, under the{" "}
-                  {ATS_GATE}% the assessment needs. The rebuild rewrites how your existing work
+                  It scores {of10(claim.ats_match_score ?? 0)} against your target role, under the{" "}
+                  {of10(ATS_GATE)} the assessment needs. The rebuild rewrites how your existing work
                   reads — it never invents anything — and then re-scores it.
                 </p>
               </div>
@@ -892,27 +893,27 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div className="border rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold">{scoreResult.resume_quality_score ?? "—"}</div>
+                <div className="text-2xl font-bold">{of10(scoreResult.resume_quality_score)}</div>
                 <div className="text-xs text-muted-foreground mt-1">Resume Quality</div>
               </div>
               <div className="border rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold">{scoreResult.ats_match_score ?? "—"}</div>
+                <div className="text-2xl font-bold">{of10(scoreResult.ats_match_score)}</div>
                 <div className="text-xs text-muted-foreground mt-1">ATS Match</div>
               </div>
               <div className="border rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold">{scoreResult.skill_proof_score}</div>
+                <div className="text-2xl font-bold">{of10(scoreResult.skill_proof_score)}</div>
                 <div className="text-xs text-muted-foreground mt-1">Skill Proof</div>
               </div>
               <div className="border rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold">{scoreResult.project_proof_score ?? "—"}</div>
+                <div className="text-2xl font-bold">{of10(scoreResult.project_proof_score)}</div>
                 <div className="text-xs text-muted-foreground mt-1">Project Proof</div>
               </div>
               <div className="border rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold">{scoreResult.reasoning_score ?? "—"}</div>
+                <div className="text-2xl font-bold">{of10(scoreResult.reasoning_score)}</div>
                 <div className="text-xs text-muted-foreground mt-1">Reasoning</div>
               </div>
               <div className="border rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold">{scoreResult.interview_readiness_score ?? "—"}</div>
+                <div className="text-2xl font-bold">{of10(scoreResult.interview_readiness_score)}</div>
                 <div className="text-xs text-muted-foreground mt-1">Interview Readiness</div>
               </div>
             </div>
@@ -924,7 +925,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
               <div className="border rounded-lg p-3">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-sm font-medium">Voice authenticity</p>
-                  <span className="text-lg font-bold">{scoreResult.voice_authenticity_score}</span>
+                  <span className="text-lg font-bold">{of10(scoreResult.voice_authenticity_score)}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">{scoreResult.voice_notes}</p>
               </div>
@@ -933,7 +934,7 @@ const ResumeCheckFlow = ({ onGraded, onNavigateTab, allowRetake = true }: Resume
               <div className="border rounded-lg p-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium">Coding round</p>
-                  <span className="text-lg font-bold">{scoreResult.coding_score}</span>
+                  <span className="text-lg font-bold">{of10(scoreResult.coding_score)}</span>
                 </div>
                 <CodingBreakdown assessmentId={scorecardAssessmentId ?? assessmentId} />
               </div>

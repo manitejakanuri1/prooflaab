@@ -1,3 +1,4 @@
+import { of10 } from "@/lib/lotMarksText";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -199,19 +200,19 @@ const StudentInterestOnboarding = () => {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div className="border rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold">{result.skill_proof_score}</div>
+                  <div className="text-2xl font-bold">{of10(result.skill_proof_score)}</div>
                   <div className="text-xs text-muted-foreground mt-1">Skill Proof</div>
                 </div>
                 <div className="border rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold">{result.reasoning_score ?? "—"}</div>
+                  <div className="text-2xl font-bold">{of10(result.reasoning_score)}</div>
                   <div className="text-xs text-muted-foreground mt-1">Reasoning</div>
                 </div>
                 <div className="border rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold">{result.coding_score ?? "—"}</div>
+                  <div className="text-2xl font-bold">{of10(result.coding_score)}</div>
                   <div className="text-xs text-muted-foreground mt-1">Coding</div>
                 </div>
                 <div className="border rounded-lg p-3 text-center">
-                  <div className="text-2xl font-bold">{result.interview_readiness_score ?? "—"}</div>
+                  <div className="text-2xl font-bold">{of10(result.interview_readiness_score)}</div>
                   <div className="text-xs text-muted-foreground mt-1">Interview Readiness</div>
                 </div>
               </div>

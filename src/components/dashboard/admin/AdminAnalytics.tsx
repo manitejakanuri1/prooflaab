@@ -33,7 +33,7 @@ const AdminAnalytics = () => {
   // Daily Lots store lowercase 'completed' / 'pending'; a few older rows use capitalised words.
   const COMPLETED = ['completed', 'Completed'];
 
-  const { data: kpiStats } = useQuery({
+  const { data: kpiStats, isError: kpiFailed } = useQuery({
     queryKey: ['kpi-stats', dateRange],
     queryFn: async () => {
       const now = new Date();
@@ -140,6 +140,9 @@ const AdminAnalytics = () => {
     }
   });
 
+  // E2E 12 Nov item 15: no "0" before the numbers arrive (a failed first load showed 0 until the next minute's refresh).
+  const kpi = (v: number | undefined, unit = "") => v !== undefined ? `${v}${unit}` : kpiFailed ? "Could not load" : "Loading...";
+
   const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
 
   return (
@@ -182,7 +185,7 @@ const AdminAnalytics = () => {
                   {/* MF-090/106: this counts only the chosen period, unlike Overview's all-time total; say so. */}
                   Work submitted, last {dateRange === "weekly" ? "7 days" : dateRange === "monthly" ? "month" : "12 months"}
                 </p>
-                <p className="text-3xl font-bold text-primary">{kpiStats?.totalProofs || 0}</p>
+                <p className="text-3xl font-bold text-primary">{kpi(kpiStats?.totalProofs)}</p>
               </div>
               <div className="p-3 rounded-full bg-primary/10">
                 <FileText className="h-6 w-6 text-primary" />
@@ -196,7 +199,7 @@ const AdminAnalytics = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Students</p>
-                <p className="text-3xl font-bold text-secondary">{kpiStats?.activeStudents || 0}</p>
+                <p className="text-3xl font-bold text-secondary">{kpi(kpiStats?.activeStudents)}</p>
               </div>
               <div className="p-3 rounded-full bg-secondary/10">
                 <Users className="h-6 w-6 text-secondary" />
@@ -210,9 +213,9 @@ const AdminAnalytics = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Tasks completed (%)</p>
-                <p className="text-3xl font-bold text-accent">{kpiStats?.taskFillRate || 0}%</p>
+                <p className="text-3xl font-bold text-accent">{kpi(kpiStats?.taskFillRate, "%")}</p>
                 {/* Sweep S30: all tasks ever made, so the % is small; show the counts behind it. */}
-                <p className="text-xs text-muted-foreground">{kpiStats?.completedTasks ?? 0} of {kpiStats?.totalTasks ?? 0} tasks ever made</p>
+                {kpiStats && <p className="text-xs text-muted-foreground">{kpiStats.completedTasks} of {kpiStats.totalTasks} tasks ever made</p>}
               </div>
               <div className="p-3 rounded-full bg-accent/10">
                 <Target className="h-6 w-6 text-accent" />

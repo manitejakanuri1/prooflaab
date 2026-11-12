@@ -22,11 +22,60 @@ import type { Database } from '@/integrations/supabase/types';
 import { googleAuth } from './identity';
 import { googleStorage } from './storage';
 import {
+  classifyBffResponse,
+  friendlyBffResponse,
   rewriteBffUrl,
   sanitizeBffHeaders,
+  SERVER_BUSY_MESSAGE,
+  SESSION_EXPIRED_MESSAGE,
 } from './bffTransport';
+import { toast } from '@/hooks/use-toast';
 
 const APP_ORIGIN = window.location.origin;
+
+/**
+ * E2E 12 Nov items 14/16/17: every database and function call goes through here, so expiry and Google's
+ * HTML error pages are handled once instead of on every screen (see classifyBffResponse).
+ */
+let expiring = false;
+async function sessionExpired(): Promise<void> {
+  if (expiring) return;
+  expiring = true;
+  try {
+    const { data } = await googleAuth.getSession();
+    if (!data.session) return; // a signed-out visitor has nothing to expire
+    // Asks the server once more; no session -> TOKEN_REFRESHED(null) -> AuthContext signs out -> sign-in page.
+    const again = await googleAuth.refreshSession();
+    if (!again.data.session) toast({ title: SESSION_EXPIRED_MESSAGE, variant: 'destructive' });
+  } finally {
+    expiring = false;
+  }
+}
+
+async function sendGuarded(
+  send: () => Promise<Response>,
+  canRepeat: boolean,
+): Promise<Response> {
+  const started = performance.now();
+  let res = await send();
+  let verdict = await classifyBffResponse(res);
+  if (verdict === 'edge' && canRepeat && performance.now() - started < 3000) {
+    await new Promise((r) => setTimeout(r, 300));
+    res = await send();
+    verdict = await classifyBffResponse(res);
+  }
+  if (verdict === 'expired') {
+    void sessionExpired();
+    return friendlyBffResponse(401, SESSION_EXPIRED_MESSAGE);
+  }
+  if (verdict === 'edge') return friendlyBffResponse(res.status, SERVER_BUSY_MESSAGE);
+  return res;
+}
+
+/** A string or URL request with a plain body can be sent twice; a Request or a stream cannot. */
+const repeatable = (input: RequestInfo | URL, init?: RequestInit) =>
+  (typeof input === 'string' || input instanceof URL) &&
+  !(typeof ReadableStream !== 'undefined' && init?.body instanceof ReadableStream);
 
 /**
  * Keeps supabase-js in external-token mode so its own GoTrue client never owns
@@ -83,13 +132,16 @@ const restFetch: typeof fetch = (input, init) => {
     credentials: 'same-origin',
   };
 
-  const call =
-    typeof input === 'string' || input instanceof URL
-      ? fetch(fixed, requestInit)
-      : fetch(
-          new Request(fixed, input),
-          requestInit,
-        );
+  const call = sendGuarded(
+    () =>
+      typeof input === 'string' || input instanceof URL
+        ? fetch(fixed, requestInit)
+        : fetch(
+            new Request(fixed, input),
+            requestInit,
+          ),
+    repeatable(input, init),
+  );
 
   return call.then(
     (res) => {
@@ -163,13 +215,16 @@ const tracedFetch: typeof fetch = (input, init) => {
     credentials: 'same-origin',
   };
 
-  const call =
-    typeof input === 'string' || input instanceof URL
-      ? fetch(fixed, requestInit)
-      : fetch(
-          new Request(fixed, input),
-          requestInit,
-        );
+  const call = sendGuarded(
+    () =>
+      typeof input === 'string' || input instanceof URL
+        ? fetch(fixed, requestInit)
+        : fetch(
+            new Request(fixed, input),
+            requestInit,
+          ),
+    repeatable(input, init),
+  );
 
   return call.then(
     (res) => {

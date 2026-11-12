@@ -75,3 +75,33 @@ export function sanitizeBffHeaders(
 
   return headers;
 }
+
+export const SESSION_EXPIRED_MESSAGE = "Session expired - sign in again";
+export const SERVER_BUSY_MESSAGE = "The server is busy. Please try again in a moment.";
+
+/**
+ * E2E 12 Nov items 14/16/17: one place that turns transport failures into words a person can read.
+ * - Our BFF answers {"error":"not authenticated"} (401) when the session cookie has run out.
+ * - Our BFF always answers JSON. A text/html 5xx is Google's own "Error 502 (Server Error)" page from the
+ *   hosting edge; on TEST those came back in ~25 ms and never reached Cloud Run (no request logged), so
+ *   one quick retry is safe. Slow ones are not retried (the server may have done the work).
+ * Returns what happened, plus a JSON Response that supabase-js turns into error.message (and functions
+ * callers can read with error.context.json()).
+ */
+export type TransportVerdict = "ok" | "expired" | "edge";
+
+export async function classifyBffResponse(res: Response): Promise<TransportVerdict> {
+  if (res.status === 401) {
+    const body = await res.clone().json().catch(() => null) as { error?: unknown } | null;
+    return body?.error === "not authenticated" ? "expired" : "ok";
+  }
+  if (res.status >= 500 && (res.headers.get("content-type") ?? "").includes("text/html")) return "edge";
+  return "ok";
+}
+
+export function friendlyBffResponse(status: number, message: string): Response {
+  return new Response(JSON.stringify({ message, error: message }), {
+    status,
+    headers: { "content-type": "application/json; charset=utf-8" },
+  });
+}

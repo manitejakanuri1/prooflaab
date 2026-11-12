@@ -186,12 +186,18 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
           }
         }
 
+        // P7d: real last activity = the company login's last signed-in call (migration 421).
+        const { data: seen } = await supabase.rpc("admin_company_last_active" as never);
+        const lastSeen = new Map<string, string>(((seen ?? []) as { startup_id: string; last_active: string }[])
+          .map((r) => [r.startup_id, r.last_active]));
+
         // Merge startups with their profiles
         return startupsData?.map(startup => {
           const profile = profilesData.find(p => p.user_id === startup.user_id);
           return {
             ...startup,
-            domain_industry: profile?.domain_industry || null
+            domain_industry: profile?.domain_industry || null,
+            last_active: lastSeen.get(startup.id) ?? undefined,
           };
         }) as UserData[];
       } else {
@@ -542,7 +548,8 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <CardTitle className="flex items-center gap-2">
                     {getTabIcon(tab)}
-                    {tab === 'startups' ? 'Companies' : tab.charAt(0).toUpperCase() + tab.slice(1)} Management
+                    {/* P7e: the page heading above already says "<X> Management"; the card says it once, as a list name. */}
+                    All {tab === 'startups' ? 'companies' : tab}
                   </CardTitle>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
                     <div className="relative w-full sm:w-auto">

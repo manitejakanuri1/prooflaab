@@ -430,7 +430,7 @@ const ManageAnnouncementsPage = () => {
                     )}
                   >
                     <Calendar className="mr-2 h-4 w-4" />
-                    {formData.expiry_date ? format(formData.expiry_date, "PPP") : "Pick an expiry date (optional)"}
+                    {formData.expiry_date ? format(formData.expiry_date, "d MMM yyyy") : "Pick an expiry date (optional)"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 rounded-lg shadow-lg" align="start">

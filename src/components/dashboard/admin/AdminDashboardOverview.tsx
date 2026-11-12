@@ -156,18 +156,20 @@ const AdminDashboardOverview = ({
     onClick: () => onNavigate?.("submissions")
   }, {
     // ...and every answer or code check ever sent (Retest H3: retries included, voice not counted).
-    title: "Answer/code tries",
-    help: "Every answer or code hand-in ever, retries counted. The chart below shows the last days.",
+    // P7b: same count as Reports "Answers sent", but all time (Reports shows one period).
+    title: "Answers sent (all tries)",
+    help: "Every answer or code hand-in ever, each retry counted. Reports shows the same count for one period only; the chart below shows it per day.",
     value: stats?.totalProofs || 0,
-    subtitle: "all time, retries included",
+    subtitle: "all time, every retry counted",
     icon: ClipboardCheck,
     color: "text-primary",
     onClick: () => onNavigate?.("submissions")
   }, {
-    title: "Active Tasks",
-    help: "Tasks not finished yet (pending or in progress), out of every task ever made.",
+    // P7b: not the opposite of Reports "fully done": tasks waiting only for the voice part are in neither.
+    title: "Tasks not passed yet",
+    help: "Tasks still waiting for a passing answer (pending or in progress), out of every task ever made. Tasks whose answer passed but still need the 60-second voice part are not counted here; fully done tasks are on Reports.",
     value: stats?.activeTasks || 0,
-    subtitle: `${stats?.totalTasks || 0} total posted`,
+    subtitle: `of ${stats?.totalTasks || 0} tasks ever made`,
     icon: Eye,
     color: "text-verified",
     onClick: () => onNavigate?.("task-oversight")
@@ -265,7 +267,7 @@ const AdminDashboardOverview = ({
           <CardHeader className="p-4 md:p-6">
             <CardTitle className="flex items-center gap-2 text-base md:text-lg">
               <ClipboardCheck className="h-4 w-4 md:h-5 md:w-5" />
-              Answer/code tries
+              Answers sent per {dateFilter === "7" ? "day" : "week"}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0">
@@ -280,7 +282,7 @@ const AdminDashboardOverview = ({
                   fontSize: 12
                 }} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="proofs" stroke="hsl(var(--primary))" strokeWidth={2} dot={{
+                  <Line type="monotone" dataKey="proofs" name="Answers sent (all tries)" stroke="hsl(var(--primary))" strokeWidth={2} dot={{
                   fill: "hsl(var(--primary))"
                 }} />
                 </LineChart>

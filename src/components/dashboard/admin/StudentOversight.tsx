@@ -1,3 +1,4 @@
+import { plural } from "@/lib/plural";
 import { fmtDay, fmtIST } from "@/lib/ist";
 import { of10, scoreText10 } from "@/lib/lotMarks";
 import { useEffect, useState } from "react";
@@ -370,7 +371,7 @@ const StudentOversight = () => {
           <div>
             <h1 className="text-3xl font-bold">Students</h1>
             <p className="text-muted-foreground">
-              {total !== undefined ? `${total.toLocaleString('en-IN')} students` : 'Students'}
+              {total !== undefined ? plural(total, "student") : 'Students'}
               {students && total !== undefined && students.length < total ? ` (list shows the newest ${students.length.toLocaleString('en-IN')}; use search or the college filter)` : ''}
               {' · '}Updated {dataUpdatedAt ? fmtIST(dataUpdatedAt) : '—'}
               <Button variant="link" size="sm" className="h-auto px-2" disabled={isFetching} onClick={refreshAll}>

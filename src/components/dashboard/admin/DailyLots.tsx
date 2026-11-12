@@ -1,3 +1,4 @@
+import { plural } from "@/lib/plural";
 import { lotLine, voiceWord } from "@/lib/lotText";
 import { of10, talkCheck } from "@/lib/lotMarks";
 import { useEffect, useState } from "react";
@@ -71,7 +72,7 @@ const DailyLots = () => {
           <Input type="date" value={date} onChange={(e) => { setDate(e.target.value); setPage(0); }} className="w-44" />
           <Input placeholder="Student or Lot title" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} className="w-64" />
           <span className="self-center text-sm text-muted-foreground">
-            {total} Lots on this day{active != null && !q ? ` · ${active} active students now` : ""}
+            {plural(total, "Lot")} on this day{active != null && !q ? ` · ${plural(active, "active student")} now` : ""}
           </span>
         </div>
         {active != null && !q && !loading && total < active && (

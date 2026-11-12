@@ -1,3 +1,4 @@
+import { plural } from "@/lib/plural";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -1128,7 +1129,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {dueDate ? format(dueDate, "PPP") : "Pick a date"}
+                              {dueDate ? format(dueDate, "d MMM yyyy") : "Pick a date"}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0">
@@ -1284,7 +1285,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                                   )}
                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {dueDate ? format(dueDate, "PPP") : "Pick a date"}
+                                  {dueDate ? format(dueDate, "d MMM yyyy") : "Pick a date"}
                                 </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-auto p-0">
@@ -1420,7 +1421,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                                       )}
                                     >
                                       <CalendarIcon className="mr-2 h-4 w-4" />
-                                      {dueDate ? format(dueDate, "PPP") : "Pick a date"}
+                                      {dueDate ? format(dueDate, "d MMM yyyy") : "Pick a date"}
                                     </Button>
                                   </PopoverTrigger>
                                   <PopoverContent className="w-auto p-0">
@@ -1606,10 +1607,10 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                     {audienceType === "all" ? filteredStudents.length : selectedStudents.length}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Across {[...new Set(
+                    Across {plural([...new Set(
                       (audienceType === "all" ? filteredStudents : filteredStudents.filter(s => selectedStudents.includes(s.id)))
                         .map(s => s.college_id).filter(Boolean)
-                    )].length} college(s)
+                    )].length, "college")}
                   </p>
                 </div>
               </div>
@@ -1645,7 +1646,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Due Date</p>
-                      <p className="font-medium">{format(confirmationData.dueDate, "PPP")}</p>
+                      <p className="font-medium">{format(confirmationData.dueDate, "d MMM yyyy")}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -1674,9 +1675,9 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
 
                 <div>
                   <p className="text-sm font-medium mb-2">
-                    Assigning to {confirmationData.selectedStudents.length} student(s) across {
-                      [...new Set(confirmationData.selectedStudents.map(s => s.college_id).filter(Boolean))].length
-                    } college(s)
+                    Assigning to {plural(confirmationData.selectedStudents.length, "student")} across {
+                      plural([...new Set(confirmationData.selectedStudents.map(s => s.college_id).filter(Boolean))].length, "college")
+                    }
                   </p>
                   <div className="max-h-48 overflow-y-auto border rounded-md p-3 space-y-1">
                     {confirmationData.selectedStudents.map(student => (
@@ -2145,7 +2146,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dueDate ? format(dueDate, "PPP") : "Select due date"}
+                        {dueDate ? format(dueDate, "d MMM yyyy") : "Select due date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -2335,7 +2336,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                 <div>
                   <Label className="text-sm font-medium">Due Date</Label>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {format(confirmationData.dueDate, "PPP")}
+                    {format(confirmationData.dueDate, "d MMM yyyy")}
                   </p>
                 </div>
               </div>

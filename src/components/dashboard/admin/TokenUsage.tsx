@@ -113,7 +113,7 @@ const TokenUsage = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-              <Users className="h-4 w-4" /> Students tracked
+              <Users className="h-4 w-4" /> Students who used AI
             </div>
             <p className="text-2xl font-bold">{byStudent.length}</p>
           </CardContent>
@@ -148,7 +148,7 @@ const TokenUsage = () => {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="text-lg">By student</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-lg">By student ({byStudent.length})</CardTitle></CardHeader>
         <CardContent>
           {byStudent.length === 0 ? (
             <p className="text-sm text-muted-foreground">
@@ -179,9 +179,11 @@ const TokenUsage = () => {
 
           {unattributed > 0 && (
             <p className="text-xs text-muted-foreground mt-4">
-              <Badge variant="outline" className="mr-2">{nf.format(unattributed)}</Badge>
-              tokens came from calls that record the feature but not the student —
-              included in the totals above, not in this table.
+              {/* P7c: name the bucket; these are background jobs (Lot writing, voice marking queue) and older calls saved without a student. */}
+              <span className="font-medium">Other / unlabelled:</span>{" "}
+              <Badge variant="outline" className="mr-1">{nf.format(unattributed)} tokens</Badge>{" "}
+              ({totalTokens > 0 ? Math.round((unattributed / totalTokens) * 100) : 0}% of all) from background jobs and older calls
+              saved without a student. Included in the totals above, not in this table.
             </p>
           )}
         </CardContent>

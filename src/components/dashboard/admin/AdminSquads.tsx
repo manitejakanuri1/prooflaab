@@ -1,3 +1,4 @@
+import { plural } from "@/lib/plural";
 import { fmtDay } from "@/lib/ist";
 import { Fragment, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,7 +66,7 @@ export default function AdminSquads() {
             <option value="">All colleges (pick one to see its squads)</option>
             {colleges?.filter((c, i, all) => all.findIndex((x) => x.college_id === c.college_id) === i).map((c) => (
               <option key={c.college_id} value={c.college_id}>
-                {c.college} · {colleges.filter((x) => x.college_id === c.college_id).reduce((n, x) => n + x.squads, 0)} squads
+                {c.college} · {plural(colleges.filter((x) => x.college_id === c.college_id).reduce((n, x) => n + x.squads, 0), "squad")}
               </option>
             ))}
           </select>
@@ -75,7 +76,7 @@ export default function AdminSquads() {
                 <li key={i}>
                   {c.college} · {c.year_group_label ?? "—"} · {c.season ?? "Season"} · week {c.week ?? "?"} ({c.phase ?? "—"})
                   {c.status && c.status !== "running" ? " · finished, next season after the days off" : ""}
-                  {" "}· {c.squads} squads · {c.swaps} swaps · from {c.season_starts}
+                  {" "}· {plural(c.squads, "squad")} · {plural(c.swaps, "swap")} · from {c.season_starts}
                 </li>
               ))}
             </ul>
@@ -117,7 +118,7 @@ export default function AdminSquads() {
                               <ul className="text-sm pl-4 list-disc">
                                 {s.members.map((m) => (
                                   <li key={m.name + m.joined_at}>
-                                    {m.name} · {m.contribution} points · joined {fmtDay(m.joined_at)}
+                                    {m.name} · {plural(m.contribution, "point")} · joined {fmtDay(m.joined_at)}
                                   </li>
                                 ))}
                               </ul>

@@ -1,5 +1,6 @@
 import { fmtDay } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarks";
+import { percentShares } from "@/lib/percentShares";
 import { Fragment, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -128,7 +129,8 @@ const StudentResumeHistoryPage = () => {
                 ["Project proof", latest.project_proof_score, 15],
                 ["Reasoning", latest.reasoning_score, 15],
               ];
-              const weightSum = parts.reduce((a, [, v, w]) => a + (v != null ? w : 0), 0);
+              // Shares that add up to exactly 100% (rounding each one alone showed 101%).
+              const shares = percentShares(parts.map(([, v, w]) => (v != null ? w : null)));
               const gap = latest.skill_gap;
               return (
                 <div className="mb-4 rounded-lg border p-4">
@@ -142,12 +144,12 @@ const StudentResumeHistoryPage = () => {
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">Why this score: a weighted mix of the parts below.</p>
                   <div className="mt-2 grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
-                    {parts.map(([label, v, w]) => (
+                    {parts.map(([label, v], i) => (
                       <div key={label} className="rounded bg-muted/50 p-2">
                         <div className="text-muted-foreground">{label}</div>
                         <div className="font-mono text-base font-semibold">{of10(v)}</div>
                         <div className="text-muted-foreground">
-                          {v == null ? "not assessed" : `counts ${Math.round((w / weightSum) * 100)}%`}
+                          {v == null ? "not assessed" : `counts ${shares[i]}%`}
                         </div>
                       </div>
                     ))}

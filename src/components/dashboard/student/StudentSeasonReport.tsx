@@ -231,7 +231,7 @@ const StudentSeasonReport = () => {
             </span>
             <p className="mt-1 text-lg font-semibold">{r.squad.name}</p>
             <p className="text-sm text-muted-foreground">
-              #{r.squad.rank} · {r.squad.points} points · {r.squad.record} ·
+              {r.squad.points > 0 ? `#${r.squad.rank}` : "Not ranked"} · {r.squad.points} points · {r.squad.record} ·
               you contributed {r.squad.my_contribution}
             </p>
             {r.podium?.champion && (

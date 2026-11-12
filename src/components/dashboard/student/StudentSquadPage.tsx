@@ -290,7 +290,7 @@ const StudentSquadPage = () => {
                 {ended.champions.length > 0
                   ? ended.champions.map((c) => `${c.bracket} Champion: ${c.champion}. `).join("")
                   : "No champion in your section - no league match was played. "}
-                {squad.rank ? `${squad.name} finished #${squad.rank} in the college.` : ""}
+                {squad.rank && squad.points > 0 ? `${squad.name} finished #${squad.rank} in the college.` : ""}
               </span>
             </p>
           ) : squad.qualified !== null && (
@@ -313,7 +313,7 @@ const StudentSquadPage = () => {
               { k: "Points", v: squad.points, help: SCORE_HELP.squadSeason },
               { k: "Record", v: `${squad.wins}–${squad.draws ?? 0}–${squad.losses}`, help: SCORE_HELP.record },
               { k: "My share", v: `${myShare}%`, help: SCORE_HELP.share },
-              { k: "Movement", v: movement == null ? "Not ranked yet" : movement === 0 ? "No change" : movement > 0 ? `▲${movement}` : `▼${-movement}`, help: SCORE_HELP.movement },
+              { k: "Movement", v: movement == null || squad.points <= 0 ? "Not ranked yet" : movement === 0 ? "No change" : movement > 0 ? `▲${movement}` : `▼${-movement}`, help: SCORE_HELP.movement },
             ].map(({ k, v, help }) => (
               <div key={k} className="rounded-lg bg-muted/50 p-3">
                 <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{k} <InfoTip text={help} /></span>
@@ -534,7 +534,7 @@ const StudentSquadPage = () => {
                 <tbody>
                   {standings.map((s, i) => (
                     <tr key={s.id} className={`border-t ${s.id === squad.id ? "bg-primary/5" : ""}`}>
-                      <td className="py-2.5 pr-3 font-mono tabular-nums">{s.rank ?? i + 1}</td>
+                      <td className="py-2.5 pr-3 font-mono tabular-nums">{s.points > 0 ? s.rank ?? i + 1 : "Not ranked yet"}</td>{/* same rule as the header and the college Squads tab */}
                       <td className="py-2.5 pr-3">
                         {s.name}
                         {s.id === squad.id && (

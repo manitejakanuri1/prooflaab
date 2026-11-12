@@ -90,6 +90,8 @@ test("copied-answer note names both students with their squads", () => {
   assert.equal(copiedNoteText(n, (d) => d.slice(0, 10)),
     "Looks copied: Meghana Reddy (CSE-A Titans) and Ravi Kumar wrote almost the same answer on Craft a 60-second self introduction, 2026-11-12.");
   assert.equal(copiedNoteText({ ...n, other_name: null }, (d) => d.slice(0, 10)).startsWith("Looks copied: Meghana Reddy (CSE-A Titans) wrote almost"), true);
+  // P5: the submission day, not the Lot's day (they can differ).
+  assert.equal(copiedNoteText({ ...n, lot_date: "2026-11-02", created_at: "2026-11-01T08:08:28Z" }, (d) => d.slice(0, 10)).endsWith(", 2026-11-01."), true);
 });
 
 test("done-when: 'and your answer is N to M words' goes with its range (overnight TEST item 9)", () => {

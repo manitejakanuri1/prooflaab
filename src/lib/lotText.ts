@@ -157,5 +157,7 @@ export interface CopiedNote {
 export function copiedNoteText(n: CopiedNote, fmtDate: (iso: string) => string): string {
   const who = (name: string | null, squad: string | null) => `${name ?? "a student"}${squad ? ` (${squad})` : ""}`;
   const pair = n.other_name ? `${who(n.student_name, n.student_squad)} and ${who(n.other_name, n.other_squad)} wrote` : `${who(n.student_name, n.student_squad)} wrote`;
-  return `Looks copied: ${pair} almost the same answer on ${n.task_title ?? "a Lot"}, ${fmtDate(n.lot_date ?? n.created_at)}.`;
+  // P5 12 Nov 2026: the day the answer was written (submission created_at), same field the student profile shows
+  // as submitted_at - not the Lot's lot_date, which can be a different day.
+  return `Looks copied: ${pair} almost the same answer on ${n.task_title ?? "a Lot"}, ${fmtDate(n.created_at)}.`;
 }

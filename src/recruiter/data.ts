@@ -119,6 +119,7 @@ export function toCandidate(row: Record<string, unknown>): Candidate {
     notes: undefined,
     skillsProven: proven,
     proofsVerified: Number(row.proofs_verified ?? 0),
+    voiceCount: Number(row.explanations ?? 0),
   };
 }
 
@@ -187,7 +188,7 @@ interface ProofProfilePayload {
   scorecard?: Partial<Record<"skill_proof" | "project_proof" | "reasoning" | "coding" | "interview_readiness"
     | "resume_quality" | "ats_match", number | null>> & { at?: string | null } | null;
   consistency?: { current_streak?: number | null; active_weeks?: number | null } | null;
-  days_since_active?: number | null; communication?: number | null;
+  days_since_active?: number | null; communication?: number | null; voice_recordings?: number | null;
   squad?: { name?: string | null; rank?: number | null; points?: number | null; record?: string | null } | null;
   shortlist?: { note?: string | null } | null; contact_unlocked?: boolean | null; contact?: Candidate["contact"] | null;
 }
@@ -207,7 +208,9 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
     supabase.rpc("company_submissions" as never).then(({ data: d }) => (d as unknown as Record<string, unknown>[]) ?? [], () => []),
   ]);
   const grade = (l: Record<string, unknown>) => {
-    if (l.submission_status !== "passed") return "Not passed yet";
+    if (l.submission_status !== "passed") {
+      return l.submission_status === "returned" ? "Returned for changes" : "Not passed yet";
+    }
     const s = subs.find((x) => x.task_id === l.task_id && x.student_id === l.student_id);
     return passedLabel(s?.kind as "code" | "written" | undefined, s?.voice_status === "scored" ? (s.voice_score as number) : null);
   };
@@ -318,6 +321,7 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
     },
     seasonRank: Number(p.squad?.rank ?? 0),
     sponsoredTasks,
+    voiceCount: (p.explanations ?? []).length || (p.voice_recordings as number) || 0,
     recommended: false,
     shortlisted: Boolean(p.shortlist),
     notes: p.shortlist?.note ?? undefined,

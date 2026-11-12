@@ -146,7 +146,14 @@ function ProofProfile({ candidate }: { candidate: Candidate }) {
               })}
             </div>
             <div className='space-y-2'>
-              <div className='section-label'>60-second explanations</div>
+              <div className='flex items-center justify-between'>
+                <div className='section-label'>60-second explanations</div>
+                {(candidate.voiceExplanations.length > 0 || (candidate.voiceCount ?? 0) > 0) && (
+                  <span className='text-[11px] font-mono text-muted-foreground'>
+                    {candidate.voiceExplanations.length || candidate.voiceCount} recorded
+                  </span>
+                )}
+              </div>
               {candidate.voiceExplanations.map(voice => (
                 <div key={voice.id} className='rounded-lg border border-border bg-secondary/30 p-3'>
                   <div className='flex items-center justify-between gap-3'>
@@ -173,7 +180,17 @@ function ProofProfile({ candidate }: { candidate: Candidate }) {
           <CardHeader><CardTitle>Consistency · activity · rank</CardTitle></CardHeader>
           <CardContent className='space-y-4'>
             <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>consistency</div><div className='mt-2 flex items-center justify-between'><div className='text-2xl font-semibold tabular'>{candidate.consistency}</div><div className='text-xs text-muted-foreground'>{candidate.lastActive}</div></div><div className='mt-2'><Progress value={candidate.consistency} /></div></div>
-            <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>voice score</div><div className='mt-2'><ScorePill label='Voice' score={candidate.communicationScore} proof={candidate.assessmentScores.find(a => a.category === 'Communication')?.proof ?? []} /></div></div>
+            <div className='rounded-lg border border-border bg-secondary/30 p-3'>
+              <div className='flex items-center justify-between'>
+                <div className='section-label'>voice score</div>
+                {(candidate.voiceExplanations.length > 0 || (candidate.voiceCount ?? 0) > 0) && (
+                  <span className='font-mono text-xs tabular-nums text-muted-foreground'>
+                    {candidate.voiceExplanations.length || candidate.voiceCount} recorded
+                  </span>
+                )}
+              </div>
+              <div className='mt-2'><ScorePill label='Voice' score={candidate.communicationScore} proof={candidate.assessmentScores.find(a => a.category === 'Communication')?.proof ?? []} /></div>
+            </div>
             <div className='grid grid-cols-2 gap-3'>
               <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>squad rank</div><div className='mt-2 text-xl font-semibold tabular'>{rankText(candidate.squad.rank, candidate.squad.totalMembers)}</div><div className='mt-1 text-xs text-muted-foreground'>{candidate.squad.squadName}</div></div>
               <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>season rank</div><div className='mt-2 text-xl font-semibold tabular'>{rankText(candidate.seasonRank)}</div><div className='mt-1 text-xs text-muted-foreground'>{candidate.squad.seasonPoints} pts</div></div>

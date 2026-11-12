@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Bell, CheckCheck } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -9,8 +10,10 @@ import { useNotifications } from "@/hooks/useNotifications";
 /** MF-088: companies are told when a student finishes a Lot they set (migration 192). Opens Lots on click. */
 export function CompanyBell({ onOpenLots }: { onOpenLots?: () => void }) {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  // E2E 13: controlled, so opening a notification also closes the panel (it stayed open over Lots).
+  const [open, setOpen] = useState(false);
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="sm" className="relative p-2" aria-label="Notifications">
           <Bell className="h-5 w-5" />
@@ -41,7 +44,7 @@ export function CompanyBell({ onOpenLots }: { onOpenLots?: () => void }) {
               {notifications.map((n) => (
                 <button key={n.id} type="button"
                         className={`w-full p-4 text-left hover:bg-accent/50 ${n.is_read ? "" : "bg-primary/5"}`}
-                        onClick={() => { if (!n.is_read) markAsRead(n.id); onOpenLots?.(); }}>
+                        onClick={() => { if (!n.is_read) markAsRead(n.id); setOpen(false); onOpenLots?.(); }}>
                   <p className="text-sm font-medium">{n.title}</p>
                   <p className="text-sm text-muted-foreground">{n.message}</p>
                   <p className="mt-1 text-xs text-muted-foreground">

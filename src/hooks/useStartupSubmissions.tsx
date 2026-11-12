@@ -39,7 +39,7 @@ export interface CompanySubmission {
 
 export type ReviewDecision = "accepted" | "needs_work" | "rejected";
 
-export function useStartupSubmissions() {
+export function useStartupSubmissions(enabled = true) {
   const { user } = useAuth();
   return useQuery({
     queryKey: ["startup-submissions", user?.id],
@@ -49,7 +49,7 @@ export function useStartupSubmissions() {
       if (error) throw error;
       return (data as unknown as CompanySubmission[]) ?? [];
     },
-    enabled: !!user,
+    enabled: !!user && enabled,
   });
 }
 

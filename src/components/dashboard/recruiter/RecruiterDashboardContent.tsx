@@ -47,12 +47,13 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
   const [home, setHome] = useState<Record<string, any> | null>(null);
   const [talent, setTalent] = useState<Candidate[] | null>(null);
   const [sortBy, setSortBy] = useState<"skills" | "work" | "speaking" | null>(null);
-  const [filters, setFilters] = useState<Record<string, any> | null>(null);
   const [saved, setSaved] = useState<Record<string, any>[]>([]);
   const [lots, setLots] = useState<Record<string, any>[]>([]);
   // Owner rule B: a Lot reads "Passed" only with a voice of 50+. recruiter_lots() has no voice score; the
   // company's own submissions list does.
-  const { data: submissions = [] } = useStartupSubmissions();
+  const [filters, setFilters] = useState<Record<string, any> | null>(null);
+  // E2E 11: company_submissions refuses a company still awaiting approval (400), so ask only once verified.
+  const { data: submissions = [] } = useStartupSubmissions(filters?.verified === true);
   const lotGrade = (l: (typeof lots)[number]) => {
     if (l.submission_status !== "passed") return l.submission_status === "needs_review" ? "Needs review" : "Not passed";
     const sub = submissions.find((x) => x.task_id === l.task_id && x.student_id === l.student_id);
@@ -60,6 +61,8 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
   };
   // MF-094: Saved and Lots said "nothing yet" while still loading.
   const [listsReady, setListsReady] = useState(false);
+  // E2E 11: a failed load used to leave the screen on its loading skeleton for good.
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("all");
@@ -77,16 +80,21 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
   const [lotMode, setLotMode] = useState<"coding" | "written">("written");
 
   const refresh = useCallback(async () => {
-    const [h, f] = await Promise.all([loadHome(), loadFilters()]);
-    setHome(h);
-    setFilters(f);
-    if (f?.verified) {
-      const [t, s, l] = await Promise.all([loadTalent(), loadShortlist(), loadLots()]);
-      setTalent(t);
-      setSaved(s as Record<string, any>[]);
-      setLots(l);
-    } else {
-      setTalent([]);
+    try {
+      const [h, f] = await Promise.all([loadHome(), loadFilters()]);
+      setHome(h);
+      setFilters(f);
+      if (f?.verified) {
+        const [t, s, l] = await Promise.all([loadTalent(), loadShortlist(), loadLots()]);
+        setTalent(t);
+        setSaved(s as Record<string, any>[]);
+        setLots(l);
+      } else {
+        setTalent([]);
+      }
+      setLoadFailed(false);
+    } catch {
+      setLoadFailed(true);
     }
     setListsReady(true);
   }, []);
@@ -95,10 +103,14 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
 
   const applyFilters = async () => {
     setTalent(null);
-    setTalent(await loadTalent({
-      role: role === "all" ? undefined : role,
-      skills: skill === "all" ? undefined : [skill],
-    }));
+    try {
+      setTalent(await loadTalent({
+        role: role === "all" ? undefined : role,
+        skills: skill === "all" ? undefined : [skill],
+      }));
+    } catch {
+      setLoadFailed(true);
+    }
   };
 
   const openProfile = async (studentId: string) => {
@@ -159,6 +171,18 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
     if (error) toast({ title: "Not removed", description: error.message, variant: "destructive" });
     else { toast({ title: "Removed from shortlist" }); await refresh(); }
   };
+
+  if (loadFailed) {
+    return (
+      <Card><CardContent className="pt-6">
+        <h2 className="text-lg font-semibold">This page did not load</h2>
+        <p className="text-sm text-muted-foreground mt-1 max-w-prose">
+          We could not reach ProofLab just now. Check your internet and try again.
+        </p>
+        <Button className="mt-3" onClick={() => { setLoadFailed(false); void refresh(); }}>Try again</Button>
+      </CardContent></Card>
+    );
+  }
 
   if (!home) return <Skeleton className="h-96 w-full rounded-xl" />;
 

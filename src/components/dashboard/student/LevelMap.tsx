@@ -362,6 +362,8 @@ const LevelMap = ({ mistakes = [], onGoToTasks }: LevelMapProps) => {
     return (
       <Card>
         <CardContent className="pt-6">
+          {/* Retest P2: the map takes a few seconds; say so, or the window looks empty. */}
+          <p className="text-sm text-muted-foreground mb-3" role="status">Loading your paths…</p>
           <div className="animate-pulse h-40 bg-muted rounded" />
         </CardContent>
       </Card>

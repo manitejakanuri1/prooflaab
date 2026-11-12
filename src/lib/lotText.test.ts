@@ -91,3 +91,8 @@ test("copied-answer note names both students with their squads", () => {
     "Looks copied: Meghana Reddy (CSE-A Titans) and Ravi Kumar wrote almost the same answer on Craft a 60-second self introduction, 2026-11-12.");
   assert.equal(copiedNoteText({ ...n, other_name: null }, (d) => d.slice(0, 10)).startsWith("Looks copied: Meghana Reddy (CSE-A Titans) wrote almost"), true);
 });
+
+test("done-when: 'and your answer is N to M words' goes with its range (overnight TEST item 9)", () => {
+  assert.equal(dropWordRange("You have written 4 to 6 questions with a short reason for each, grouped by topic, and your answer is 150 to 300 words without asking about salary or leave."),
+    "You have written 4 to 6 questions with a short reason for each, grouped by topic without asking about salary or leave.");
+});

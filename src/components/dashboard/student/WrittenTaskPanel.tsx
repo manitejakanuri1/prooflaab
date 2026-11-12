@@ -9,6 +9,7 @@ import CodeRunBox from "./CodeRunBox";
 import { scratchLanguage, scratchLabel, writtenSubmitBody } from "@/lib/scratchpad";
 import { Loader2, Send, Clock, Mic, CheckCircle2, Play } from "lucide-react";
 import { checkLine, fmtMark, loadLotState, submitLot, type LotState, of10 } from "@/lib/lotMarks";
+import { toast } from "sonner";
 import { savedResultLine, type SavedRow } from "@/lib/savedAnswer";
 import { loadSavedAnswer } from "@/lib/savedAnswerLoad";
 import { lotStatusText, part10, quotes } from "@/lib/lotText";
@@ -205,7 +206,7 @@ export default function WrittenTaskPanel({
                   </ul>
                 </div>
                 <p className="text-muted-foreground">
-                  {daily ? (strict ? "One check - its score is final." : `${lot?.checks_max ?? 2} checks - your best one counts.`) : `Pass mark ${view.pass_threshold}%.`}
+                  {daily ? (strict ? "One check - its score is final." : `${lot?.checks_max ?? 2} checks - your best one counts.`) : ""} Pass: {of10(view.pass_threshold)}.
                   {" "}Write in your own words; plain, everyday language is fine.
                 </p>
               </div>
@@ -233,6 +234,7 @@ export default function WrittenTaskPanel({
         <p className="text-sm font-semibold">{scratch ? "Written answer" : "Your Answer"}</p>
       </div>
       <Textarea
+        id="written-answer"
         value={answer}
         onChange={(e) => saveDraft(e.target.value)}
         readOnly={done}
@@ -252,7 +254,15 @@ export default function WrittenTaskPanel({
             : `Your answer is over ${view.max_words} words. Shorten it to check.`}
         </p>
       )}
-      <div className="flex justify-end gap-2">
+      {/* Overnight TEST 12 Nov items 6-7: the pass mark next to Check; a click on a greyed-out Check says why. */}
+      <div className="flex items-center justify-end gap-2"
+           onClickCapture={(e) => {
+             if (!done && (tooShort || tooLong) && (e.target as HTMLElement).closest("[data-testid=lot-check-wrap]")) {
+               toast.info(tooShort ? `Write ${view.min_words - wordCount} more words, then press Check.` : `Shorten your answer to ${view.max_words} words, then press Check.`);
+               document.getElementById("written-answer")?.focus();
+             }
+           }}>
+        <span className="mr-auto text-xs text-muted-foreground" data-testid="pass-mark">Pass: {of10(view.pass_threshold)}</span>
         {daily ? (
           <>
             {!strict && (
@@ -262,11 +272,13 @@ export default function WrittenTaskPanel({
                 Submit this score
               </Button>
             )}
-            <Button onClick={submit} disabled={busy || !!done || checksLeft < 1 || tooShort || tooLong || !answer.trim()}
-                    data-testid="lot-check">
-              {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
-              Check ({checksLeft} left)
-            </Button>
+            <span data-testid="lot-check-wrap">
+              <Button onClick={submit} disabled={busy || !!done || checksLeft < 1 || tooShort || tooLong || !answer.trim()}
+                      data-testid="lot-check">
+                {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+                Check ({checksLeft} left)
+              </Button>
+            </span>
           </>
         ) : (
           <Button onClick={submit} disabled={busy || done || tooShort || tooLong || !answer.trim()}>

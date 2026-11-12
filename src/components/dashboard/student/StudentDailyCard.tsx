@@ -1,4 +1,4 @@
-import { fmtDay } from "@/lib/ist";
+import { fmtDay, istWall } from "@/lib/ist";
 import { CLOSES_TONIGHT, lotStatusText, squadUpdateText, voiceOwedText, weekLotsText } from "@/lib/lotText";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -134,14 +134,15 @@ const StudentDailyCard = () => {
   const [nextSeasonAt, setNextSeasonAt] = useState<string | null>(null);
 
   // B5: "today" on the TEST website follows the admin's test clock (migration 209); REAL uses the device date.
-  const [now, setNow] = useState(() => new Date());
+  const [now, setNow] = useState(() => istWall());
 
   const load = useCallback(async () => {
     if (!profile?.id) return;
 
-    const clock = FAST_WEEK
+    // Overnight TEST 12 Nov: India time, not the device's time zone (a phone set to another zone showed yesterday).
+    const clock = istWall(FAST_WEEK
       ? await supabase.rpc("test_now" as never).then(({ data }) => (data ? new Date(data as string) : new Date()), () => new Date())
-      : new Date();
+      : new Date());
     setNow(clock);
     const monday = startOfWeek(clock, { weekStartsOn: 1 });
 
@@ -276,7 +277,7 @@ const StudentDailyCard = () => {
   useEffect(() => {
     // Sweep M1: on TEST a week lasts 10 minutes, so an open tab reloads every 2 minutes instead.
     const timer = setInterval(() => {
-      if (FAST_WEEK || format(new Date(), "yyyy-MM-dd") !== format(now, "yyyy-MM-dd")) void load();
+      if (FAST_WEEK || format(istWall(), "yyyy-MM-dd") !== format(now, "yyyy-MM-dd")) void load();
     }, FAST_WEEK ? 120_000 : 60_000);
     return () => clearInterval(timer);
   }, [load, now]);
@@ -298,7 +299,7 @@ const StudentDailyCard = () => {
   const todayRow = marks?.days.find((d) => d.task_id === lot?.id);
   // Sweep S1: answer marks still waiting on their voice this week.
   const weekOwed = (marks?.days ?? []).filter((d) => d.voice_state === "open").reduce((n, d) => n + Number(d.coding_mark ?? 0), 0);
-  const recency = lastActive && isSameDay(new Date(lastActive), now) ? "active"
+  const recency = lastActive && isSameDay(istWall(new Date(lastActive)), now) ? "active"
     : lot?.status === "pending_voice" ? "voice"
     : lastActive ? "idle" : "new";
 
@@ -615,7 +616,7 @@ const StudentDailyCard = () => {
                         ?? (Number(lotState.best_mark ?? 0) + Number(lotState.voice_state === "scored" ? lotState.voice_mark ?? 0 : 0)))}
                   </p>
                   <p className="text-[11px] text-muted-foreground">Today /20 <InfoTip text={SCORE_HELP.today} /></p>
-                  {lotState.voice_state !== "scored" && (lotState.checks_used ?? 0) > 0 && (
+                  {lotState.voice_state !== "scored" && !lotState.voice_closed && (lotState.checks_used ?? 0) > 0 && (
                     <p className="text-[10px] text-muted-foreground" data-testid="today-after-voice">counts once your voice is scored</p>
                   )}
                 </div>
@@ -697,7 +698,7 @@ const StudentDailyCard = () => {
                   </p>
                   {!squad.last && (
                     <p className="mt-1 text-[11px] text-muted-foreground" data-testid="squad-update-when">
-                      {squadUpdateText(marks?.season_to, (d) => format(d, "EEE d MMM, h:mm a"))}
+                      {squadUpdateText(marks?.season_to, (d) => format(istWall(d), "EEE d MMM, h:mm a"))}
                     </p>
                   )}
                 </>

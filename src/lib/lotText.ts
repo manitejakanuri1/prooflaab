@@ -13,7 +13,7 @@ export function oneRange(text: string, words?: { min: number; max: number } | nu
  * Lot screen simplify (11 Nov 2026): the word range is shown once, on the marking line. A step that only
  * says it is dropped; inside another sentence the range is taken out ("a short 100-200 words explanation").
  */
-const RANGE = /,?\s*(?:\b(?:(?:in|of)\s+)?(?:about|around|roughly|approximately)\s+|\b(?:in|of)\s+)?\b\d{1,4}\s*(?:–|-|to)\s*\d{2,4}[\s-]*words?\b(?:\s+(?:in\s+)?total\b)?/gi;
+const RANGE = /,?\s*(?:\b(?:and\s+)?your\s+(?:answer|response)\s+(?:is|stays|should\s+be)\s+(?:about\s+)?|\b(?:(?:in|of)\s+)?(?:about|around|roughly|approximately)\s+|\b(?:in|of)\s+)?\b\d{1,4}\s*(?:–|-|to)\s*\d{2,4}[\s-]*words?\b(?:\s+(?:in\s+)?total\b)?/gi;
 export function dropWordRange(text: string): string {
   if (/^\s*(write|keep)\b[^.]*\b\d{1,4}\s*(?:–|-|to)\s*\d{2,4}[\s-]*words?\b[^.]*\.?\s*$/i.test(text)) return "";
   return text.replace(RANGE, "").replace(/\s+([.,])/g, "$1").replace(/\s{2,}/g, " ").trim();

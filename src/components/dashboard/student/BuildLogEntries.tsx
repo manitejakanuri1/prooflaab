@@ -183,7 +183,7 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
         )}
         {v && !busy && !scored && (closed || v.communication_notes) && (
           <p className="text-sm text-compete">
-            {closed ? "The spoken part of this Lot is closed. Your coding mark is saved." : v.communication_notes}
+            {closed ? `The spoken part of this Lot is closed. Your ${e.kind === "written" ? "answer" : "coding"} mark is saved.` : v.communication_notes}
           </p>
         )}
         {scored && gate && (

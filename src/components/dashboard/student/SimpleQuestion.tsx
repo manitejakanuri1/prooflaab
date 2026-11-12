@@ -209,8 +209,10 @@ export const SimpleQuestion = ({ taskId, original, words, coding, anyLanguage, c
 
 /** Short version for the Daily card: the one line and what it means. */
 export const SimpleQuestionShort = ({ taskId, original, words }: { taskId: string; original: string | null; words?: Words }) => {
-  const { brief: raw } = useSimpleBrief(taskId);
+  const { brief: raw, loading } = useSimpleBrief(taskId);
   const shownOriginal = original ? oneRange(dropHelper(original), words) : null;
+  // Overnight TEST 12 Nov item 8: while the simple version loads, a placeholder - not the long original wording.
+  if (!raw && loading) return <div className="h-16 animate-pulse rounded-lg bg-[#faf7ef]" data-testid="simple-loading" />;
   if (!raw) return shownOriginal ? <BriefCards text={shownOriginal} tone="paper" /> : null;
   const brief = tidyBrief(raw, words);
   return (

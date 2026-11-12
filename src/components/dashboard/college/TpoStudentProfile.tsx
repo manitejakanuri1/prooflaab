@@ -23,6 +23,7 @@ interface Profile {
   full_name: string;
   roll_number: string | null;
   branch: string | null;
+  cohort?: string | null;
   batch: string | null;
   email: string | null;
   phone: string | null;
@@ -182,7 +183,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
             </DialogHeader>
 
             <p className="text-sm text-muted-foreground -mt-2">
-              {[data.branch, data.batch, data.email, data.phone].filter(Boolean).join(" · ")}
+              {[data.branch, data.cohort && `Section ${data.cohort}`, data.batch, data.email, data.phone].filter(Boolean).join(" · ")}
             </p>
 
             {/* MF-126: never signed in, so the 1-hour set-password link may have expired. */}
@@ -195,7 +196,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
-                { k: "Last active", v: data.days_quiet >= 999 ? "never" : `${data.days_quiet}d ago`,
+                { k: "Last Lot try", v: data.days_quiet >= 999 ? "none yet" : data.days_quiet === 0 ? "today" : `${data.days_quiet}d ago`, // item 4: Lot tries, not sign-ins (220)
                   hot: data.days_quiet >= 7 },
                 { k: "Total XP", v: data.total_xp ?? 0 },
                 { k: "Lots done", v: `${data.tasks.completed}/${data.tasks.assigned}${data.tasks.voice_owed ? ` · ${data.tasks.voice_owed} voice owed` : ""}`, // M8: migration 220

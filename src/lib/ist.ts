@@ -22,3 +22,11 @@ export function fmtDay(iso: string | number | Date | null | undefined): string {
 export function fmtDayTime(iso: string | number | Date | null | undefined): string {
   return iso == null || iso === "" ? "—" : `${IST_DAY_TIME.format(new Date(iso))} IST`;
 }
+
+/**
+ * Overnight TEST 12 Nov 2026: a Date whose LOCAL fields (what date-fns format/startOfWeek read) are India time,
+ * so "today", the week and the card date follow India whatever the device's time zone is. India has no DST.
+ */
+export function istWall(d: Date = new Date()): Date {
+  return new Date(d.getTime() + (330 + d.getTimezoneOffset()) * 60_000);
+}

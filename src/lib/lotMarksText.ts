@@ -108,7 +108,8 @@ export function checkLine(mark: number, lot: LotState): string {
 export function voiceLine(lot: LotState): string | null {
   if (!lot.daily) return null;
   if (lot.voice_state === "scored") return `Voice mark ${fmtMark(lot.voice_mark)} out of 10 - saved.`;
-  if (lot.voice_closed) return "The spoken part of this Lot is closed. Your coding mark is saved.";
+  // Overnight TEST 12 Nov: a written Lot has an answer mark, not a coding mark.
+  if (lot.voice_closed) return `The spoken part of this Lot is closed. Your ${lot.kind === "written" ? "answer" : "coding"} mark is saved.`;
   if ((lot.voice_tries_left ?? 2) === 1) return "We could not use your last recording. Please check and record again - this is your last try.";
   return null;
 }

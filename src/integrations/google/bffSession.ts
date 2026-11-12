@@ -80,18 +80,28 @@ async function jsonPost(
   });
 
   if (!response.ok) {
-    throw new Error(
-      await errorMessage(
-        response,
-        fallback,
-      ),
-    );
+    throw Object.assign(new Error(await errorMessage(response, fallback)), { status: response.status });
   }
 
   return response;
 }
 
+// Overnight TEST 12 Nov item 11: two sign-ins failed for about a minute while a new website version was
+// being released (no request reached the server). A wrong password is 400/401 and is never retried.
 export async function startBffSession(
+  email: string,
+  password: string,
+): Promise<BffSession> {
+  try {
+    return await startBffSessionOnce(email, password);
+  } catch (e) {
+    if ((e as { status?: number }).status === 400 || (e as { status?: number }).status === 401) throw e;
+    await new Promise((r) => setTimeout(r, 4000));
+    return startBffSessionOnce(email, password);
+  }
+}
+
+async function startBffSessionOnce(
   email: string,
   password: string,
 ): Promise<BffSession> {

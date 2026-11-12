@@ -170,6 +170,10 @@ try {
   await check("College: no 'Flagged Submissions' review button", async () => (await page.getByRole("button", { name: /Flagged Submissions/ }).count()) === 0);
   await check("College: a student row opens the drawer", async () => { await page.locator("tbody tr").first().click(); return dialogOpen(page); });
   await check("College: drawer never says '0 questions'", async () => { await page.waitForTimeout(1500); return !/\b0 questions\b/.test(await page.getByRole("dialog").innerText()); });
+  await check("College: drawer shows the section and 'Last Lot try', never a negative day (overnight items 4-5)", async () => {
+    const t = await page.getByRole("dialog").innerText();
+    return /Section [A-Z]/i.test(t) && /Last Lot try/i.test(t) && !/-\d+d ago/.test(t);
+  });
   await check("College: drawer never ranks a 0-point squad (squad 0 (#n))", async () => !/squad 0 \(#\d+\)/.test(await page.getByRole("dialog").innerText()));
   await ctx.close();
 

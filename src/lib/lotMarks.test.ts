@@ -23,7 +23,8 @@ test("check line: submit or try again while checks are left, then the best mark"
 });
 test("voice line: last try, closed, scored, not a Daily Lot", () => {
   assert.match(voiceLine({ daily: true, voice_state: "open", voice_tries_left: 1 }) ?? "", /last try/);
-  assert.match(voiceLine({ daily: true, voice_state: "tried", voice_closed: true }) ?? "", /closed/);
+  assert.match(voiceLine({ daily: true, voice_state: "tried", voice_closed: true }) ?? "", /closed. Your coding mark/);
+  assert.match(voiceLine({ daily: true, kind: "written", voice_state: "tried", voice_closed: true }) ?? "", /Your answer mark is saved/);
   assert.match(voiceLine({ daily: true, voice_state: "scored", voice_mark: 6.5 }) ?? "", /6\.5/);
   assert.equal(voiceLine({ daily: false }), null);
 });

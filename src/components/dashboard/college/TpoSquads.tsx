@@ -605,7 +605,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                                   ?? `Through${s.seed ? ` · seed ${s.seed}` : ""}`}
                               </Badge>
                             : <span className="text-xs text-muted-foreground">
-                                Still learning, out of the race
+                                {seedLine(s, squads.filter((o) => o.bracket && o.bracket === s.bracket))?.short
+                                  ?? "Still learning, out of the race"}
                               </span>}
                       </td>
                       <td className="py-2.5">

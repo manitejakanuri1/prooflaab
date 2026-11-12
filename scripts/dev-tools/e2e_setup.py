@@ -91,7 +91,7 @@ do $s$ declare uid uuid; pid uuid; cid uuid; aid uuid; begin
     if onboarded:
         gap = {"verified": skills[:3], "needs_improvement": skills[3:4], "missing": skills[4:]}
         roadmap = [{"skill": k, "title": f"Practise {k}", "why": f"{role}s use {k} every day.",
-                    "action": f"Do one {k} Lot a day for a week."} for k in skills[3:]]
+                    "action": f"Write one small {k} practice example and a short note on what it does."} for k in skills[3:]]
         rq, ats, sk, rs = 60 + n % 25, 55 + n % 30, 50 + n % 30, 55 + n % 25
         # Readiness = the same weighted mix resume-assessment-submit uses (20/20/30/15, no project part),
         # so the Readiness tab's parts add up to its total. A random number here made 45 TEST rows disagree.

@@ -393,7 +393,11 @@ const StudentDailyCard = () => {
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Today&apos;s task: one real task a day, with its source shown. Your lessons and quizzes are on the Roadmap.
+        {/* Polish P2: "on the Roadmap" opens it, so the student does not have to hunt for the tab. */}
+        Today&apos;s task: one real task a day, with its source shown. Your lessons and quizzes are on{" "}
+        <button type="button" className="underline hover:text-foreground" onClick={() => setRoadmap(true)} data-testid="open-roadmap-link">
+          your roadmap
+        </button>.
       </p>
 
       <div className="flex items-center gap-3 flex-wrap">

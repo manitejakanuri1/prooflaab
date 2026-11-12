@@ -57,7 +57,7 @@ end $a$;
                  f"Project: {skills[0]} mini project.\nInternship: 6 weeks with {skills[1]} and {skills[2]}."
         gap = {"verified": skills[:3], "needs_improvement": skills[3:4], "missing": skills[4:]}
         roadmap = [{"skill": x, "title": f"Practise {x}", "why": f"{role}s use {x} every day.",
-                    "action": f"Do one {x} Lot a day for a week."} for x in skills[3:]]
+                    "action": f"Write one small {x} practice example and a short note on what it does."} for x in skills[3:]]
         s.append(f"""
 do $s$ declare u uuid; pid uuid; cid uuid; aid uuid; begin
   u := public.record_account({uid(k)}, {em(k)}, {nm(k)}, true);

@@ -16,7 +16,11 @@ export function oneRange(text: string, words?: { min: number; max: number } | nu
 const RANGE = /,?\s*(?:\b(?:and\s+)?your\s+(?:answer|response)\s+(?:is|stays|should\s+be)\s+(?:about\s+)?|\b(?:(?:in|of)\s+)?(?:about|around|roughly|approximately)\s+|\b(?:in|of)\s+)?\b\d{1,4}\s*(?:–|-|to)\s*\d{2,4}[\s-]*words?\b(?:\s+(?:in\s+)?total\b)?/gi;
 export function dropWordRange(text: string): string {
   if (/^\s*(write|keep)\b[^.]*\b\d{1,4}\s*(?:–|-|to)\s*\d{2,4}[\s-]*words?\b[^.]*\.?\s*$/i.test(text)) return "";
-  return text.replace(RANGE, "").replace(/\s+([.,])/g, "$1").replace(/\s{2,}/g, " ").trim();
+  // Polish P1: a bare range is the thing written ("You have written 150 to 250 words that compare ..."); taking it
+  // out left "written that compare". It becomes "an answer"; "that" + plural verbs becomes "to" + the same verbs.
+  return text.replace(/\b(written|typed|wrote|write|type)\s+(?:about\s+|around\s+)?\d{1,4}\s*(?:–|-|to)\s*\d{2,4}[\s-]*words?\b(\s+that\b(?!\s+(?:are|were|have)\b))?/gi,
+    (_m, verb: string, that?: string) => `${verb} an answer${that ? " to" : ""}`)
+    .replace(RANGE, "").replace(/\s+([.,])/g, "$1").replace(/\s{2,}/g, " ").trim();
 }
 
 /** Sweep S5: the grader joins several quotes with " | "; show each one as its own quote. */

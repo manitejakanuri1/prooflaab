@@ -31,6 +31,7 @@ const ContentLibrary = () => {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [q, setQ] = useState("");
+  const [collegeOnly, setCollegeOnly] = useState(false);
   const [open, setOpen] = useState<{ title: string; url: string; markdown: string } | null>(null);
 
   const { data, isLoading, error } = useQuery({
@@ -55,10 +56,11 @@ const ContentLibrary = () => {
     void qc.invalidateQueries({ queryKey: ["admin-content-library"] });
   };
 
-  if (isLoading) return <Skeleton className="h-96 w-full rounded-xl" />;
-  if (error || !data) return <p className="text-sm text-alert">Could not load the library.</p>;
+  // C4: say what is happening instead of a bare grey box, and show the real error.
+  if (isLoading) return <div className="space-y-2"><p className="text-sm text-muted-foreground">Loading the content library…</p><Skeleton className="h-96 w-full rounded-xl" /></div>;
+  if (error || !data) return <p className="text-sm text-alert">Could not load the library{error ? `: ${(error as Error).message}` : "."}</p>;
 
-  const pages = data.pages.filter((p) => !q || `${p.title} ${p.url} ${p.site}`.toLowerCase().includes(q.toLowerCase()));
+  const pages = data.pages.filter((p) => (!collegeOnly || p.college) && (!q || `${p.title} ${p.url} ${p.site} ${p.college ?? ""}`.toLowerCase().includes(q.toLowerCase())));
   const shown = data.pages.filter((p) => !p.hidden).length;
 
   return (
@@ -100,7 +102,18 @@ const ContentLibrary = () => {
 
       <Card>
         <CardContent className="pt-5 space-y-3">
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by title, site or address" className="max-w-sm" />
+          <div className="flex flex-wrap items-center gap-3">
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by title, site, address or college" className="max-w-sm" />
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={collegeOnly} onChange={(e) => setCollegeOnly(e.target.checked)} />
+              Only material colleges submitted ({data.pages.filter((p) => p.college).length})
+            </label>
+          </div>
+          {pages.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              {data.pages.length === 0 ? "No pages yet. The crawler and college submissions add them here." : "No page matches this search."}
+            </p>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[760px]">
               <thead>
@@ -114,9 +127,11 @@ const ContentLibrary = () => {
                   <tr key={p.id} className={`border-t ${p.hidden ? "opacity-50" : ""}`}>
                     <td className="py-2.5 pr-3 max-w-[320px]">
                       <div className="font-medium truncate">{p.title || p.url}</div>
-                      <a href={safeExternalUrl(p.url) ?? undefined} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-1 truncate max-w-full">
-                        {p.url} <ExternalLink className="h-3 w-3 shrink-0" />
-                      </a>
+                      {safeExternalUrl(p.url) && (
+                        <a href={safeExternalUrl(p.url) ?? undefined} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-1 truncate max-w-full">
+                          {p.url} <ExternalLink className="h-3 w-3 shrink-0" />
+                        </a>
+                      )}
                       {p.college && <div className="text-xs text-primary">Submitted by {p.college}</div>}
                     </td>
                     <td className="py-2.5 pr-3 text-muted-foreground">{p.site ?? p.domain}<div className="text-[10px] font-mono">{p.fetch_method}</div></td>

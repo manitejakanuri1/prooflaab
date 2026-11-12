@@ -20,7 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStartupProfile } from "@/hooks/useStartupProfile";
 import { useStartupVerification } from "@/hooks/useStartupVerification";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { openExternal } from "@/lib/safeNavigation";
 
@@ -31,7 +31,8 @@ interface JobOpportunity {
   location: string;
   job_type: string;
   apply_link: string;
-  deadline: string;
+  deadline: string | null;
+  description: string | null;
   created_at: string;
   status: string;
   created_by: string;
@@ -156,6 +157,8 @@ export function StartupJobsPage() {
         job_type: formData.job_type,
         apply_link: formData.apply_link,
         deadline: format(formData.deadline, 'yyyy-MM-dd'),
+        // CO4: the description box was never saved, so Edit showed it blank.
+        description: formData.description?.trim() || null,
         eligible_branch: 'ALL',
         status: 'pending',
         created_by: user?.id,
@@ -171,7 +174,7 @@ export function StartupJobsPage() {
         if (error) throw error;
         toast({
           title: "Success",
-          description: "Job post updated. An admin checks every job post before students see it.", // MF-028
+          description: "Job post updated. An admin checks every job post. Students do not see a job list; once approved, its text can be used in their daily tasks.", // MF-028
         });
       } else {
         const { error } = await supabase
@@ -181,7 +184,7 @@ export function StartupJobsPage() {
         if (error) throw error;
         toast({
           title: "Success",
-          description: "Job post saved. An admin checks every job post before students see it.", // MF-028
+          description: "Job post saved. An admin checks every job post. Students do not see a job list; once approved, its text can be used in their daily tasks.", // MF-028
         });
       }
 
@@ -235,8 +238,8 @@ export function StartupJobsPage() {
       location: job.location,
       job_type: job.job_type,
       apply_link: job.apply_link,
-      deadline: new Date(job.deadline),
-      description: "",
+      deadline: job.deadline ? parseISO(job.deadline) : undefined,
+      description: job.description ?? "",
     });
     setIsDialogOpen(true);
   };
@@ -394,7 +397,7 @@ export function StartupJobsPage() {
               <dt className="text-muted-foreground">Location</dt><dd>{viewingJob.location}</dd>
               <dt className="text-muted-foreground">Job type</dt><dd>{viewingJob.job_type}</dd>
               <dt className="text-muted-foreground">Last day to apply</dt>
-              <dd>{viewingJob.deadline ? format(new Date(viewingJob.deadline), "d MMM yyyy") : "—"}</dd>
+              <dd>{viewingJob.deadline ? format(parseISO(viewingJob.deadline), "d MMM yyyy") : "—"}</dd>
               <dt className="text-muted-foreground">Status</dt><dd>{getStatusBadge(viewingJob.status || 'pending')}</dd>
               <dt className="text-muted-foreground">Where to apply</dt>
               <dd className="break-all">

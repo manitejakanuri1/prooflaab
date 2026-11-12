@@ -12,11 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 const JOB_TYPES = ["Internship", "Full-time", "Part-time"];
 
 /**
- * A college posts a real job description twice over: it becomes a listing on
- * the student job board (same job_opportunities table Admin's Manage Jobs
- * page already reads), and its text becomes real source material the Daily
- * Lot engine can quote from instead of inventing a job phrase — see
- * lot-writer's real-JD lookup.
+ * A college posts a real job description into job_opportunities (Admin > Job sources reads it). Students
+ * have no job board (it was removed; students are never sent outside the app), so the text is used only as
+ * real source material the Daily Lot engine quotes from - see lot-pipeline's real-JD lookup.
  */
 const PostJobDescription = () => {
   const [open, setOpen] = useState(false);
@@ -27,11 +25,12 @@ const PostJobDescription = () => {
   const [jobType, setJobType] = useState("Internship");
   const [applyLink, setApplyLink] = useState("");
   const [description, setDescription] = useState("");
+  const [deadline, setDeadline] = useState("");
   const { toast } = useToast();
 
   const reset = () => {
     setRole(""); setCompanyName(""); setLocation("Remote");
-    setJobType("Internship"); setApplyLink(""); setDescription("");
+    setJobType("Internship"); setApplyLink(""); setDescription(""); setDeadline("");
   };
 
   const submit = async () => {
@@ -53,6 +52,7 @@ const PostJobDescription = () => {
       job_type: jobType,
       apply_link: applyLink.trim(),
       description: description.trim(),
+      deadline: deadline || null,
       eligible_branch: "ALL",
       status: "approved",
       source: "college",
@@ -65,7 +65,7 @@ const PostJobDescription = () => {
       return;
     }
 
-    toast({ title: "Job description posted", description: "Visible to students, and now real source material for daily tasks." });
+    toast({ title: "Job description saved", description: "Students do not see a job list. Daily tasks on matching topics can now quote this real job text." });
     reset();
     setOpen(false);
   };
@@ -82,6 +82,9 @@ const PostJobDescription = () => {
           <DialogHeader>
             <DialogTitle>Post a job description</DialogTitle>
           </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Students do not see a job list. This real job text can be quoted in daily tasks on matching topics.
+          </p>
 
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -114,6 +117,11 @@ const PostJobDescription = () => {
             <div className="space-y-2">
               <Label htmlFor="pjd-apply-link">Apply link</Label>
               <Input id="pjd-apply-link" value={applyLink} onChange={(e) => setApplyLink(e.target.value)} placeholder="https://..." />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="pjd-deadline">Last date to apply (optional)</Label>
+              <Input id="pjd-deadline" type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
             </div>
 
             <div className="space-y-2">

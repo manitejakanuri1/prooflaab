@@ -1,6 +1,6 @@
 import { fmtDay } from "@/lib/ist";
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Calendar, MoreVertical, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, Calendar, MoreVertical, Eye, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { openExternal } from "@/lib/safeNavigation";
 
@@ -28,7 +28,7 @@ interface JobOpportunity {
   job_type: string;
   eligible_branch: string;
   apply_link: string;
-  deadline: string;
+  deadline: string | null;
   description: string | null;
   created_at: string;
   status: string;
@@ -95,16 +95,6 @@ const ManageJobsPage = () => {
     e.preventDefault();
     setSubmitting(true);
 
-    if (!formData.deadline) {
-      toast({
-        title: "Error",
-        description: "Please select a deadline",
-        variant: "destructive",
-      });
-      setSubmitting(false);
-      return;
-    }
-
     try {
       const submitData = {
         role: formData.role,
@@ -112,7 +102,7 @@ const ManageJobsPage = () => {
         location: formData.location,
         job_type: formData.job_type,
         apply_link: formData.apply_link,
-        deadline: format(formData.deadline, 'yyyy-MM-dd'),
+        deadline: formData.deadline ? format(formData.deadline, 'yyyy-MM-dd') : null,
         eligible_branch: 'ALL',
         status: 'approved',
         description: formData.description?.trim() || null,
@@ -157,6 +147,15 @@ const ManageJobsPage = () => {
     }
   };
 
+  // CO10: a company's post arrives "pending"; admin approves (its text can then feed daily tasks) or rejects it.
+  const setStatus = async (id: string, status: "approved" | "rejected") => {
+    const { error } = await supabase.from("job_opportunities").update({ status }).eq("id", id);
+    if (error) return toast({ title: "Not changed", description: error.message, variant: "destructive" });
+    toast({ title: status === "approved" ? "Job post approved" : "Job post rejected",
+      description: status === "approved" ? "Students do not see a job list; its text can now be used in daily tasks." : "Its text will not be used." });
+    void fetchJobs();
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this job opportunity?")) return;
 
@@ -192,7 +191,7 @@ const ManageJobsPage = () => {
       location: job.location,
       job_type: job.job_type,
       apply_link: job.apply_link,
-      deadline: new Date(job.deadline),
+      deadline: job.deadline ? parseISO(job.deadline) : undefined,
       description: job.description ?? "",
     });
     setIsDialogOpen(true);
@@ -265,6 +264,7 @@ const ManageJobsPage = () => {
                   <TableHead className="font-semibold">Company</TableHead>
                   <TableHead className="font-semibold">Location</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-semibold">Deadline</TableHead>
                   <TableHead className="font-semibold">Created</TableHead>
                   <TableHead className="font-semibold text-right">Actions</TableHead>
                 </TableRow>
@@ -280,6 +280,7 @@ const ManageJobsPage = () => {
                     <TableCell>{job.company_name}</TableCell>
                     <TableCell>{job.location}</TableCell>
                     <TableCell>{getStatusBadge(job.status || 'approved')}</TableCell>
+                    <TableCell className="text-muted-foreground">{job.deadline ? fmtDay(job.deadline) : "No deadline"}</TableCell>
                     <TableCell className="text-muted-foreground">
                       {fmtDay(job.created_at)}
                     </TableCell>
@@ -295,6 +296,18 @@ const ManageJobsPage = () => {
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
+                          {job.status !== "approved" && (
+                            <DropdownMenuItem onClick={() => void setStatus(job.id, "approved")}>
+                              <Check className="mr-2 h-4 w-4" />
+                              Approve
+                            </DropdownMenuItem>
+                          )}
+                          {job.status !== "rejected" && (
+                            <DropdownMenuItem onClick={() => void setStatus(job.id, "rejected")}>
+                              <X className="mr-2 h-4 w-4" />
+                              Reject
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => openEditDialog(job)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
@@ -394,7 +407,7 @@ const ManageJobsPage = () => {
             </div>
             
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-foreground">Deadline</Label>
+              <Label className="text-sm font-medium text-foreground">Deadline (optional)</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -405,7 +418,7 @@ const ManageJobsPage = () => {
                     )}
                   >
                     <Calendar className="mr-2 h-4 w-4" />
-                    {formData.deadline ? format(formData.deadline, "PPP") : "Pick a deadline"}
+                    {formData.deadline ? format(formData.deadline, "PPP") : "No deadline"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 rounded-lg shadow-lg" align="start">

@@ -42,7 +42,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Users, Plus, Eye, Edit, Pause, MoreHorizontal } from "lucide-react";
+import { Search, Users, Plus, Eye, Edit, Pause, MoreHorizontal, Download } from "lucide-react";
 import { ADMIN_LIST_CAP } from "@/lib/listCaps";
 import TpoStudentProfile from "@/components/dashboard/college/TpoStudentProfile";
 
@@ -286,6 +286,24 @@ const StudentOversight = () => {
 
   const totalPages = Math.ceil((students?.length || 0) / itemsPerPage);
 
+  // A7 (E2E 12 Nov): Export CSV like the Companies page - only the columns on screen, every row the search and
+  // college filter show. Quoted; a cell starting with = + - @ gets a ' so a spreadsheet never runs it as a formula.
+  const exportToCSV = () => {
+    if (!students?.length) return;
+    const esc = (v: unknown) => `"${String(v ?? "").replace(/^[=+\-@]/, "'$&").replace(/"/g, '""')}"`;
+    const csv = [
+      "Name,Email,College,Status,Tasks,Created",
+      ...students.map((s) => [s.full_name, s.email, collegeName(s.college_id), s.status || "active",
+        (s as any).tasks?.[0]?.count ?? 0, fmtDay(s.created_at)].map(esc).join(",")),
+    ].join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `students-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const collegeName = (id: string | null) => colleges?.find((c) => c.id === id)?.name ?? '—';
   const pageIds = (paginatedStudents ?? []).map((s) => s.id as string);
   const allOnPagePicked = pageIds.length > 0 && pageIds.every((id) => picked.has(id));
@@ -358,10 +376,16 @@ const StudentOversight = () => {
             </p>
           </div>
         </div>
-        <Button onClick={() => openModal('add')} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add New Student
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={exportToCSV} disabled={!students?.length} data-testid="students-export-csv">
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+          <Button onClick={() => openModal('add')} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add New Student
+          </Button>
+        </div>
       </div>
 
       <Card className="border-0 shadow-lg">

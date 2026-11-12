@@ -27,6 +27,9 @@ import { fmtDay, fmtIST } from "@/lib/ist";
 // MF-033 (migration 199): who sees it. Publishing sends each of them one bell notice and shows it on their dashboard.
 const AUDIENCES = { all: "Everyone", students: "Students", colleges: "Colleges", companies: "Companies" } as const;
 type Audience = keyof typeof AUDIENCES;
+// A4: same limits as the table check (migration 330).
+const TITLE_MAX = 150;
+const MESSAGE_MAX = 2000;
 
 interface Announcement {
   id: string;
@@ -101,12 +104,17 @@ const ManageAnnouncementsPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // A3: a blank form used to do nothing at all; say what is missing.
+    if (!formData.title.trim() || !formData.description.trim()) {
+      toast({ title: "Title and message are required", variant: "destructive" });
+      return;
+    }
     setSubmitting(true);
 
     try {
       const fields = {
-        title: formData.title,
-        description: formData.description,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
         status: formData.status,
         audience: formData.audience,
         college_id: formData.audience === 'companies' ? null : formData.college_id,
@@ -145,7 +153,7 @@ const ManageAnnouncementsPage = () => {
       console.error("Error saving announcement:", error);
       toast({
         title: "Error",
-        description: "Failed to save announcement",
+        description: (error as { message?: string })?.message || "Failed to save announcement",
         variant: "destructive",
       });
     } finally {
@@ -344,7 +352,7 @@ const ManageAnnouncementsPage = () => {
               📢 {editingAnnouncement ? "Edit Announcement" : "Create New Announcement"}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-6 p-6">
+          <form onSubmit={handleSubmit} noValidate className="space-y-6 p-6">
             <div className="space-y-2">
               <Label htmlFor="title" className="text-sm font-medium text-foreground">Announcement Title</Label>
               <Input
@@ -353,8 +361,10 @@ const ManageAnnouncementsPage = () => {
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="e.g., Important System Maintenance Notice"
                 className="rounded-lg border-border/50 focus:border-primary transition-colors"
+                maxLength={TITLE_MAX}
                 required
               />
+              <p className="text-xs text-right text-muted-foreground" data-testid="announcement-title-count">{formData.title.length}/{TITLE_MAX}</p>
             </div>
             
             <div className="space-y-2">
@@ -366,8 +376,10 @@ const ManageAnnouncementsPage = () => {
                 placeholder="Write your announcement message here..."
                 className="rounded-lg border-border/50 focus:border-primary transition-colors min-h-[120px]"
                 rows={5}
+                maxLength={MESSAGE_MAX}
                 required
               />
+              <p className="text-xs text-right text-muted-foreground" data-testid="announcement-message-count">{formData.description.length}/{MESSAGE_MAX}</p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">

@@ -52,7 +52,13 @@ serve(async (req) => {
         .eq("id", task_id)
         .maybeSingle();
       if (!data) return json({ error: "No such task" }, 404);
-      if (data.student_id !== callerId && !(await isAdmin())) return json({ error: "Not your task" }, 403);
+      // A5 (E2E 12 Nov): an admin/college-assigned task has no student_id; its student is in task_assignments
+      // (same check as submit-written-task / run-sandbox).
+      if (data.student_id !== callerId) {
+        const { data: assigned } = await db.from("task_assignments")
+          .select("id").eq("task_id", task_id).eq("student_id", callerId).maybeSingle();
+        if (!assigned && !(await isAdmin())) return json({ error: "Not your task" }, 403);
+      }
       task = data;
     } else {
       if (!(await isAdmin())) return json({ error: "Admins only" }, 403);

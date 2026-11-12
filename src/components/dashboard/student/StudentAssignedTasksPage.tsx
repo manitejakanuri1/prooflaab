@@ -538,6 +538,7 @@ const StudentAssignedTasksPage = () => {
             <WrittenTaskPanel
               taskId={writingTaskId}
               voice={voiceFor(writingTaskId)}
+              onPassedChange={() => void refetchTasks()}
               onCompleted={() => { explainAfter(writingTaskId); setWritingTaskId(null); refetchTasks(); }}
             />
           </DialogContent>

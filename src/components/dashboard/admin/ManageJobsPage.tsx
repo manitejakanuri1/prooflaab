@@ -120,9 +120,11 @@ const ManageJobsPage = () => {
           description: "Job opportunity updated successfully",
         });
       } else {
+        // A1: the insert policy (migration 310) needs created_by = the signed-in poster, admin included.
+        const { data: { user } } = await supabase.auth.getUser();
         const { error } = await supabase
           .from("job_opportunities")
-          .insert([submitData]);
+          .insert([{ ...submitData, created_by: user?.id ?? null }]);
 
         if (error) throw error;
         toast({
@@ -139,7 +141,7 @@ const ManageJobsPage = () => {
       console.error("Error saving job:", error);
       toast({
         title: "Error",
-        description: "Failed to save job opportunity",
+        description: (error as { message?: string })?.message || "Failed to save job opportunity",
         variant: "destructive",
       });
     } finally {

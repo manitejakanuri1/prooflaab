@@ -228,6 +228,11 @@ export const useAllStudentTasks = () => {
           id: task.id,
           title: lang(task.id, task.title),
           description: task.description ? lang(task.id, task.description) : task.description,
+          // A5 (E2E 12 Nov): a passed assigned task waits in 'pending_voice' - say so, as for the student's own tasks.
+          voice_score: assignment.status === 'pending_voice' ? null : voiceScoreOf.get(task.id) ?? null,
+          voice_owed: assignment.status === 'pending_voice',
+          not_passed: lastStatusOf.get(task.id) === 'failed',
+          work_passed: assignment.status === 'completed' || assignment.status === 'pending_voice',
           deadline: task.due_date,
           lot_date: task.lot_date,
           status,

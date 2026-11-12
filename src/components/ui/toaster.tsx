@@ -18,6 +18,8 @@ export function Toaster() {
           <Toast key={id} {...props}>
             <div className="grid gap-1">
               {title && <ToastTitle>{title}</ToastTitle>}
+              {/* F22: Radix reads title and description out as one string; without this they ran together. */}
+              {title && description && <span className="sr-only"> - </span>}
               {description && (
                 <ToastDescription>{description}</ToastDescription>
               )}

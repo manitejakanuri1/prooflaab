@@ -80,7 +80,7 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
   const parse = async (file: File) => {
     // F8 (round 3): the file can reach here without the Import button (its own guard), so check again.
     if (!effectiveBranch) {
-      toast({ title: "Pick a branch first", description: "Choose which branch this file is for, above.", variant: "destructive" });
+      toast({ title: "Pick a branch first - choose which branch this file is for, above.", variant: "destructive" });
       if (fileRef.current) fileRef.current.value = "";
       return;
     }
@@ -463,7 +463,7 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
           size="sm" disabled={busy || !collegeId}
           onClick={() => {
             if (!effectiveBranch) {
-              toast({ title: "Pick a branch first", description: "Choose which branch this file is for, above.", variant: "destructive" });
+              toast({ title: "Pick a branch first - choose which branch this file is for, above.", variant: "destructive" });
               return;
             }
             fileRef.current?.click();

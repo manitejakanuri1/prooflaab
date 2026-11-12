@@ -243,16 +243,9 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: collegeData } = await supabase
-        .from('colleges')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!collegeData) return;
+      // F16: same college lookup as every other college screen (also works for a college helper login).
+      const { data: collegeId } = await supabase.rpc("my_college_id" as never);
+      if (!collegeId) throw new Error("college account not found");
 
       const { data: studentsData, error } = await supabase
         .from('student_profiles')
@@ -263,7 +256,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
           key_interests, preferred_skills, college_id,
           student_contact (email)
         `)
-        .eq('college_id', collegeData.id)
+        .eq('college_id', collegeId as unknown as string)
         .order('full_name');
 
       if (error) throw error;
@@ -2199,7 +2192,8 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                Select Students ({selectedStudents.length}/{filteredStudents.length})
+                {/* F16: said "0/0" while the list was still loading. */}
+                Select Students {studentsLoading ? "(loading…)" : `(${selectedStudents.length}/${filteredStudents.length})`}
               </CardTitle>
               <Button
                 variant="outline"
@@ -2313,7 +2307,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
               {filteredStudents.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Users className="h-8 w-8 mx-auto mb-2" />
-                  <p>No students match your filters</p>
+                  <p>{studentsLoading ? "Loading students…" : "No students match your filters"}</p>
                 </div>
               )}
             </div>

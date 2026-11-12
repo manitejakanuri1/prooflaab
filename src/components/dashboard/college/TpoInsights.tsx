@@ -201,7 +201,7 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
         >
           <CardContent className="pt-5">
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Needs attention
+              Needs a nudge
             </span>
             <div className={`font-mono text-3xl font-bold tabular-nums mt-1 ${
               data.attention_total > 0 ? "text-alert" : ""}`}>

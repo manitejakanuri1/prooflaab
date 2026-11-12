@@ -88,6 +88,9 @@ interface FilterOptions {
  * showing up — a trust score says how good someone is, not whether they are
  * still here.
  */
+// F8 (migration 355): the one rule behind "Needs a nudge" (migration 297's "active", turned round).
+const NUDGE_HELP = "No Lot tried in the last 7 days (today and the 6 before, India time).";
+
 const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Props) => {
   const { toast } = useToast();
   const [confirmBox, ask] = useConfirm();
@@ -276,9 +279,9 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
           <SelectTrigger className="w-[170px]"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All status</SelectItem>
-            <SelectItem value="attention">Needs attention</SelectItem>
+            <SelectItem value="attention">Needs a nudge</SelectItem>
             <SelectItem value="inactive">No Lot tried for 7+ days</SelectItem>
-            <SelectItem value="onboarding">Onboarding unfinished</SelectItem>
+            <SelectItem value="onboarding">Account not activated</SelectItem>
             <SelectItem value="missed_lots">Tried a Lot this week but missed another</SelectItem>
             <SelectItem value="active_today">Tried a Lot today</SelectItem>
             <SelectItem value="active_week">Tried a Lot this week</SelectItem>
@@ -391,15 +394,14 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                       {r.attention === "ok" ? (
                         <Badge className="bg-verified/15 text-verified hover:bg-verified/15" title="Nothing flagged - onboarded, a Lot tried in the last 7 days and no other Lot of those days missed">Trying Lots</Badge>
                       ) : r.attention === "high" ? (
-                        <Badge variant="destructive">Needs attention</Badge>
+                        <Badge variant="destructive" title={NUDGE_HELP}>Needs a nudge</Badge>
                       ) : (
-                        <Badge className="bg-compete/15 text-compete hover:bg-compete/15">Needs attention</Badge>
+                        <Badge className="bg-compete/15 text-compete hover:bg-compete/15" title={NUDGE_HELP}>Needs a nudge</Badge>
                       )}
-                      {r.onboarding_status !== "completed" && (
-                        <div className="text-[10px] text-muted-foreground mt-1 font-mono">
-                          {r.onboarding_status.replace("_", " ")}
-                        </div>
-                      )}
+                      {/* F8: the account (signed up or not) is a separate thing from trying Lots. */}
+                      <div className="text-[10px] text-muted-foreground mt-1">
+                        Account: {r.onboarding_status === "invited" ? "Not activated" : "Active"}
+                      </div>
                     </td>
                     <td className="py-2.5 whitespace-nowrap">
                       {r.attention !== "ok" && (

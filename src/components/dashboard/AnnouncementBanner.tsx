@@ -26,7 +26,8 @@ export default function AnnouncementBanner() {
           <Megaphone className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
           <div className="min-w-0">
             <p className="text-sm font-medium">{a.title}</p>
-            {a.description && <p className="text-sm text-muted-foreground whitespace-pre-line">{a.description}</p>}
+            {/* F23: an announcement whose text is its title showed the same line twice. */}
+            {a.description && a.description.trim() !== a.title.trim() && <p className="text-sm text-muted-foreground whitespace-pre-line">{a.description}</p>}
           </div>
         </div>
       ))}

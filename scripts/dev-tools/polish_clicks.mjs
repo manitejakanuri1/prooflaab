@@ -258,6 +258,16 @@ try {
     const quiet = Number(text.match(/(\d+) students? have not tried a Lot for over a week/i)?.[1] ?? 0);
     return !!card && Number(card[2]) + quiet === Number(card[1]);
   });
+  await check("College: 'Needs a nudge' = students with no Lot for over a week (F8, migration 355)", async () => {
+    const text = await page.locator("main").innerText();
+    const nudge = text.match(/Needs a nudge\D{0,40}?(\d+)/i)?.[1];
+    const quiet = text.match(/(\d+) students? have not tried a Lot for over a week/i)?.[1] ?? "0";
+    return nudge === quiet;
+  });
+  await check("College: each announcement line shows once (F23)", async () => {
+    const lines = (await page.getByTestId("announcements").innerText().catch(() => "")).split(/\n+/).filter(Boolean);
+    return new Set(lines).size === lines.length;
+  });
   await check("College: home counts Lot attempts, not logins (item 26)", async () =>
     (await page.getByText("Tried a Lot today").count()) > 0 && (await page.getByText(/opened the app/i).count()) === 0);
   await check("College: home shows the 'Looks copied' info note, no review button (migration 229)", async () => {

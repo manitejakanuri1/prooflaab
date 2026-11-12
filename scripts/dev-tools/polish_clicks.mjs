@@ -150,6 +150,37 @@ try {
     return apiErrors.length === 0;
   });
 
+  // ---- student 19: full course on the roadmap (owner 12 Nov 2026, option Y, migration 241)
+  ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await cookieSignIn(ctx, BASE, logins["Student 19"]);
+  page = await ctx.newPage();
+  await go(page, "/student/roadmap");
+  await check("Roadmap: the track shows a 'Full course' button", async () => {
+    await page.getByTestId("full-course").first().waitFor({ timeout: 30000 }).catch(() => {});
+    return (await page.getByTestId("full-course").count()) > 0;
+  });
+  await check("Roadmap: Full course opens its chapter list and a chapter, inside the app", async () => {
+    await page.getByTestId("full-course").first().click();
+    await page.getByTestId("chapter-row").first().waitFor({ timeout: 30000 });
+    await page.getByTestId("chapter-row").first().click();
+    await page.getByTestId("chapter-title").waitFor({ timeout: 30000 });
+    const text = await page.getByTestId("course-reader").innerText();
+    return /^1\. /m.test(await page.getByTestId("chapter-title").innerText()) && !/https?:\/\//.test(text.replace(/```[\s\S]*?```/g, ""));
+  });
+  await check("Roadmap: 'Mark as read' counts the chapter, and undoing it counts it back", async () => {
+    const before = await page.getByTestId("course-progress").innerText();
+    const n = Number(before.match(/^(\d+)/)?.[1] ?? NaN);
+    const wasRead = (await page.getByTestId("mark-read").innerText()).includes("Read") && !(await page.getByTestId("mark-read").innerText()).includes("Mark");
+    await page.getByTestId("mark-read").click();
+    await page.waitForTimeout(3000);
+    const mid = Number((await page.getByTestId("course-progress").innerText()).match(/^(\d+)/)?.[1] ?? NaN);
+    await page.getByTestId("mark-read").click(); // put it back as it was
+    await page.waitForTimeout(3000);
+    const after = await page.getByTestId("course-progress").innerText();
+    return mid === n + (wasRead ? -1 : 1) && after === before;
+  });
+  await ctx.close();
+
   // ---- college
   ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await cookieSignIn(ctx, BASE, logins["College"]);

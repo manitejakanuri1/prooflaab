@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import LevelDetail from "./LevelDetail";
+import FullCourse from "./FullCourse";
 import LevelPath, { type LevelState, type PathLevel } from "./LevelPath";
 import TestMistakes, { normSkill, type TestMistake } from "./TestMistakes";
 import {
@@ -547,6 +548,8 @@ const LevelMap = ({ mistakes = [], onGoToTasks }: LevelMapProps) => {
               {doneCount} of {levels.length} done · {provedCount} proved with real work
             </p>
           </div>
+          {/* Owner 12 Nov 2026 (option Y): the whole course for this track, read in the app. */}
+          <FullCourse trackSlug={activeTrack.track_slug} />
 
           <div className="relative pt-3">
             <Search className="absolute left-3 top-1/2 mt-1.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

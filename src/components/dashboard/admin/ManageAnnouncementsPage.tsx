@@ -141,7 +141,7 @@ const ManageAnnouncementsPage = () => {
         if (error) throw error;
         toast({
           title: "Success",
-          description: "Announcement created successfully",
+          description: fields.status === "draft" ? "Draft saved. Nobody sees it until you publish it." : "Announcement posted",
         });
       }
 
@@ -300,7 +300,7 @@ const ManageAnnouncementsPage = () => {
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={`Actions for ${announcement.title}`}>
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -460,7 +460,10 @@ const ManageAnnouncementsPage = () => {
                 disabled={submitting}
                 className="rounded-lg px-6 bg-primary hover:bg-primary/90 transition-colors"
               >
-                {submitting ? "Posting..." : editingAnnouncement ? "Update Announcement" : "Post Announcement"}
+                {/* F26: a draft is only saved (RLS, my_announcements and the fan-out trigger all skip non-published rows). */}
+                {formData.status === "draft"
+                  ? (submitting ? "Saving..." : "Save draft")
+                  : submitting ? "Posting..." : editingAnnouncement ? "Update Announcement" : "Post Announcement"}
               </Button>
             </div>
           </form>

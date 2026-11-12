@@ -58,6 +58,15 @@ const TaskOversight = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const { data: categories = ['General'] } = useQuery({
+    queryKey: ['admin-task-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('tasks').select('category').not('category', 'is', null).limit(5000);
+      if (error) throw error;
+      return [...new Set(['General', ...(data ?? []).map((t) => t.category as string)])].sort();
+    },
+  });
+
   const { data: tasks, isLoading, error } = useQuery({
     queryKey: ['admin-tasks', searchTerm, statusFilter, creatorFilter, categoryFilter, dueDateFilter],
     queryFn: async () => {
@@ -70,9 +79,13 @@ const TaskOversight = () => {
       }
 
       if (statusFilter !== 'all') {
-        if (statusFilter === 'active') {
-          // The database stores lowercase pending / completed (Daily Lots); a few older rows use capitalised words.
-          query = query.in('status', ['pending', 'Pending', 'In Progress', 'Assigned']);
+        // F25: the options are exactly the badges getStatusBadge shows. A row past its due date that is not
+        // completed shows "Overdue", so Pending / Active leave those out.
+        const notOverdue = `due_date.is.null,due_date.gte.${new Date().toISOString()}`;
+        if (statusFilter === 'pending') {
+          query = query.in('status', ['pending', 'Pending', 'pending_voice']).or(notOverdue);
+        } else if (statusFilter === 'active') {
+          query = query.in('status', ['In Progress', 'Assigned']).or(notOverdue);
         } else if (statusFilter === 'completed') {
           query = query.in('status', ['completed', 'Completed']);
         } else if (statusFilter === 'overdue') {
@@ -90,7 +103,10 @@ const TaskOversight = () => {
         }
       }
 
-      if (categoryFilter !== 'all') {
+      if (categoryFilter === 'General') {
+        // The table shows an empty category as "General".
+        query = query.or('category.is.null,category.eq.General');
+      } else if (categoryFilter !== 'all') {
         query = query.eq('category', categoryFilter);
       }
 
@@ -299,7 +315,7 @@ const TaskOversight = () => {
       return (
         <Badge variant="outline" className="gap-1 border-compete text-compete">
           <Briefcase className="h-3 w-3" />
-          Startup
+          Company
         </Badge>
       );
     }
@@ -433,6 +449,7 @@ const TaskOversight = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="overdue">Overdue</SelectItem>
@@ -446,7 +463,7 @@ const TaskOversight = () => {
               <SelectContent>
                 <SelectItem value="all">All Creators</SelectItem>
                 <SelectItem value="college">Colleges</SelectItem>
-                <SelectItem value="startup">Startups</SelectItem>
+                <SelectItem value="startup">Companies</SelectItem>
                 <SelectItem value="admin">Admins</SelectItem>
               </SelectContent>
             </Select>
@@ -457,10 +474,8 @@ const TaskOversight = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="Development">Development</SelectItem>
-                <SelectItem value="Design">Design</SelectItem>
-                <SelectItem value="Marketing">Marketing</SelectItem>
-                <SelectItem value="General">General</SelectItem>
+                {/* F25: the categories tasks really have, not a fixed guess. */}
+                {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
 
@@ -548,7 +563,7 @@ const TaskOversight = () => {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={`Actions for ${task.title}`}>
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -714,7 +729,7 @@ const TaskOversight = () => {
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0" aria-label={`Actions for ${task.title}`}>
                             <MoreVertical className="h-3 w-3" />
                           </Button>
                         </DropdownMenuTrigger>

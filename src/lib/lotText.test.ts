@@ -70,6 +70,13 @@ test("Lot simplify: the word range is said once, on the marking line", () => {
   assert.equal(dropWordRange("You have written a short 100–200 words explanation covering all four points."),
     "You have written a short explanation covering all four points.");
   assert.equal(dropWordRange("Say what a LEFT JOIN does."), "Say what a LEFT JOIN does.");
+  // Polish P1: a bare range that is the thing written must not leave "You have written that compare".
+  assert.equal(dropWordRange("You have written 150 to 250 words that compare two approaches, list their signals, recommend one, give a trade-off, and give one example alert."),
+    "You have written an answer to compare two approaches, list their signals, recommend one, give a trade-off, and give one example alert.");
+  assert.equal(dropWordRange("You have written 150-250 words describing at least three tables."),
+    "You have written an answer describing at least three tables.");
+  assert.equal(dropWordRange("You have written a 150-200 word paragraph that names your choice."),
+    "You have written a paragraph that names your choice.");
 });
 
 test("plainCode turns codes into words", () => {

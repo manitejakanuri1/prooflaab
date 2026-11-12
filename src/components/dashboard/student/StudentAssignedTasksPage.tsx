@@ -354,13 +354,13 @@ const StudentAssignedTasksPage = () => {
                               variant="outline" 
                               className={getSourceBadgeColor(task.source || '')}
                             >
-                              {sourceLabel(task.source || '')}
+                              {task.source === 'Company Lot' && task.company ? `Set by ${task.company}` : sourceLabel(task.source || '')}
                             </Badge>
                             <Badge 
                               variant="outline" 
                               className={getStatusColor(overdue(task) ? 'Overdue' : task.status)}
                             >
-                              {overdue(task) ? 'Overdue' : task.status === 'Applied' ? 'Not started' : task.voice_owed ? (task.not_passed ? 'Not passed · voice owed' : 'Submitted · voice owed') : task.status}
+                              {overdue(task) ? 'Overdue' : task.voice_owed ? (task.not_passed ? 'Not passed · voice owed' : 'Submitted · voice owed') : task.not_passed && task.status !== 'Completed' ? 'Not passed · try again' : task.status === 'Applied' ? 'Not started' : task.status}
                             </Badge>
                           </div>
                         </div>
@@ -377,7 +377,10 @@ const StudentAssignedTasksPage = () => {
                             {task.lot_date ? (
                               // E2E-22: a Lot belongs to its own day; the due date is secondary.
                               <span>
-                                Lot day: {format(parseISO(task.lot_date), "EEE d MMM")}
+                                {/* Item 7: a company Lot set for a later day can already be done now; say both. */}
+                                {task.source === "Company Lot" && task.lot_date > new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })
+                                  ? `On your Daily Card ${format(parseISO(task.lot_date), "EEE d MMM")} - you can do it now`
+                                  : `Lot day: ${format(parseISO(task.lot_date), "EEE d MMM")}`}
                                 {task.deadline && task.deadline.slice(0, 10) !== task.lot_date && (
                                   <span className="ml-1.5 text-[11px] opacity-80">· due {formatDueDate(task.deadline)}</span>
                                 )}

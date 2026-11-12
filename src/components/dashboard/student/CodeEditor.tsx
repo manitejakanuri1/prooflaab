@@ -93,6 +93,7 @@ const CodeEditor = ({ value, onChange, language, label, errorLine, errorText }: 
         fixedOverflowWidgets: true, // the suggestion list must not be clipped by the lesson window
         padding: { top: 8, bottom: 8 },
         renderLineHighlight: "line",
+        autoClosingQuotes: "never", // assigned-work test item 8: a typed quote is one quote
       }}
     />
   );

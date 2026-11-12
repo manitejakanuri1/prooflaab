@@ -133,6 +133,10 @@ export default function SandboxTaskPanel({
   // MF-020: a finished task shows the saved answer and result from the server, not an empty draft.
   const [saved, setSaved] = useState<{ row: SavedRow; voice: number | null } | null>(null);
   const [code, setCode] = useState("");
+  // Assigned-work test item 8: typed text was duplicated when the editor was fed its own value back on every key.
+  // The editor now owns what is typed; `ext` changes (a new model) only when the code is loaded or replaced from outside.
+  const [ext, setExt] = useState(0);
+  const loadCode = (value: string) => { setCode(value); setExt((n) => n + 1); };
   // The language being written in; the Lot's own unless the student picked another from its list.
   const [lang, setLang] = useState("");
   // null = the main program; otherwise the name of the helper file open in the editor.
@@ -159,14 +163,14 @@ export default function SandboxTaskPanel({
       try { picked = localStorage.getItem(`sandbox-lang:${taskId}`); } catch { /* storage blocked */ }
       const l = v && picked && v.languages?.includes(picked) ? picked : v?.language ?? "";
       setLang(l);
-      setCode(readDraft(taskId, v, l));
+      loadCode(readDraft(taskId, v, l));
       const st = await loadLotState(taskId);
       if (!cancelled) setLot(st);
       if (v?.completed || st?.submitted) {
         const s = await loadSavedAnswer(taskId);
         if (!cancelled && s) {
           setSaved(s); setTab("result");
-          if (s.row.code) setCode(s.row.code);
+          if (s.row.code) loadCode(s.row.code);
           if (s.row.language) setLang(s.row.language);
         }
       }
@@ -182,7 +186,7 @@ export default function SandboxTaskPanel({
   const pickLanguage = (l: string) => {
     setLang(l);
     try { localStorage.setItem(`sandbox-lang:${taskId}`, l); } catch { /* storage blocked */ }
-    setCode(readDraft(taskId, view, l));
+    loadCode(readDraft(taskId, view, l));
     setOpenFile(null); setRunResults(null); setError(null);
   };
 
@@ -284,7 +288,7 @@ export default function SandboxTaskPanel({
   const removeFile = (name: string) => {
     if (!window.confirm(`Remove ${name}? What you typed in it will be lost.`)) return;
     saveDraft(joinCodeFiles({ main: files.main, helpers: files.helpers.filter((h) => h.name !== name) }));
-    setOpenFile(null);
+    setOpenFile(null); setExt((n) => n + 1);
   };
   const totalTests = view.visible_tests.length + view.hidden_test_count;
   const checksLeft = lot?.checks_left ?? 0;
@@ -507,6 +511,7 @@ ${result.hidden_hint.error}` : ""}`}
             onClick={() => {
               if (window.confirm("Reset editor to starter code? Any changes you typed will be replaced.")) {
                 saveDraft(starterFor(view, lang));
+                setExt((n) => n + 1);
                 setOpenFile(null);
               }
             }}
@@ -550,12 +555,12 @@ ${result.hidden_hint.error}` : ""}`}
         <div className="h-[360px] shrink-0 lg:h-auto lg:min-h-[200px] lg:flex-1">
           <Editor
             height="100%"
-            path={`${taskId}/${lang}/${openHelper?.name ?? "main"}`}
+            path={`${taskId}/${lang}/${openHelper?.name ?? "main"}/${ext}`}
             language={lang === "cpp" || lang === "c" ? "cpp" : lang}
-            value={openHelper ? openHelper.content : files.main}
+            defaultValue={openHelper ? openHelper.content : files.main}
             onChange={(v) => editFile(v ?? "")}
             theme="vs-dark"
-            options={{ minimap: { enabled: false }, fontSize: 13, readOnly: !!done, scrollBeyondLastLine: false }}
+            options={{ minimap: { enabled: false }, fontSize: 13, readOnly: !!done, scrollBeyondLastLine: false, autoClosingQuotes: "never" }}
           />
         </div>
 

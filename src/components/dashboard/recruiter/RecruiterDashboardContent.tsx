@@ -393,9 +393,10 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                           ))}
                         </SelectContent>
                       </Select>
+                      {/* Assigned-work test item 7: every button names its candidate. */}
                       <Button size="sm" variant="outline" className="h-8"
-                              onClick={() => setSponsorFor({ id: s.student_id, name: "this candidate" })}>
-                        Send a task
+                              onClick={() => setSponsorFor({ id: s.student_id, name: talent.find((c) => c.id === s.student_id)?.name ?? "this candidate" })}>
+                        Send a task to {talent.find((c) => c.id === s.student_id)?.name ?? "this candidate"}
                       </Button>
                       <Button size="sm" variant="ghost" className="h-8 text-muted-foreground"
                               onClick={() => void removeFromShortlist(s.id)}>
@@ -544,10 +545,11 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                       placeholder="What you are looking for when you review it (optional)" />
             <div className="flex gap-2 text-sm">
               <span className="self-center text-muted-foreground">Checked by:</span>
-              <Button type="button" size="sm" variant={lotMode === "coding" ? "default" : "outline"}
-                      onClick={() => setLotMode("coding")}>Code + tests</Button>
-              <Button type="button" size="sm" variant={lotMode === "written" ? "default" : "outline"}
-                      onClick={() => setLotMode("written")}>Written answer</Button>
+              {/* Item 7: the chosen one carries a tick and aria-pressed, not only a colour. */}
+              <Button type="button" size="sm" variant={lotMode === "coding" ? "default" : "outline"} aria-pressed={lotMode === "coding"}
+                      onClick={() => setLotMode("coding")}>{lotMode === "coding" ? "✓ " : ""}Code + tests</Button>
+              <Button type="button" size="sm" variant={lotMode === "written" ? "default" : "outline"} aria-pressed={lotMode === "written"}
+                      onClick={() => setLotMode("written")}>{lotMode === "written" ? "✓ " : ""}Written answer</Button>
             </div>
             <div className="flex gap-2">
               <Button disabled={busy || !title.trim() || !brief.trim()}

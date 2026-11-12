@@ -28,6 +28,7 @@ interface StudentTask {
   voice_score?: number | null;
   voice_owed?: boolean; // Sweep S16: work handed in, the 60s explanation still owed
   not_passed?: boolean; // Retest 8: the latest try did not pass
+  company?: string | null; // Migration 257: the company that set a company Lot
 }
 
 export const useAllStudentTasks = () => {
@@ -111,7 +112,8 @@ export const useAllStudentTasks = () => {
       // Owner 12 Nov 2026: coding Lots with the language menu say "your code" here too (any_language, migration 228).
       const codingIds = [...(directTasks || []), ...((assignments || []).map((a) => a.tasks))]
         .filter((t) => t?.sandbox_config_id).map((t) => t!.id);
-      const [{ data: scoredVoices }, ranges, { data: lastTries }, { data: langRows }] = await Promise.all([
+      const sponsoredIds = (directTasks || []).filter((t) => t.sponsored_by).map((t) => t.id);
+      const [{ data: scoredVoices }, ranges, { data: lastTries }, { data: langRows }, { data: sponsorRows }] = await Promise.all([
         supabase.from('voice_explanations').select('task_id, communication_score')
           .eq('student_id', profile.id).eq('status', 'scored').is('withdrawn_at' as never, null),
         Promise.all(writtenLots.map((id) => supabase.rpc('rubric_task_view' as never, { _task_id: id } as never)
@@ -119,7 +121,10 @@ export const useAllStudentTasks = () => {
         // Retest 8: the latest try per task, so a handed-in answer that did not pass never reads "Submitted".
         supabase.from('task_submissions').select('task_id, status').eq('student_id', profile.id).order('created_at', { ascending: false }),
         codingIds.length ? supabase.from('tasks').select('id, any_language' as string).in('id', codingIds) : Promise.resolve({ data: [] }),
+        // Assigned-work test item 7: the card names the company (sponsor_company, migration 257).
+        sponsoredIds.length ? supabase.from('tasks').select('id, sponsor_company' as string).in('id', sponsoredIds) : Promise.resolve({ data: [] }),
       ]);
+      const companyOf = new Map(((sponsorRows ?? []) as unknown as { id: string; sponsor_company: string | null }[]).map((r) => [r.id, r.sponsor_company]));
       const anyLang = new Set(((langRows ?? []) as unknown as { id: string; any_language: boolean }[]).filter((r) => r.any_language).map((r) => r.id));
       const lang = (id: string, text: string) => (anyLang.has(id) ? anyLanguageText(text) : text);
       const lastStatusOf = new Map<string, string>();
@@ -169,6 +174,7 @@ export const useAllStudentTasks = () => {
           voice_score: voiceScoreOf.get(task.id) ?? null,
           voice_owed: task.status === 'pending_voice',
           not_passed: lastStatusOf.get(task.id) === 'failed',
+          company: companyOf.get(task.id) ?? null,
           deadline: task.due_date,
           lot_date: task.lot_date,
           status,

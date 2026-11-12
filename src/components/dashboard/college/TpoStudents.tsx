@@ -110,6 +110,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
   const [openStudent, setOpenStudent] = useState<string | null>(null);
   const [skill, setSkill] = useState<string>("all");
   const [assignOpen, setAssignOpen] = useState(false);
+  const [openTaskStudents, setOpenTaskStudents] = useState<Set<string>>(new Set());
 
   /**
    * One page, filtered by the database.
@@ -120,7 +121,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
    */
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data, error: err }, cid, opts] = await Promise.all([
+    const [{ data, error: err }, cid, opts, openRes] = await Promise.all([
       supabase.rpc("tpo_students" as never, {
         _search: q || null,
         _branch: branch, _batch: batch, _squad: squad,
@@ -129,6 +130,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
       } as never),
       supabase.rpc("my_college_id" as never),
       supabase.rpc("tpo_student_filters" as never),
+      supabase.rpc("tpo_open_task_student_ids" as never),
     ]);
     setLoading(false);
     if (err) { setError(err.message); return; }
@@ -137,6 +139,9 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
     setTotal(list[0]?.total_count ?? 0);
     setCollegeId((cid.data as unknown as string | null) ?? null);
     setOptions((opts.data ?? {}) as unknown as FilterOptions);
+    if (openRes && "data" in openRes && Array.isArray(openRes.data)) {
+      setOpenTaskStudents(new Set((openRes.data as { student_id: string }[]).map((r) => r.student_id)));
+    }
   }, [q, branch, batch, squad, status, skill, page]);
 
   // A query per keystroke would be one per letter typed. A short pause is
@@ -215,8 +220,11 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
 
   const remind = async (r: Row) => {
     setSending(r.student_id);
+    const hasOpenTask = openTaskStudents.has(r.student_id);
     // E2E-3: 999 means never active - say so instead of "999 days".
-    const reason = r.days_quiet >= 999 ? "Has not tried a Lot yet"
+    const reason = hasOpenTask
+      ? "Has a task from the college still open"
+      : r.days_quiet >= 999 ? "Has not tried a Lot yet"
       : r.days_quiet >= 7 ? `No Lot tried for ${r.days_quiet} days`
       // F9: only say "onboarding" when it is not finished; the other reason a row needs attention is a skipped Lot.
       : r.onboarding_status !== "completed" ? `Onboarding not finished (${r.onboarding_status.replace("_", " ")})`
@@ -406,7 +414,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                       </div>
                     </td>
                     <td className="py-2.5 whitespace-nowrap">
-                      {r.attention !== "ok" && (
+                      {(r.attention !== "ok" || openTaskStudents.has(r.student_id)) && (
                         <Button
                           size="sm" variant="outline"
                           disabled={sending === r.student_id}

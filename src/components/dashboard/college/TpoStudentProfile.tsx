@@ -149,8 +149,10 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
   const remind = async () => {
     if (!data) return;
     setSending(true);
+    const hasOpenTask = (data.tasks.assigned ?? 0) > (data.tasks.completed ?? 0);
     // E2E-3: 999 means never active - say so instead of "999 days".
-    const reason = data.days_quiet >= 999 ? "Has not started yet"
+    const reason = hasOpenTask ? "Has a task from the college still open"
+      : data.days_quiet >= 999 ? "Has not started yet"
       : data.days_quiet >= 7 ? `No Lot tried for ${data.days_quiet} days`
       : data.onboarding.status !== "completed" ? `Onboarding not finished (${data.onboarding.status.replace("_", " ")})`
       : "A Daily Lot was not tried in the last 7 days";
@@ -167,7 +169,8 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
     onChanged?.();
   };
 
-  const behind = data && (data.days_quiet >= 7 || data.onboarding.status !== "completed");
+  const hasOpenTask = Boolean(data && ((data.tasks.assigned ?? 0) > (data.tasks.completed ?? 0)));
+  const behind = data && (data.days_quiet >= 7 || data.onboarding.status !== "completed" || hasOpenTask);
 
   return (
     <Dialog open={Boolean(studentId)} onOpenChange={(o) => { if (!o) onClose(); }}>

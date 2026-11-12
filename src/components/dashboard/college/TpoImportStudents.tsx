@@ -55,6 +55,7 @@ interface Props {
 const TpoImportStudents = ({ collegeId, onImported }: Props) => {
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [chosenFile, setChosenFile] = useState<File | null>(null);
   const [open, setOpen] = useState(false);
   const [fileName, setFileName] = useState("");
   const [rows, setRows] = useState<ParsedRow[] | null>(null);
@@ -82,6 +83,7 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
     if (!effectiveBranch) {
       toast({ title: "Pick a branch first - choose which branch this file is for, above.", variant: "destructive" });
       if (fileRef.current) fileRef.current.value = "";
+      setChosenFile(null);
       return;
     }
     setBusy(true);
@@ -246,6 +248,7 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
       toast({ title: "Could not read that file", description: e.message, variant: "destructive" });
     } finally {
       setBusy(false);
+      setChosenFile(null);
       if (fileRef.current) fileRef.current.value = "";
     }
   };
@@ -443,7 +446,7 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
     <>
       <input
         ref={fileRef} type="file" accept=".csv,.xlsx,text/csv" className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) void parse(f); }}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) setChosenFile(f); }}
       />
       <div className="flex items-center gap-2 flex-wrap">
         <Select value={branch} onValueChange={setBranch}>
@@ -460,13 +463,24 @@ const TpoImportStudents = ({ collegeId, onImported }: Props) => {
           />
         )}
         <Button
+          type="button" variant="outline" size="sm"
+          onClick={() => fileRef.current?.click()}
+        >
+          {chosenFile ? chosenFile.name : "Choose CSV file"}
+        </Button>
+        <Button
           size="sm" disabled={busy || !collegeId}
           onClick={() => {
+            const f = chosenFile ?? fileRef.current?.files?.[0];
+            if (!f) {
+              toast({ title: "Choose a CSV file first", variant: "destructive" });
+              return;
+            }
             if (!effectiveBranch) {
               toast({ title: "Pick a branch first - choose which branch this file is for, above.", variant: "destructive" });
               return;
             }
-            fileRef.current?.click();
+            void parse(f);
           }}
         >
           <Upload className="h-3.5 w-3.5 mr-1.5" />

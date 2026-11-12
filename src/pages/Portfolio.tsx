@@ -17,7 +17,7 @@ import {
   Trophy,
   Briefcase
 } from "lucide-react";
-import { getInitials } from "@/lib/utils";
+import { getInitials, plural } from "@/lib/utils";
 import { BrandPage } from "@/components/auth/AccessShell";
 
 const Portfolio = () => {
@@ -249,7 +249,7 @@ const Portfolio = () => {
               <div className="flex flex-wrap gap-6 justify-center md:justify-start text-sm mb-6">
                 <div className="flex items-center gap-2 bg-background/50 px-4 py-2 rounded-full border border-border">
                   <Briefcase className="h-5 w-5 text-primary" />
-                  <span className="font-semibold">{provenWork.length} Lots passed</span>
+                  <span className="font-semibold">{plural(provenWork.length, "Lot")} passed</span>
                 </div>
               </div>
 

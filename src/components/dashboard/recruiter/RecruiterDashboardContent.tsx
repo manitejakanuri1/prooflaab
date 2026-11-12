@@ -1,4 +1,4 @@
-import { fmtDay } from "@/lib/ist";
+import { fmtDay, pastDueIST } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarks";
 import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -515,7 +515,9 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Pro
                             {l.voice_status === "scored" ? " · explained" : ""}
                           </span>
                         ) : (
-                          <span className="text-muted-foreground">not yet</span>
+                          // P6: due on an earlier India day and nothing handed in - missed, not "not yet".
+                          pastDueIST(l.due_date as string | null) ? <span className="text-alert">Missed</span>
+                            : <span className="text-muted-foreground">not yet</span>
                         )}
                       </td>
                       <td className="py-2.5 pr-3">

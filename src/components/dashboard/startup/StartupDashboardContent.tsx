@@ -95,6 +95,8 @@ export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: 
       const v = LOT_VIEWS.some(([id]) => id === view) ? view : "active";
       return (
         <div>
+          {/* P6: "Lot" in plain words for a company. */}
+          <p className="text-sm text-muted-foreground mb-2">A Lot is a short task you send to a student.</p>
           {inner(LOT_VIEWS, v === "reviews" ? "submissions" : v)}
           {v === "active" && <RecruiterDashboardContent activeTab="lots" onTabChange={go} />}
           {v === "create" && (

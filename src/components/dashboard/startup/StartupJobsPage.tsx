@@ -205,7 +205,7 @@ export function StartupJobsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!(await ask({ title: "Delete this job post?", points: ["Students will no longer see it.", "This cannot be undone."], action: "Delete" }))) return;
+    if (!(await ask({ title: "Delete this job post?", points: ["Students will no longer see it."], action: "Delete" }))) return;
 
     try {
       const { error } = await supabase

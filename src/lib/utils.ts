@@ -34,3 +34,6 @@ export function getInitials(name?: string | null): string {
       .slice(0, 2) || "?"
   )
 }
+
+/** P6 company (12 Nov 2026): "1 assessment", "2 assessments". */
+export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`

@@ -99,11 +99,11 @@ begin
       -- the picked skills in claims.skills.
       case when claim.id is not null and claim.storage_path not like 'interests:%' then
         jsonb_build_object('step', 'Resume uploaded', 'done', true, 'at', claim.created_at,
-          'detail', concat_ws(' ? ', 'resume score ' || claim.resume_quality_score, 'ATS ' || claim.ats_match_score,
+          'detail', concat_ws(' · ', 'resume score ' || claim.resume_quality_score, 'ATS ' || claim.ats_match_score,
                               case when claim.status <> 'confirmed' and claim.confirmed_at is null then 'not confirmed yet' end))
       when claim.id is not null then
         jsonb_build_object('step', 'Interests picked (no resume)', 'done', true, 'at', claim.created_at,
-          'detail', concat_ws(' ? ', claim.target_role, array_to_string(claim.skills, ', ')))
+          'detail', concat_ws(' · ', claim.target_role, array_to_string(claim.skills, ', ')))
       when pick.id is not null then
         jsonb_build_object('step', 'Interests picked (no resume)', 'done', true, 'at', pick.created_at,
           'detail', array_to_string(pick.interests, ', '))
@@ -111,7 +111,7 @@ begin
       jsonb_build_object('step', 'Skills test', 'done', coalesce(test.status = 'graded', false),
         'at', case when test.status = 'graded' then test.updated_at else test.started_at end,
         'detail', case when test.id is null then null
-                       when test.status = 'graded' then concat_ws(' ? ',
+                       when test.status = 'graded' then concat_ws(' · ',
                          jsonb_array_length(case when jsonb_typeof(test.questions) = 'array' then test.questions else '[]'::jsonb end) || ' questions',
                          'average ' || test_avg || '%')
                        else 'started, not finished' end),

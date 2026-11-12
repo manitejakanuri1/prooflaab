@@ -9,6 +9,7 @@ Cost: deepseek-flash list price (api-docs.deepseek.com/quick_start/pricing, read
 by call time, cache hits counted as misses, $1 = Rs 90 (both on the high side). Stops before Rs 95.
 """
 import json
+import os
 import re
 import subprocess
 import sys
@@ -23,7 +24,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from load_courses import chapters  # noqa: E402
 
 CREDIT = "Written for ProofLab"
-INR, CAP = 90.0, 95.0
+INR = 90.0
+CAP = float(os.environ.get("CAP_INR", "95"))  # total spend (Rs, all runs in this out dir) to stop before
 STOP = set("a an the and or of to in on for with by is are be as at it its this that how what why your you vs".split())
 toks = lambda s: {w for w in re.findall(r"[a-z0-9#+]+", s.lower()) if len(w) > 1 and w not in STOP}
 slugify = lambda s: re.sub(r"[^a-z0-9]+", "_", s.lower()).strip("_")[:50]

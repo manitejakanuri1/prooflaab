@@ -207,7 +207,9 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
     supabase.rpc("company_submissions" as never).then(({ data: d }) => (d as unknown as Record<string, unknown>[]) ?? [], () => []),
   ]);
   const grade = (l: Record<string, unknown>) => {
-    if (l.submission_status !== "passed") return "Not passed yet";
+    if (l.submission_status !== "passed") {
+      return l.submission_status === "returned" ? "Returned for changes" : "Not passed yet";
+    }
     const s = subs.find((x) => x.task_id === l.task_id && x.student_id === l.student_id);
     return passedLabel(s?.kind as "code" | "written" | undefined, s?.voice_status === "scored" ? (s.voice_score as number) : null);
   };

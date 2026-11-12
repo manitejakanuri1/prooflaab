@@ -58,7 +58,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Pro
   const { data: submissions = [] } = useStartupSubmissions(filters?.verified === true);
   const lotGrade = (l: (typeof lots)[number]) => {
     if (l.submission_status !== "passed") return l.submission_status === "needs_review" ? "Needs review"
-      : l.submission_status === "returned" ? "Sent back for changes" : "Not passed";
+      : l.submission_status === "returned" ? `Returned by ${home?.company || "the company"} for changes` : "Not passed";
     const sub = submissions.find((x) => x.task_id === l.task_id && x.student_id === l.student_id);
     return passedLabel(sub?.kind, sub?.voice_status === "scored" ? sub.voice_score : null);
   };
@@ -342,8 +342,10 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Pro
                 <Skeleton className="h-40 w-full rounded-lg" />
               ) : visible.length === 0 ? (
                 <p className="text-sm text-muted-foreground max-w-prose">
-                  No candidates match. Students appear here only after they choose to be
-                  discoverable, so a narrow filter on a young cohort finds nothing quickly.
+                  {search ? `No student matches "${search}"` : (
+                    <>No candidates match. Students appear here only after they choose to be
+                    discoverable, so a narrow filter on a young cohort finds nothing quickly.</>
+                  )}
                 </p>
               ) : (
                 <table className="w-full text-sm min-w-[620px]">

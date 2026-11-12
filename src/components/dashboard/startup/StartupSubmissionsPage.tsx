@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import {
   useStartupSubmissions, useReviewSubmission, type CompanySubmission, type ReviewDecision,
 } from "@/hooks/useStartupSubmissions";
+import { useStartupProfile } from "@/hooks/useStartupProfile";
 import { passedLabel } from "@/lib/passedNote";
 import { plural } from "@/lib/utils";
 
@@ -23,16 +24,13 @@ const DECISION_LABEL: Record<ReviewDecision, string> = {
 
 const GRADE_LABEL: Record<string, string> = {
   passed: "Passed", failed: "Not passed", needs_review: "Needs review",
-  returned: "Sent back for changes", // migration 300: you asked for changes; the next try shows here
+  returned: "Returned for changes", // migration 300: you asked for changes; the next try shows here
 };
-
-// Owner rule B (1 Nov 2026): "Passed" only when the work passed AND the spoken explanation scored 50+.
-const grade = (s: CompanySubmission) => s.status === "passed"
-  ? passedLabel(s.kind, s.voice_status === "scored" ? s.voice_score : null)
-  : GRADE_LABEL[s.status] ?? s.status;
 
 /** The student's work on this company's posted and sponsored tasks (task_submissions). */
 export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilter?: string } = {}) {
+  const { data: profile } = useStartupProfile();
+  const companyName = profile?.startup_name;
   const { data: submissions = [], isLoading, error } = useStartupSubmissions();
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState(initialFilter);
@@ -40,6 +38,12 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
   const [decision, setDecision] = useState<ReviewDecision | null>(null);
   const [note, setNote] = useState("");
   const review = useReviewSubmission();
+
+  // Owner rule B (1 Nov 2026): "Passed" only when the work passed AND the spoken explanation scored 50+.
+  const grade = (s: CompanySubmission) => s.status === "passed"
+    ? passedLabel(s.kind, s.voice_status === "scored" ? s.voice_score : null)
+    : s.status === "returned" ? `Returned by ${companyName || "the company"} for changes`
+    : GRADE_LABEL[s.status] ?? s.status;
 
   const q = searchQuery.trim().toLowerCase();
   const shown = submissions.filter((s) => {

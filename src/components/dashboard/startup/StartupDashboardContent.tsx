@@ -54,7 +54,7 @@ export const COMPANY_REDIRECTS: Record<string, [string, string]> = {
 
 const NEEDS_VERIFICATION = new Set(["lots", "hiring"]);
 const LOT_VIEWS = [["active", "My Lots"], ["create", "Send a Lot"], ["submissions", "Submissions"]];
-const HIRING_VIEWS = [["shortlist", "Shortlist"], ["jobs", "Job posts"]];
+const HIRING_VIEWS = [["shortlist", "Shortlist"], ["awaiting", "Awaiting reply"], ["jobs", "Job posts"]];
 
 export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: StartupDashboardContentProps) {
   const [view, setView] = useUrlTab("view", "");
@@ -126,12 +126,12 @@ export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: 
     }
 
     case "hiring": {
-      const awaiting = view === "awaiting";
-      const v = awaiting ? "shortlist" : HIRING_VIEWS.some(([id]) => id === view) ? view : "shortlist";
+      const v = HIRING_VIEWS.some(([id]) => id === view) ? view : "shortlist";
       return (
         <div>
           {inner(HIRING_VIEWS, v)}
-          {v === "shortlist" && <RecruiterDashboardContent activeTab="shortlist" onTabChange={go} awaitingOnly={awaiting} />}
+          {v === "shortlist" && <RecruiterDashboardContent activeTab="shortlist" onTabChange={go} />}
+          {v === "awaiting" && <RecruiterDashboardContent activeTab="shortlist" onTabChange={go} awaitingOnly={true} />}
           {v === "jobs" && <StartupJobsPage />}
         </div>
       );

@@ -448,7 +448,8 @@ const StudentDailyCard = () => {
                 {lotState?.daily && doneScore == null
                   ? lotStatusText({ passed: false, submitted: true, mark10: lotState.best_mark })
                   : voiceScore != null && voiceScore < LOW_SCORE
-                  ? (lotState?.daily ? "Submitted · low voice score" : passedLabel(lot.sandbox_config_id ? "code" : "written", voiceScore))
+                  // Item 3 (12 Nov): a passed answer reads like the Build-log - "Answer passed · low voice score".
+                  ? (lotState?.daily && doneScore == null ? "Submitted · low voice score" : passedLabel(lot.sandbox_config_id ? "code" : "written", voiceScore))
                   // Retest G3: "Done · 18.2/20", the same Today total as the box below.
                   : `Done${lotState?.daily && todayRow ? ` · ${fmtMark(todayRow.day_total)}/20` : ""}`}
                 {doneScore != null ? ` · ${lot.sandbox_config_id ? "Code" : "Answer"} ${of10(doneScore)}` : ""}

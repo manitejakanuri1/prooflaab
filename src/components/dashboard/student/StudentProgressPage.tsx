@@ -52,7 +52,7 @@ const StudentProgressPage = () => {
 
   const [weeklyPoints, setWeeklyPoints] = useState<WeekPoint[] | null>(null);
   const [badges, setBadges] = useState<EarnedBadge[] | null>(null);
-  const [submissions, setSubmissions] = useState<{ total: number; passed: number; review: number } | null>(null);
+  const [submissions, setSubmissions] = useState<{ total: number; passed: number } | null>(null);
   // QA round 2 item 16: the rows behind the tiles, so a click can list what was counted.
   const [tries, setTries] = useState<Try[]>([]);
   const [openList, setOpenList] = useState<"tries" | "total" | "week" | null>(null);
@@ -70,7 +70,8 @@ const StudentProgressPage = () => {
         supabase.from("student_badges").select("awarded_at, badges(name, emoji)")
           .eq("student_id", profile.id).order("awarded_at", { ascending: false }).limit(3),
         supabase.from("task_submissions").select("status, task_id, tasks(title, lot_date)").eq("student_id", profile.id),
-        loadWeekMarks().catch(() => null),
+        // Item 2 (12 Nov): a failed call showed "0 Lots" next to the dashboard's real week; try twice, then say so.
+        loadWeekMarks().catch(() => null).then((w) => w ?? loadWeekMarks().catch(() => null)),
       ]);
 
       setRunning(week);
@@ -81,7 +82,6 @@ const StudentProgressPage = () => {
       setSubmissions({
         total: (proofs ?? []).length,
         passed: (proofs ?? []).filter((p) => p.status === "passed").length,
-        review: (proofs ?? []).filter((p) => p.status === "needs_review").length,
       });
     })();
   }, [profile?.id]);
@@ -105,8 +105,7 @@ const StudentProgressPage = () => {
 
   const submissionData = [
     { name: "Passed", value: submissions.passed, color: "hsl(var(--verified))" },
-    { name: "Needs review", value: submissions.review, color: "hsl(var(--compete))" },
-    { name: "Not passed", value: submissions.total - submissions.passed - submissions.review, color: "hsl(var(--alert))" },
+    { name: "Not passed", value: submissions.total - submissions.passed, color: "hsl(var(--alert))" },
   ];
 
   const sum = triesSummary(tries);
@@ -115,7 +114,7 @@ const StudentProgressPage = () => {
   const lotDayOf = new Map(tries.map((t) => [t.task_id, t.lot_date]));
   const progressCards = [
     { title: "This week (so far)", value: fmtMark(running?.week_total), icon: CalendarDays, help: SCORE_HELP.thisWeek,
-      color: "text-primary", bgColor: "bg-primary/10", change: `${weekLotsText(running?.days ?? [])} so far`, list: "week" as const },
+      color: "text-primary", bgColor: "bg-primary/10", change: running ? `${weekLotsText(running.days ?? [])} so far` : "Could not load this week - refresh the page", list: "week" as const },
     { title: "Last week", value: fmtMark(lastWeek), icon: Award, help: SCORE_HELP.lastWeek,
       color: "text-verified", bgColor: "bg-verified/10", change: weekChange, list: null },
     { title: "Pass Rate", value: `${passRate}%`, icon: Target, help: "Passed tries ÷ all tries × 100.",

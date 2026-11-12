@@ -451,10 +451,12 @@ export const googleAuth = {
   async updateUser(
     {
       password,
+      current_password,
       email,
       data,
     }: {
       password?: string;
+      current_password?: string;
       email?: string;
       data?: Record<
         string,
@@ -476,7 +478,7 @@ export const googleAuth = {
       const updated =
         await updateBffUser({
           ...(password
-            ? { password }
+            ? { password, current_password }
             : {}),
           ...(email
             ? { email }

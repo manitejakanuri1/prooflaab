@@ -28,6 +28,8 @@ export interface BffSignupInput {
 
 export interface BffUpdateUserInput {
   password?: string;
+  /** Required by the server whenever `password` is set. */
+  current_password?: string;
   email?: string;
   data?: Record<string, unknown>;
 }

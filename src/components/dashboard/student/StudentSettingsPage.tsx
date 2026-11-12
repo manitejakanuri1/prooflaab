@@ -144,6 +144,7 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
     newPassword: '',
     confirmPassword: '',
   });
+  const [passwordError, setPasswordError] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
@@ -243,6 +244,11 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
   };
 
   const handlePasswordChange = async () => {
+    setPasswordError("");
+    if (!passwordData.currentPassword) {
+      setPasswordError("Enter your current password.");
+      return;
+    }
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast({
         title: "Passwords don't match",
@@ -254,7 +260,8 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
 
     try {
       const { error } = await supabase.auth.updateUser({
-        password: passwordData.newPassword
+        password: passwordData.newPassword,
+        current_password: passwordData.currentPassword,
       });
 
       if (error) throw error;
@@ -270,10 +277,12 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
         confirmPassword: '',
       });
     } catch (error) {
-      console.error('Error updating password:', error);
+      // The server's sentence ("Current password is wrong.", "Too many tries...") is shown as it is.
+      const message = (error as { message?: string })?.message || "Please try again later.";
+      setPasswordError(message);
       toast({
-        title: "Error updating password",
-        description: "Please try again later.",
+        title: "Password not changed",
+        description: message,
         variant: "destructive",
       });
     }
@@ -538,7 +547,13 @@ const StudentSettingsPage = ({ refreshProfile }: StudentSettingsPageProps) => {
               value={passwordData.currentPassword}
               onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
               placeholder="Enter current password"
+              autoComplete="current-password"
+              aria-invalid={Boolean(passwordError)}
+              aria-describedby={passwordError ? "password_error" : undefined}
             />
+            {passwordError && (
+              <p id="password_error" role="alert" className="mt-1 text-sm text-destructive">{passwordError}</p>
+            )}
           </div>
           <div>
             <Label htmlFor="new_password">New Password</Label>

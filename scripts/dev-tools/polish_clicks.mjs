@@ -173,6 +173,22 @@ try {
     await closeDialog(page);
     return ok;
   });
+  // Owner 12 Nov 2026 (A2 option b, migration 335): student Resources page - admin-written text read in the app,
+  // no way out of the app (no outside link on the page or inside an opened resource).
+  await go(page, "/student/dashboard?tab=resources");
+  await check("Resources: the page opens, a resource opens in the app, and nothing links outside", async () => {
+    await page.locator('[data-testid="resource-card"], [data-testid="resources-empty"]').first().waitFor({ timeout: 30000 });
+    if (!(await page.getByRole("heading", { name: /^Resources$/i }).count())) return false;
+    const outsideLinks = () => page.locator("a[href]").evaluateAll((as) => as.filter((a) => new URL(a.href, location.href).origin !== location.origin).length);
+    if ((await outsideLinks()) > 0) return false;
+    const card = page.getByTestId("resource-card").first();
+    if (!(await card.count())) return true;
+    await card.click();
+    const ok = await dialogOpen(page) && (await page.getByTestId("resource-body").innerText()).trim().length > 0
+      && (await outsideLinks()) === 0;
+    await closeDialog(page);
+    return ok;
+  });
   await ctx.close();
 
   await check("No 404/401 from the API on the student pages (item 30)", async () => {

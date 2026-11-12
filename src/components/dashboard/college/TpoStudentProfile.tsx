@@ -151,8 +151,9 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
     setSending(true);
     // E2E-3: 999 means never active - say so instead of "999 days".
     const reason = data.days_quiet >= 999 ? "Has not started yet"
-      : data.days_quiet >= 7 ? `No activity for ${data.days_quiet} days`
-      : `Onboarding not finished (${data.onboarding.status})`;
+      : data.days_quiet >= 7 ? `No Lot tried for ${data.days_quiet} days`
+      : data.onboarding.status !== "completed" ? `Onboarding not finished (${data.onboarding.status.replace("_", " ")})`
+      : "A Daily Lot was not tried in the last 7 days";
     const { error: err } = await supabase.rpc("tpo_send_reminder" as never, {
       _student_id: data.id, _reason: reason,
     } as never);
@@ -422,7 +423,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                 <div className="space-y-1">
                   {data.interventions.map((i, n) => (
                     <p key={n} className="text-xs text-muted-foreground">
-                      <span className="font-mono">{fmtDay(i.created_at)}</span>
+                      <span className="font-mono">{fmtDayTime(i.created_at)}</span>
                       {/* Sweep M8: older reminders saved "999 days" for a student who had never started. */}
                       {" · "}{i.type}{" · "}{i.reason.replace(/No activity for 999 days/i, "had not started yet")}
                     </p>

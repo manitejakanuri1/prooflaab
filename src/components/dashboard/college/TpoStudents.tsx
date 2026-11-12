@@ -218,7 +218,9 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
     // E2E-3: 999 means never active - say so instead of "999 days".
     const reason = r.days_quiet >= 999 ? "Has not tried a Lot yet"
       : r.days_quiet >= 7 ? `No Lot tried for ${r.days_quiet} days`
-      : `Onboarding not finished (${r.onboarding_status})`;
+      // F9: only say "onboarding" when it is not finished; the other reason a row needs attention is a skipped Lot.
+      : r.onboarding_status !== "completed" ? `Onboarding not finished (${r.onboarding_status.replace("_", " ")})`
+      : "A Daily Lot was not tried in the last 7 days";
     const { error: err } = await supabase.rpc("tpo_send_reminder" as never, {
       _student_id: r.student_id, _reason: reason,
     } as never);

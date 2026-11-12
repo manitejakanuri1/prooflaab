@@ -18,7 +18,7 @@ interface Page {
 }
 interface Library {
   pages: Page[];
-  sources: { site: string; domain: string; seeds: number; rights: string; retired: boolean }[];
+  sources: { site: string; domain: string; seeds: number; pages?: number; rights: string; retired: boolean }[];
   newest_fetch: string | null;
 }
 
@@ -91,7 +91,8 @@ const ContentLibrary = () => {
         <CardContent className="flex flex-wrap gap-2">
           {data.sources.map((s) => (
             <Badge key={s.domain} variant="outline" className="font-normal">
-              {s.site} · {s.seeds} page{s.seeds === 1 ? "" : "s"}{s.retired ? " · retired" : ""}
+              {/* F13: pages saved from this site (migration 360), not its seed addresses. */}
+              {s.site} · {s.pages ?? s.seeds} page{(s.pages ?? s.seeds) === 1 ? "" : "s"}{s.retired ? " · retired" : ""}
             </Badge>
           ))}
           <p className="w-full text-xs text-muted-foreground mt-1">
@@ -136,7 +137,7 @@ const ContentLibrary = () => {
                     </td>
                     <td className="py-2.5 pr-3 text-muted-foreground">{p.site ?? p.domain}<div className="text-[10px] font-mono">{p.fetch_method}</div></td>
                     <td className="py-2.5 pr-3 text-muted-foreground">{new Date(p.fetched_at).toLocaleDateString("en-GB")}</td>
-                    <td className="py-2.5 pr-3 font-mono tabular-nums">{Math.round(p.chars / 1000)}k</td>
+                    <td className="py-2.5 pr-3 font-mono tabular-nums">{p.chars < 1000 ? `${p.chars} chars` : `${Math.round(p.chars / 1000)}k`}</td>
                     <td className="py-2.5 pr-3">{p.lot_written ? <Badge variant="outline">written</Badge> : <span className="text-xs text-muted-foreground">not yet</span>}</td>
                     <td className="py-2.5 pr-3 font-mono tabular-nums">{p.times_given}×</td>
                     <td className="py-2.5 whitespace-nowrap text-right">

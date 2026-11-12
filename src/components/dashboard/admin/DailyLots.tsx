@@ -1,4 +1,4 @@
-import { plainCode } from "@/lib/lotText";
+import { lotLine, voiceWord } from "@/lib/lotText";
 import { of10, talkCheck } from "@/lib/lotMarks";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -100,7 +100,7 @@ const DailyLots = () => {
                     {(r.skills ?? []).map((k) => <Badge key={k} variant="secondary">{k}</Badge>)}
                     {r.difficulty && <Badge variant="outline">{r.difficulty}</Badge>}
                     {r.grading_mode && <Badge variant="outline">{r.grading_mode === "sandbox" ? "code tests" : "rubric"}</Badge>}
-                    <Badge>{s ? s.status : "not submitted"}</Badge>
+                    <Badge>{s ? lotLine({ answer: s.status }) : "not submitted"}</Badge>
                     {s?.score != null && <Badge variant="outline">{of10(s.score)}</Badge>}
                     {r.voice?.communication_score != null && <Badge variant="outline">voice {of10(r.voice.communication_score)}</Badge>}
                     {(s?.flags?.length ?? 0) > 0 && <Badge variant="destructive">flagged</Badge>}
@@ -119,13 +119,13 @@ const DailyLots = () => {
                   {s && (
                     <>
                       <p>
-                        Result: {plainCode(s.status)}{s.score != null ? ` · ${of10(s.score)}` : ""}
+                        Result: {lotLine({ answer: s.status })}{s.score != null ? ` · ${of10(s.score)}` : ""}
                         {s.total ? ` · tests ${s.passed ?? 0}/${s.total}` : ""} · {s.attempts} attempt{s.attempts === 1 ? "" : "s"}
                         {s.flags?.length ? ` · flags: ${s.flags.join(", ")}` : ""}
                       </p>
                       {s.tests && s.tests.some((t) => t.id) && (
                         <p className="text-muted-foreground">
-                          Tests: {s.tests.filter((t) => t.id).map((t) => `${t.id} ${t.passed ? "passed" : (t.verdict ?? "failed")}${t.visible ? "" : " (hidden)"}`).join(" · ")}
+                          Tests: {s.tests.filter((t) => t.id).map((t) => `${t.id} ${t.passed ? "passed" : (t.verdict ?? "not passed")}${t.visible ? "" : " (hidden)"}`).join(" · ")}
                         </p>
                       )}
                       {s.rubric && s.rubric.length > 0 && (
@@ -142,7 +142,7 @@ const DailyLots = () => {
                   )}
                   {r.voice && (
                     <p>
-                      Voice: {r.voice.status}
+                      Voice: {voiceWord(r.voice.status, r.voice.flags?.[0], r.voice.communication_score)}
                       {r.voice.communication_score != null ? ` · voice ${of10(r.voice.communication_score)}` : ""}
                       {r.voice.content_match != null ? ` · talk check ${talkCheck(r.voice.content_match)}` : ""}
                       {r.voice.flags?.length ? ` · flags: ${r.voice.flags.join(", ")}` : ""}

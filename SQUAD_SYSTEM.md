@@ -128,6 +128,11 @@ their squad has no opponent that week.
 
   Seeds = league rank (points, wins, head-to-head). A drawn semi-final or final goes to the higher seed.
   No champion in a section that never played a league match.
+- **0 league points = no seed** (migration 345, owner 12 Nov 2026, TEST only until Purna signs off for REAL).
+  Only squads with points > 0 are counted in the table above; a 0-point squad shows "Did not qualify - 0 league
+  points" and gets no "Championship Qualifier" badge (346). If one squad of a section has points, it is that
+  section's champion without a match (`decided_by = 'only_qualifier'`, needs a league match played). If every
+  squad of the section has 0 points, all are seeded as before and there is no final or champion.
 - **Pooled sections (optional).** The college ticks sections (`seasons.cross_sections`, `tpo_season_options`);
   the best 4 of the pool play one semi-final round and final ("Cross-section" champion) instead of their own.
   Can be changed only before week 11.

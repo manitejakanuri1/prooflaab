@@ -28,17 +28,25 @@ export function pickNextMatch<M extends { status: string; scheduled_at: string }
 
 /**
  * Owner E2E 12 Nov R2: the words for a seeded squad follow generate_section_knockout / generate_section_finals
- * (migrations 184, 210) exactly: 4+ seeded -> semi-finals 1v4, 2v3; 3 -> seed 1 waits in the final, 2v3 semi;
- * 2 -> final. No league points in the whole section (no league match played) -> no final, no champion.
- * `section` = every squad of this season in the same bracket. Null when the squad has no seed/bracket.
+ * / close_season (migrations 184, 210, 345) exactly: only squads with league points get a seed (345), unless
+ * nobody in the section has any (then all are seeded as before, and there is no final or champion).
+ * 4+ seeded -> semi-finals 1v4, 2v3; 3 -> seed 1 waits in the final, 2v3 semi; 2 -> final;
+ * 1 -> champion without a match (345). A 0-point squad in a section where others scored: did not qualify.
+ * `section` = every squad of this season in the same bracket. Null when there is nothing to say.
  */
 export function seedLine(
-  squad: { seed: number | null; bracket?: string | null },
+  squad: { seed: number | null; bracket?: string | null; points?: number | null },
   section: { seed: number | null; points: number }[],
 ): { long: string; short: string } | null {
   const { seed, bracket } = squad;
-  if (!seed || !bracket) return null;
-  if (!section.some((s) => s.points > 0)) {
+  if (!bracket) return null;
+  const anyPoints = section.some((s) => s.points > 0);
+  if (!seed) {
+    return anyPoints && !((squad.points ?? 0) > 0)
+      ? { long: "Did not qualify - 0 league points.", short: "Did not qualify - 0 league points" }
+      : null;
+  }
+  if (!anyPoints) {
     return {
       long: `Seed ${seed} in ${bracket}, but no league match was played in this section, so there is no final or champion this season.`,
       short: `Seed ${seed} · no final (no league points)`,
@@ -48,7 +56,10 @@ export function seedLine(
   if (n === 3 && seed === 1) return { long: "Bye to the final as seed 1.", short: "Bye to final · seed 1" };
   if (n >= 3) return { long: `Through to the semi-final as seed ${seed}.`, short: `Semi-final · seed ${seed}` };
   if (n === 2) return { long: `Through to the final as seed ${seed}.`, short: `Final · seed ${seed}` };
-  return { long: `Seed ${seed} in ${bracket}: one squad, so no knockout.`, short: `Seed ${seed} · no knockout` };
+  return {
+    long: `The only squad in ${bracket} with league points, so it is the section champion without a knockout match.`,
+    short: "Only qualifier · champion",
+  };
 }
 
 /**

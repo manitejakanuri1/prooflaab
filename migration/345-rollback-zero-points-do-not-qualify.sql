@@ -1,0 +1,166 @@
+-- Rollback of 345: puts back generate_section_knockout and close_season exactly as they were on TEST before 345.
+begin;
+CREATE OR REPLACE FUNCTION public.generate_section_knockout(_season_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  wk integer; starts date; pool text[]; at timestamptz; b record; ids uuid[]; n integer; made integer := 0;
+  brackets integer := 0;
+begin
+  select min(week) into wk from public.season_plan(_season_id) where phase = 'knockout';
+  if wk is null then return jsonb_build_object('ok', true, 'fixtures', 0); end if;
+  select starts_on, cross_sections into starts, pool from public.seasons where id = _season_id;
+  at := case when public.test_fast_season(_season_id)
+             then (select starts_at from public.season_week_bounds(_season_id, wk)) + interval '6 minutes'
+             else (starts + ((wk - 1) * 7) + 4)::timestamptz + interval '18 hours' end;
+  perform public.recount_season(_season_id);
+  update public.squads set bracket = null, seed = null, qualified = false where season_id = _season_id;
+  delete from public.squad_matches where season_id = _season_id and stage in ('knockout', 'final');
+  for b in
+    select case when coalesce(cohort, 'GENERAL') = any(coalesce(pool, '{}')) then 'Cross-section'
+                else coalesce(cohort, 'GENERAL') end as bracket
+      from public.squads where season_id = _season_id and archived_at is null
+     group by 1 order by 1
+  loop
+    with ranked as (
+      select q.id, row_number() over (order by q.rank nulls last, q.points desc, q.name) as pos
+        from public.squads q
+       where q.season_id = _season_id and q.archived_at is null
+         and (case when coalesce(q.cohort, 'GENERAL') = any(coalesce(pool, '{}')) then 'Cross-section'
+                   else coalesce(q.cohort, 'GENERAL') end) = b.bracket)
+    update public.squads q
+       set bracket = b.bracket,
+           seed = case when r.pos <= 4 then r.pos end,
+           qualified = r.pos <= 4
+      from ranked r where q.id = r.id;
+    select array_agg(id order by seed) into ids
+      from public.squads where season_id = _season_id and bracket = b.bracket and seed is not null;
+    n := coalesce(array_length(ids, 1), 0);
+    brackets := brackets + 1;
+    if n >= 4 then
+      insert into public.squad_matches (season_id, round_number, home_squad, away_squad, scheduled_at, status, stage, cohort)
+      values (_season_id, wk, ids[1], ids[4], at, 'scheduled', 'knockout', b.bracket),
+             (_season_id, wk, ids[2], ids[3], at, 'scheduled', 'knockout', b.bracket);
+      made := made + 2;
+    elsif n = 3 then
+      -- seed 1 waits in the final
+      insert into public.squad_matches (season_id, round_number, home_squad, away_squad, scheduled_at, status, stage, cohort)
+      values (_season_id, wk, ids[2], ids[3], at, 'scheduled', 'knockout', b.bracket);
+      made := made + 1;
+    end if;
+  end loop;
+  perform public.write_audit('KNOCKOUT_GENERATED', 'squad_matches', _season_id, null,
+    jsonb_build_object('week', wk, 'fixtures', made, 'brackets', brackets),
+    (select college_id from public.seasons where id = _season_id));
+  return jsonb_build_object('ok', true, 'week', wk, 'fixtures', made, 'brackets', brackets);
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION public.close_season(_season_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  podium uuid[]; names text[]; how text; v integer; b record; brackets integer := 0;
+  fin record; champ uuid; runner uuid; third uuid; final_how jsonb;
+begin
+  select plan_version into v from public.seasons where id = _season_id;
+  if v = 2 then
+    -- 184: a champion in every bracket that played its final and had a league
+    delete from public.season_champions where season_id = _season_id;
+    for b in select distinct bracket from public.squads where season_id = _season_id and bracket is not null loop
+      select * into fin from public.squad_matches
+       where season_id = _season_id and stage = 'final' and cohort = b.bracket and status in ('played', 'no_activity')
+       order by scheduled_at desc limit 1;
+      continue when fin.id is null;
+      continue when not exists (
+        select 1 from public.squad_matches m join public.squads q on q.id in (m.home_squad, m.away_squad)
+         where m.season_id = _season_id and m.stage = 'league' and m.status = 'played' and q.bracket = b.bracket);
+      champ := public.match_winner(fin.id);
+      runner := case when champ = fin.home_squad then fin.away_squad else fin.home_squad end;
+      third := null;
+      select q.id into third
+        from public.squad_matches m
+        join public.squads q on q.id in (m.home_squad, m.away_squad)
+       where m.season_id = _season_id and m.stage = 'knockout' and m.cohort = b.bracket
+         and m.status in ('played', 'no_activity') and q.id not in (champ, runner)
+       order by q.seed nulls last limit 1;
+      -- 203 (MF-097): how the final was decided (score / higher_seed)
+      insert into public.season_champions (season_id, bracket, champion_squad_id, runner_up_squad_id, third_squad_id, decided_by)
+      values (_season_id, b.bracket, champ, runner, third, fin.decided_by);
+      brackets := brackets + 1;
+    end loop;
+    if brackets = 1 then
+      select array[champion_squad_id, runner_up_squad_id, third_squad_id] into podium
+        from public.season_champions where season_id = _season_id;
+    end if;
+    how := case when brackets > 0 then 'final' else 'no_league' end;
+    select jsonb_object_agg(bracket, decided_by) into final_how from public.season_champions where season_id = _season_id;
+  else
+    select * into fin from public.squad_matches
+     where season_id = _season_id and stage = 'final' and status in ('played', 'no_activity')
+     order by scheduled_at desc limit 1;
+    if fin.id is not null then
+      champ := coalesce(fin.winner_squad, case
+        when coalesce(fin.home_points, 0) > coalesce(fin.away_points, 0) then fin.home_squad
+        when coalesce(fin.away_points, 0) > coalesce(fin.home_points, 0) then fin.away_squad
+        else (select id from public.squads where id in (fin.home_squad, fin.away_squad)
+               order by seed nulls last, points desc limit 1)
+      end);
+      runner := case when champ = fin.home_squad then fin.away_squad else fin.home_squad end;
+      select q.id into third
+        from public.squad_matches m
+        join public.squads q on q.id in (m.home_squad, m.away_squad)
+       where m.season_id = _season_id and m.stage = 'knockout' and m.status in ('played', 'no_activity')
+         and q.id not in (champ, runner)
+       order by q.seed nulls last, q.points desc
+       limit 1;
+      podium := array[champ, runner, third];
+      how := 'final';
+      final_how := to_jsonb(fin.decided_by);
+    elsif exists (select 1 from public.squad_matches
+                   where season_id = _season_id and stage = 'league' and status = 'played') then
+      select array_agg(id order by points desc nulls last, name)
+        into podium
+        from public.squads where season_id = _season_id;
+      how := 'points';
+    else
+      podium := null;
+      how := 'no_league';
+    end if;
+  end if;
+  select array_agg(q.name order by p.i) into names
+    from unnest(podium) with ordinality p(id, i) join public.squads q on q.id = p.id;
+  update public.seasons
+     set status = 'complete', is_current = false, completed_at = now(),
+         champion_squad_id  = podium[1],
+         runner_up_squad_id = podium[2],
+         third_squad_id     = podium[3]
+   where id = _season_id;
+  update public.squad_members m set left_at = now()
+    from public.squads q
+   where q.id = m.squad_id and q.season_id = _season_id and m.left_at is null;
+  update public.squads set archived_at = now()
+   where season_id = _season_id and archived_at is null;
+  perform public.write_audit('SEASON_CLOSED', 'seasons', _season_id, null,
+    jsonb_build_object('champion', names[1], 'runner_up', names[2], 'third', names[3],
+                       'decided_by', how, 'final_decided_by', final_how, 'brackets', brackets),
+    (select college_id from public.seasons where id = _season_id));
+  return jsonb_build_object('ok', true, 'champion', names[1],
+                            'runner_up', names[2], 'third', names[3],
+                            'decided_by', how, 'final_decided_by', final_how, 'brackets', brackets,
+                            'champions', (select coalesce(jsonb_agg(jsonb_build_object(
+                                            'bracket', c.bracket, 'champion', q.name, 'decided_by', c.decided_by)
+                                            order by c.bracket), '[]'::jsonb)
+                                            from public.season_champions c join public.squads q on q.id = c.champion_squad_id
+                                           where c.season_id = _season_id));
+end $function$
+;
+
+notify pgrst, 'reload schema';
+commit;

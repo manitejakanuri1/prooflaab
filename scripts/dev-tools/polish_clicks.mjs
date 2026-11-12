@@ -199,9 +199,12 @@ try {
   await check("College: students STATUS is Lot-based, no login-style 'Active' badge (F5)", async () =>
     (await page.getByText(/^Active$/).count()) === 0);
   await check("College: Students > Assigned tasks lists what the college assigned (assign item 5)", async () => {
-    await page.getByTestId("assigned-tasks-link").click();
-    await page.getByTestId("assigned-tasks").waitFor({ timeout: 20000 }).catch(() => {});
-    const ok = page.url().includes("tab=assigned") && /Handed in/i.test(await page.getByTestId("assigned-tasks").innerText().catch(() => ""));
+    await go(page, "/college/dashboard?tab=students"); // a drawer from the checks above may still be open
+    await page.getByTestId("assigned-tasks-link").click({ timeout: 30000 });
+    await page.getByText(/handed in/i).first().waitFor({ timeout: 40000 }).catch(() => {});
+    const text = await page.getByTestId("assigned-tasks").innerText().catch(() => "");
+    const ok = page.url().includes("tab=assigned") && /Handed in/i.test(text);
+    if (!ok) console.log("  assigned:", page.url(), text.slice(0, 120).replace(/\s+/g, " "));
     await go(page, "/college/dashboard?tab=students");
     return ok;
   });

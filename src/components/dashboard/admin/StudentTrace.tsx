@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,10 +45,20 @@ const Timeline = ({ tech }: { tech: boolean }) => {
   }, [q]);
   useEffect(() => { void search(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
+  // Clear the old list and show "Loading" until THIS request answers; a slower earlier answer must not overwrite it.
+  const [loading, setLoading] = useState(false);
+  const reqNo = useRef(0);
   const open = async (s: Student) => {
+    const n = ++reqNo.current;
     setPicked(s);
     setErr(null);
-    try { setEvents(await call<Ev>("admin_trace_student", { _student_id: s.student_id, _hours: hours, _limit: 500 })); } catch (e) { setErr((e as Error).message); }
+    setEvents([]);
+    setLoading(true);
+    try {
+      const rows = await call<Ev>("admin_trace_student", { _student_id: s.student_id, _hours: hours, _limit: 500 });
+      if (n === reqNo.current) setEvents(rows);
+    } catch (e) { if (n === reqNo.current) setErr((e as Error).message); }
+    finally { if (n === reqNo.current) setLoading(false); }
   };
   useEffect(() => { if (picked) void open(picked); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [hours]);
 
@@ -83,7 +93,8 @@ const Timeline = ({ tech }: { tech: boolean }) => {
             </div>
           </CardHeader>
           <CardContent className="overflow-x-auto">
-            {picked && events.length === 0 && <p className="text-sm text-muted-foreground">No steps recorded in this period.</p>}
+            {picked && loading && <p className="text-sm text-muted-foreground">Loading steps…</p>}
+            {picked && !loading && !err && events.length === 0 && <p className="text-sm text-muted-foreground">No steps recorded in this period.</p>}
             {events.length > 0 && (
               <Table>
                 <TableHeader><TableRow><TableHead>Time</TableHead><TableHead>What</TableHead><TableHead>Where</TableHead><TableHead>Result</TableHead><TableHead className="text-right">ms</TableHead></TableRow></TableHeader>

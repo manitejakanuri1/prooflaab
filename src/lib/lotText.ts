@@ -127,8 +127,10 @@ export function voiceWord(status: string | null | undefined, reason?: string | n
  * Done (passing answer + accepted voice) is the dashboard's rule (lot_marks, migration 320).
  */
 export function lotLine(o: { answer: string | null | undefined; mark10?: number | null; voice?: string | null;
-                             reason?: string | null; voiceScore?: number | null }): string {
-  const answer = o.answer === "failed" ? "Not passed" : plainCode(o.answer);
+                             reason?: string | null; voiceScore?: number | null; company?: string | null }): string {
+  // F9: 'returned' only ever means a company pressed "Ask for changes" (migration 300) - say who and why.
+  const answer = o.answer === "failed" ? "Not passed"
+    : o.answer === "returned" ? `Returned by ${o.company || "the company"} for changes` : plainCode(o.answer);
   return [answer, o.mark10 != null ? `${fmtMark(o.mark10)}/10` : null,
           o.voice !== undefined ? voiceWord(o.voice, o.reason, o.voiceScore) : null].filter(Boolean).join(" · ");
 }

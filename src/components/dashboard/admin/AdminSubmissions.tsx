@@ -20,7 +20,7 @@ interface Row {
   flags: string[] | null;
   created_at: string;
   sandbox_config_id: string | null;
-  tasks: { title: string; source: string | null } | null;
+  tasks: { title: string; source: string | null; sponsor_company?: string | null } | null;
   student_profiles: { full_name: string } | null;
   voice?: boolean;
   task_id?: string;
@@ -40,7 +40,8 @@ const resultText = (r: Row) => {
     return `${w[0].toUpperCase()}${w.slice(1)}${r.status === "scored" && mark10 != null ? ` · ${of10(r.sandbox_score)}` : ""}`;
   }
   const v = r.lotVoice;
-  return lotLine({ answer: r.status, mark10, voice: v?.status ?? null, reason: v?.evaluation?.attempt_fail, voiceScore: v?.communication_score });
+  return lotLine({ answer: r.status, mark10, voice: v?.status ?? null, reason: v?.evaluation?.attempt_fail, voiceScore: v?.communication_score,
+                  company: r.tasks?.sponsor_company });
 };
 
 interface VoiceRow {
@@ -83,7 +84,7 @@ const AdminSubmissions = () => {
     queryFn: async (): Promise<Row[]> => {
       if (status === "voice") return voiceRows("all");
       let q = supabase.from("task_submissions")
-        .select("id, task_id, student_id, status, sandbox_score, passed_count, total_count, runner, flags, created_at, sandbox_config_id, tasks(title, source), student_profiles(full_name)")
+        .select("id, task_id, student_id, status, sandbox_score, passed_count, total_count, runner, flags, created_at, sandbox_config_id, tasks(title, source, sponsor_company), student_profiles(full_name)")
         .order("created_at", { ascending: false }).limit(200);
       if (status !== "all") q = q.eq("status", status);
       const [{ data, error }, voices] = await Promise.all([q, voiceRows(status)]);

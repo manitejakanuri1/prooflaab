@@ -107,6 +107,8 @@ test("college drawer: a Lot's state uses the same words as the header and the st
 test("Y1/Y2: one status line for a Lot on every screen", () => {
   assert.equal(lotLine({ answer: "failed", mark10: 1.9, voice: null }), "Not passed · 1.9/10 · voice not done");
   assert.equal(lotLine({ answer: "passed", mark10: 10, voice: "failed", reason: "off_topic" }), "Passed · 10/10 · voice not accepted - off topic");
+  assert.equal(lotLine({ answer: "returned", mark10: 10, company: "Acme" }), "Returned by Acme for changes · 10/10");
+  assert.equal(lotLine({ answer: "returned" }), "Returned by the company for changes");
   assert.equal(lotLine({ answer: "passed", mark10: 10, voice: "scored", voiceScore: 72 }), "Passed · 10/10 · voice done");
   assert.equal(lotLine({ answer: "passed", voice: "scored", voiceScore: 30 }), "Passed · low voice score");
   assert.equal(lotLine({ answer: "passed", voice: "processing" }), "Passed · voice being checked");

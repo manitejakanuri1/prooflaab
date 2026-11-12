@@ -54,16 +54,29 @@ interface VoiceRow {
   student_profiles: { full_name: string } | null;
 }
 
+// S1 (the done rule, migration 320/351): an accepted voice is scored (score >= 50) and has no attempt_fail.
+const isVoiceAccepted = (v: { status: string; communication_score: number | null; evaluation: { attempt_fail?: string } | null } | null | undefined): boolean =>
+  !!v && v.status === "scored" && (v.communication_score == null || v.communication_score >= 50) && !v.evaluation?.attempt_fail;
+
 // M7: voice recordings live in voice_explanations, not task_submissions, so they were never listed here.
 async function voiceRows(status: string): Promise<Row[]> {
   let q = supabase.from("voice_explanations")
     .select("id, status, communication_score, created_at, evaluation, tasks(title, source), student_profiles(full_name)")
     .is("withdrawn_at", null).order("created_at", { ascending: false }).limit(200);
-  if (status === "passed") q = q.eq("status", "scored");
+  if (status === "passed") q = q.eq("status", "scored").gte("communication_score", 50);
   if (status === "failed") q = q.eq("status", "failed");
   const { data, error } = await q;
   if (error) throw error;
-  return ((data as unknown as VoiceRow[]) ?? []).map((v) => ({
+  const list = ((data as unknown as VoiceRow[]) ?? []).filter((v) => {
+    if (status === "passed") {
+      return v.status === "scored" && (v.communication_score == null || v.communication_score >= 50) && !v.evaluation?.attempt_fail;
+    }
+    if (status === "failed") {
+      return v.status === "failed" || (v.status === "scored" && ((v.communication_score != null && v.communication_score < 50) || !!v.evaluation?.attempt_fail));
+    }
+    return true;
+  });
+  return list.map((v) => ({
     id: v.id, status: v.status, sandbox_score: v.communication_score, passed_count: null, total_count: null,
     runner: null, flags: v.evaluation?.attempt_fail ? [v.evaluation.attempt_fail] : null, created_at: v.created_at,
     sandbox_config_id: null, tasks: v.tasks, student_profiles: v.student_profiles, voice: true,
@@ -89,13 +102,17 @@ const AdminSubmissions = () => {
       if (status !== "all") q = q.eq("status", status);
       const [{ data, error }, voices] = await Promise.all([q, voiceRows(status)]);
       if (error) throw error;
-      const rows = (data as unknown as Row[]) ?? [];
+      let rows = (data as unknown as Row[]) ?? [];
       const ids = [...new Set(rows.map((r) => r.task_id).filter(Boolean))] as string[];
       const { data: vs } = ids.length
         ? await supabase.from("voice_explanations")
             .select("task_id, student_id, status, evaluation, communication_score, created_at, withdrawn_at").in("task_id", ids)
         : { data: [] };
       for (const r of rows) r.lotVoice = pickVoice(((vs ?? []) as unknown as V[]).filter((v) => v.task_id === r.task_id && v.student_id === r.student_id));
+      // S1: Passed = passing answer AND accepted voice (the done rule, migration 320/351)
+      if (status === "passed") {
+        rows = rows.filter((r) => r.status === "passed" && isVoiceAccepted(r.lotVoice));
+      }
       return [...rows, ...voices]
         .sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 200);
     },

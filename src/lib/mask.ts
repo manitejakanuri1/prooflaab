@@ -12,6 +12,13 @@ export const maskIp = (s: string) =>
 /** Any UUID -> its first 8 characters + "…". */
 export const shortIds = (s: string) => s.replace(/\b([0-9a-f]{8})-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "$1…");
 
+/** F14: Request ID -> only the last 4-6 characters. */
+export const shortRequestId = (id: string | null | undefined): string => {
+  if (!id) return "";
+  const s = id.trim();
+  return s.length <= 6 ? s : s.slice(-6);
+};
+
 /** Emails, IPs and UUIDs masked in one go. */
 export const maskAll = (s: string | null | undefined) => (s ? shortIds(maskIp(maskEmail(s))) : s ?? "");
 

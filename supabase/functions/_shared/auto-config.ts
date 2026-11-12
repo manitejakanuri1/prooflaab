@@ -513,7 +513,8 @@ export async function generateGradedConfig(params: GenerateConfigParams): Promis
     // Fresh generation (own scenario+criteria+answer call), fixed criteria.
     const rubricResult = await tryGenerateRubric(content, feature, usageCtx, DOWNGRADE_CRITERIA);
     if (rubricResult.ok && rubricResult.attempt) {
-      const configId = await insertRubricConfig(db, rubricResult.attempt, rubricResult.promptText!, createdBy, passThreshold ?? 90);
+      // Owner + Purna 12 Nov 2026: a coding Lot turned written passes at 7/10 like every other written Lot (was 9/10).
+      const configId = await insertRubricConfig(db, rubricResult.attempt, rubricResult.promptText!, createdBy, passThreshold ?? 70);
       if (configId) return { ok: true, mode: "rubric", configId, scenarioFields: rubricResult.scenarioFields, usedFallback: "rubric_downgrade" };
     }
     const fallbackId = await genericFallbackId(db);

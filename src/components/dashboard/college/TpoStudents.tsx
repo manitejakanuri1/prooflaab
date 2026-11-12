@@ -223,7 +223,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
     const hasOpenTask = openTaskStudents.has(r.student_id);
     // E2E-3: 999 means never active - say so instead of "999 days".
     const reason = hasOpenTask
-      ? "Open task assigned by college needs completion"
+      ? "Has a task from the college still open"
       : r.days_quiet >= 999 ? "Has not tried a Lot yet"
       : r.days_quiet >= 7 ? `No Lot tried for ${r.days_quiet} days`
       // F9: only say "onboarding" when it is not finished; the other reason a row needs attention is a skipped Lot.

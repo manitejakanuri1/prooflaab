@@ -151,7 +151,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
     setSending(true);
     const hasOpenTask = (data.tasks.assigned ?? 0) > (data.tasks.completed ?? 0);
     // E2E-3: 999 means never active - say so instead of "999 days".
-    const reason = hasOpenTask ? "Open task assigned by college needs completion"
+    const reason = hasOpenTask ? "Has a task from the college still open"
       : data.days_quiet >= 999 ? "Has not started yet"
       : data.days_quiet >= 7 ? `No Lot tried for ${data.days_quiet} days`
       : data.onboarding.status !== "completed" ? `Onboarding not finished (${data.onboarding.status.replace("_", " ")})`

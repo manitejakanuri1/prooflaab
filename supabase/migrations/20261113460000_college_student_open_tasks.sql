@@ -11,6 +11,7 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
     from mine cross join public.tasks t
     left join public.task_assignments a on a.task_id = t.id
    where t.created_by_college_id = mine.cid and mine.cid is not null
+     and coalesce(a.student_id, t.student_id) is not null
      and not exists (select 1 from public.task_submissions s
                       where s.task_id = t.id
                         and s.student_id = coalesce(a.student_id, t.student_id)

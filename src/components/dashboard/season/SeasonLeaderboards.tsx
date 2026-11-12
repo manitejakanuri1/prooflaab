@@ -1,4 +1,5 @@
 import InfoTip from "@/components/common/InfoTip";
+import LoadFailed from "@/components/common/LoadFailed";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -64,17 +65,24 @@ const SeasonLeaderboards = ({ highlightStudentId }: { highlightStudentId?: strin
   const [awards, setAwards] = useState<Award[]>([]);
   const [loading, setLoading] = useState(true);
   const [limit, setLimit] = useState(25);   // MF-083: "Show more" adds 25 at a time
+  // F15 (12 Nov 2026): a failed or thrown call said "Loading…" for ever; now it says so, with Try again.
+  const [failed, setFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => setLimit(25), [kind]);
 
   useEffect(() => {
+    let alive = true;
     void (async () => {
-      setLoading(true);
-      const { data } = await supabase.rpc("season_leaderboard", { _kind: kind, _limit: limit });
-      setRows((data ?? []) as unknown as Row[]);
+      setLoading(true); setFailed(false);
+      const { data, error } = await supabase.rpc("season_leaderboard", { _kind: kind, _limit: limit })
+        .then((r) => r, () => ({ data: null, error: true }));
+      if (!alive) return;
+      if (error) setFailed(true); else setRows((data ?? []) as unknown as Row[]);
       setLoading(false);
     })();
-  }, [kind, limit]);
+    return () => { alive = false; };
+  }, [kind, limit, reloadKey]);
 
   useEffect(() => {
     void (async () => {
@@ -149,6 +157,8 @@ const SeasonLeaderboards = ({ highlightStudentId }: { highlightStudentId?: strin
           <div className="mt-3 overflow-x-auto">
             {loading ? (
               <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>
+            ) : failed ? (
+              <LoadFailed what="the leaderboard" onRetry={() => setReloadKey((k) => k + 1)} />
             ) : rows.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 Nothing scored yet this season.

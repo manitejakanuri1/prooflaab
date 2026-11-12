@@ -82,8 +82,11 @@ const StudentOversight = () => {
         .select(`
           *,
           student_contact (email),
-          tasks:tasks!tasks_student_id_fkey(count)
-        `);
+          tasks:tasks!tasks_student_id_fkey(count),
+          passed_subs:task_submissions!task_submissions_student_id_fkey(task_id)
+        `)
+        // Polish n: only passed tries come back; Lots passed = distinct Lots among them (same as the drawer).
+        .eq('passed_subs.status', 'passed');
 
       if (searchTerm) {
         query = query.ilike('full_name', `%${searchTerm}%`);
@@ -97,6 +100,7 @@ const StudentOversight = () => {
       return (data ?? []).map((s: any) => ({
         ...s,
         email: s.student_contact?.email ?? '',
+        lots_passed: new Set((s.passed_subs ?? []).map((p: any) => p.task_id)).size,
       }));
     },
     // F11: keep the old rows while a new search loads, so the page never swaps to the loading skeleton (that
@@ -296,9 +300,9 @@ const StudentOversight = () => {
     if (!students?.length) return;
     const esc = (v: unknown) => `"${String(v ?? "").replace(/^[=+\-@]/, "'$&").replace(/"/g, '""')}"`;
     const csv = [
-      "Name,Email,College,Status,Tasks,Created",
+      "Name,Email,College,Status,Lots assigned,Lots passed,Created",
       ...students.map((s) => [s.full_name, s.email, collegeName(s.college_id), s.status || "active",
-        (s as any).tasks?.[0]?.count ?? 0, fmtDay(s.created_at)].map(esc).join(",")),
+        (s as any).tasks?.[0]?.count ?? 0, s.lots_passed, fmtDay(s.created_at)].map(esc).join(",")),
     ].join("\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     const a = document.createElement("a");
@@ -446,7 +450,8 @@ const StudentOversight = () => {
                 <TableHead className="font-semibold">Email</TableHead>
                 <TableHead className="font-semibold">College</TableHead>
                 <TableHead className="font-semibold">Status</TableHead>
-                <TableHead className="font-semibold">Tasks</TableHead>
+                <TableHead className="font-semibold" title="Every Lot this student has been given so far">Lots assigned</TableHead>
+                <TableHead className="font-semibold" title="Lots whose answer or code passed (same as the profile drawer)">Lots passed</TableHead>
                 <TableHead className="font-semibold">Created</TableHead>
                 <TableHead className="font-semibold text-right">Actions</TableHead>
               </TableRow>
@@ -454,7 +459,7 @@ const StudentOversight = () => {
             <TableBody>
               {students && students.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     {searchTerm ? `No student matches "${searchTerm}"` : 'No students yet'}
                   </TableCell>
                 </TableRow>
@@ -479,6 +484,9 @@ const StudentOversight = () => {
                     <Badge variant="outline" className="font-mono">
                       {(student as any).tasks?.[0]?.count ?? 0 /* MF-057: tasks(count) answers [{ count }] */}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-mono">{student.lots_passed}</Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {fmtDay(student.created_at)}

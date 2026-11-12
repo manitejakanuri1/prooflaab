@@ -220,7 +220,7 @@ const ManageResourcesPage = () => {
       {/* Header Section */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">📚 Resources Management</h1>
+          <h1 className="text-2xl font-bold text-foreground">Resources Management</h1>
           <p className="text-sm text-muted-foreground mt-1">Curate learning resources for students.</p>
         </div>
         <Button
@@ -344,7 +344,7 @@ const ManageResourcesPage = () => {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border-0 bg-background">
           <DialogHeader className="border-b border-border/50 pb-4">
             <DialogTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
-              📚 {editingResource ? "Edit Resource" : "Add New Resource"}
+              {editingResource ? "Edit Resource" : "Add New Resource"}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6 p-6">

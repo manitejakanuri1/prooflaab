@@ -3,15 +3,20 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import SignIn from "@/components/auth/SignIn";
-import { AccessShell, usePageTitle } from "@/components/auth/AccessShell";
+import { AccessHeading, AccessShell, usePageTitle } from "@/components/auth/AccessShell";
+import { Button } from "@/components/landing/LandingButton";
 import { onboardingRoute } from "@/lib/onboardingRoute";
 
 type UserRole = 'student' | 'college_admin' | 'startup' | 'admin' | 'recruiter';
+const ROLE_WORDS: Record<UserRole, string> = {
+  student: "a student", college_admin: "a college", startup: "a company", recruiter: "a company", admin: "an admin",
+};
 
 export default function Auth() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // MF-069: a signed-in visitor sees a loader, not the sign-in form, while their session is checked.
   const [checking, setChecking] = useState(true);
+  const [signedIn, setSignedIn] = useState<{ role: UserRole; go: () => void } | null>(null);
   const navigate = useNavigate();
   // The set-password page sends people here with a "password set" note.
   const stateMessage = (useLocation().state as { message?: string } | null)?.message;
@@ -57,16 +62,22 @@ export default function Auth() {
                   .maybeSingle();
                 
                 if (roleData) {
-                  if (roleData.role === 'student') {
-                    // Students are gated by intake, not the wizard flag.
-                    // /student/start forwards on if intake is already done.
-                    navigate('/student/start', { replace: true });
-                  } else if (roleData.has_completed_wizard) {
-                    redirectToDashboard(roleData.role);
-                  } else {
-                    // Role-specific onboarding (admins have none: dashboard).
-                    navigate(onboardingRoute(roleData.role), { replace: true });
-                  }
+                  // Polish k: no silent jump. Ask first: go to that dashboard, or sign out and sign in as someone else.
+                  setSignedIn({
+                    role: roleData.role,
+                    go: () => {
+                      if (roleData.role === 'student') {
+                        // Students are gated by intake, not the wizard flag.
+                        // /student/start forwards on if intake is already done.
+                        navigate('/student/start', { replace: true });
+                      } else if (roleData.has_completed_wizard) {
+                        redirectToDashboard(roleData.role);
+                      } else {
+                        // Role-specific onboarding (admins have none: dashboard).
+                        navigate(onboardingRoute(roleData.role), { replace: true });
+                      }
+                    },
+                  });
                 }
               }
             }
@@ -146,6 +157,19 @@ export default function Auth() {
       <div className="flex items-center justify-center min-h-screen" aria-busy="true">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#51A6FB]"></div>
       </div>
+    );
+  }
+
+  if (signedIn) {
+    return (
+      <AccessShell>
+        <AccessHeading title="Already signed in" description={`You're already signed in as ${ROLE_WORDS[signedIn.role] ?? "another account"}. Sign out?`} />
+        <div className="mt-8 grid gap-3">
+          <Button type="button" onClick={signedIn.go} className="h-[3.25rem] w-full font-mono text-[11px] tracking-[0.14em]">Go to dashboard</Button>
+          <Button type="button" variant="outline" className="h-[3.25rem] w-full font-mono text-[11px] tracking-[0.14em]"
+            onClick={() => { supabase.auth.signOut().catch(() => {}).finally(() => setSignedIn(null)); }}>Sign out</Button>
+        </div>
+      </AccessShell>
     );
   }
 

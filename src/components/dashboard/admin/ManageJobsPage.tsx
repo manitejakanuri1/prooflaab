@@ -238,7 +238,7 @@ const ManageJobsPage = () => {
       {/* Header Section */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">📂 Jobs Management</h1>
+          <h1 className="text-2xl font-bold text-foreground">Jobs Management</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage all job postings from startups and colleges.</p>
         </div>
         <Button 
@@ -337,7 +337,7 @@ const ManageJobsPage = () => {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border-0 bg-background">
           <DialogHeader className="border-b border-border/50 pb-4">
             <DialogTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
-              💼 {editingJob ? "Edit Job Opportunity" : "Create New Job"}
+              {editingJob ? "Edit Job Opportunity" : "Create New Job"}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6 p-6">

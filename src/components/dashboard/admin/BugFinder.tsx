@@ -54,6 +54,14 @@ const BugFinder = () => {
       ) : runs.length === 0 ? (
         <p className="text-sm text-muted-foreground">No runs yet. It has been built but is not scheduled to run on its own — it only runs when triggered by hand or once Cloud Scheduler is turned on for it.</p>
       ) : (
+        <>
+        {/* Polish i: the robot runs several times a day when it is switched on. A newest run over a day old means it
+            is not running here (on TEST it is switched off), so say so instead of letting an old date look current. */}
+        {Date.now() - new Date(runs[0].started_at).getTime() > 24 * 3600_000 && (
+          <p className="rounded-md border border-compete/40 bg-compete/10 px-3 py-2 text-sm" data-testid="bug-finder-not-running">
+            <span className="font-semibold">Not running.</span> The robot is not on a schedule here - the newest run below is from {fmtIST(runs[0].started_at)}, so these results are old.
+          </p>
+        )}
         <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
           <Card>
             <CardHeader><CardTitle className="text-sm">Runs</CardTitle></CardHeader>
@@ -94,6 +102,7 @@ const BugFinder = () => {
             </CardContent>
           </Card>
         </div>
+        </>
       )}
     </div>
   );

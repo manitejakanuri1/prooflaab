@@ -771,7 +771,8 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                                         Approve
                                       </DropdownMenuItem>
                                     )}
-                                    {user.verification_status !== 'rejected' && (
+                                    {/* Reject is for a company still waiting; an approved one is suspended instead. */}
+                                    {user.verification_status !== 'rejected' && user.verification_status !== 'approved' && (
                                       <DropdownMenuItem
                                         onClick={() => handleUserAction(user, 'reject')}
                                         className="text-compete"

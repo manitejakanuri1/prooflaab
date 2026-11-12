@@ -142,7 +142,9 @@ export const SimpleQuestion = ({ taskId, original, words, coding, anyLanguage, c
   }
   const brief = tidyBrief(raw, words, anyLanguage);
   const steps = brief.steps.map(dropWordRange).filter(Boolean);
-  const shown = coding ? 0 : 3;
+  // Assigned-work test item 4 (12 Nov): a one-line task ("In 3-4 sentences, explain...") gets no invented steps
+  // up front; the simpler version's steps stay behind "More help".
+  const shown = coding || (original ?? "").trim().length < 160 ? 0 : 3;
   // Owner 11 Nov 2026: "covering all four points" no longer matches the 3 steps shown; point at the steps instead.
   const doneWhen = dropWordRange(brief.done_when)
     .replace(/\ball (the )?(two|three|four|five|six|seven|\d+) (points|parts|steps|things)( (that )?the task asks for)?/gi, "all the steps above");

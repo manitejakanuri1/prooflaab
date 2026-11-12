@@ -31,7 +31,7 @@ const RestrictedAccessMessage = () => (
 /**
  * The Company dashboard: four destinations - Home, Talent, Lots, Hiring.
  *
- *   Lots    My Lots · Create a Lot · Submissions (its filter has "To review"; the old Reviews tab, MF-027)
+ *   Lots    My Lots · Send a Lot · Submissions (its filter has "To review"; the old Reviews tab, MF-027)
  *   Hiring  Shortlist (the candidate pipeline) · Job posts
  *
  * Every Lot is graded like any other student work; results are read from
@@ -51,7 +51,7 @@ export const COMPANY_REDIRECTS: Record<string, [string, string]> = {
 };
 
 const NEEDS_VERIFICATION = new Set(["lots", "hiring"]);
-const LOT_VIEWS = [["active", "My Lots"], ["create", "Create a Lot"], ["submissions", "Submissions"]];
+const LOT_VIEWS = [["active", "My Lots"], ["create", "Send a Lot"], ["submissions", "Submissions"]];
 const HIRING_VIEWS = [["shortlist", "Shortlist"], ["jobs", "Job posts"]];
 
 export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: StartupDashboardContentProps) {
@@ -98,8 +98,9 @@ export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: 
           {v === "create" && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground max-w-prose">
-                A Lot is set for a candidate you have shortlisted. Choose one below and press
-                "Send a task": a coding Lot gets real tests, a written Lot gets its own checklist.
+                {/* Item 7: this view is where a Lot is sent - to someone on your shortlist. */}
+                Step 1: pick a shortlisted candidate below. Step 2: press "Send a task to (their name)" and write the brief.
+                A coding Lot gets real tests, a written Lot gets its own checklist.
               </p>
               {/* Sweep S26: say where a new candidate comes from. */}
               <p className="text-sm max-w-prose">

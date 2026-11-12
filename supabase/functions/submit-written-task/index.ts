@@ -92,6 +92,11 @@ serve(async (req) => {
       .select("id, prompt_text, criteria, min_words, max_words, pass_threshold, reference_answer, is_generic_fallback, origin")
       .eq("id", task.rubric_config_id).single();
     if (!cfg) return json({ error: "This task has no checklist yet" }, 404);
+    // Migration 255: the length the task text states wins, the same range the student screen shows.
+    const { data: range } = await db.rpc("task_word_range", {
+      _title: task.title ?? "", _description: task.description ?? "", _min: cfg.min_words, _max: cfg.max_words,
+    });
+    if (range?.min) { cfg.min_words = range.min; cfg.max_words = range.max; }
 
     // 5. Word count, checked before spending anything on grading
     const words = wordCount(answer);

@@ -45,7 +45,7 @@ interface Profile {
   } | null;
   activity_30d: { event_type: string; n: number }[];
   skills: { skill: string; status: string; score: number | null; lots: number | null }[];
-  tasks: { assigned: number; completed: number; voice_owed?: number; attempts?: number; failed_attempts?: number };
+  tasks: { assigned: number; completed: number; voice_owed?: number; attempts?: number; failed_attempts?: number; auto_graded_passed?: number };
   voice_recordings: number;
   // migration 122: the rest of what the college and admin follow.
   streak?: { current: number; longest: number; last_active_on: string | null } | null;
@@ -100,7 +100,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
   const { toast } = useToast();
   const [data, setData] = useState<Profile | null>(null);
   const [paths, setPaths] = useState<LearningPath[]>([]);
-  const [work, setWork] = useState<FinishedWorkItem[] | null>(null);
+  const [work, setWork] = useState<FinishedWorkItem[] | "error" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
@@ -123,10 +123,13 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
     if (!current()) return;
     setPaths(Array.isArray(lp) ? (lp as unknown as LearningPath[]) : []);
     // Admin and the own college see every finished task: answer, voice words, recording (migration 168).
-    const { data: fw } = await supabase.rpc("tpo_student_work" as never, { _student_id: studentId } as never);
+    // Assigned-work test item 6: a failed call said "Nothing finished yet" next to a passed Lot. Try twice, then say so.
+    const call = () => supabase.rpc("tpo_student_work" as never, { _student_id: studentId } as never);
+    let wr = await call();
+    if (wr.error) wr = await call();
     if (!current()) return;
-    const list = (fw as { work?: FinishedWorkItem[] } | null)?.work;
-    setWork(Array.isArray(list) ? list : []);
+    const list = (wr.data as { work?: FinishedWorkItem[] } | null)?.work;
+    setWork(wr.error ? "error" : Array.isArray(list) ? list : []);
   }, [studentId]);
 
   useEffect(() => { void load(); }, [load]);
@@ -199,8 +202,9 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                 { k: "Last Lot try", v: data.days_quiet >= 999 ? "none yet" : data.days_quiet === 0 ? "today" : `${data.days_quiet}d ago`, // item 4: Lot tries, not sign-ins (220)
                   hot: data.days_quiet >= 7 },
                 { k: "Total XP", v: data.total_xp ?? 0 },
-                { k: "Lots done", v: `${data.tasks.completed}/${data.tasks.assigned}${data.tasks.voice_owed ? ` · ${data.tasks.voice_owed} voice owed` : ""}`, // M8: migration 220
-                  help: "Finished Lots (answer passed and voice done) / every Lot this student has been given so far. Each student joined on a different day, so the second number differs." },
+                // Item 6: "Lots passed" means the same as the Students list column; finished = answer + voice.
+                { k: "Lots passed", v: `${data.tasks.auto_graded_passed ?? 0}/${data.tasks.assigned} · ${data.tasks.completed} finished${data.tasks.voice_owed ? ` · ${data.tasks.voice_owed} voice owed` : ""}`, // M8: migration 220
+                  help: "Lots passed (the answer or code passed) / every Lot this student has been given so far - the same count as the Students list. Finished = passed and the voice is done. Each student joined on a different day, so the second number differs." },
                 ...(data.streak !== undefined ? [
                   { k: "Streak", v: data.streak ? `${data.streak.current}d · best ${data.streak.longest}d` : "0d" },
                   { k: "Checks not passed", v: data.tasks.failed_attempts ?? 0, hot: (data.tasks.failed_attempts ?? 0) >= 3 },
@@ -370,9 +374,11 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
 
             <section>
               <h4 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
-                All finished work
+                All passed work
               </h4>
-              {work === null ? <Skeleton className="h-10 w-full" /> : <FinishedWork work={work} />}
+              {work === null ? <Skeleton className="h-10 w-full" />
+                : work === "error" ? <p className="text-sm text-muted-foreground">Could not load this list. Close and open the student again.</p>
+                : <FinishedWork work={work} />}
             </section>
 
             {data.interventions.length > 0 && (

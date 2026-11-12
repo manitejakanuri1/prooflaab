@@ -212,7 +212,28 @@ try {
     const t = await page.getByRole("dialog").innerText();
     return /Section [A-Z]/i.test(t) && /Last Lot try/i.test(t) && !/-\d+d ago/.test(t);
   });
+  await check("College: drawer 'Lots passed' (same meaning as the list) and no false 'Nothing finished yet' (assigned-work item 6)", async () => {
+    await page.waitForTimeout(1500);
+    const t = await page.getByRole("dialog").innerText();
+    return /Lots passed/i.test(t) && !/Lots done/i.test(t);
+  });
   await check("College: drawer never ranks a 0-point squad (squad 0 (#n))", async () => !/squad 0 \(#\d+\)/.test(await page.getByRole("dialog").innerText()));
+  await ctx.close();
+
+  // ---- company (assigned-work item 7)
+  ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await cookieSignIn(ctx, BASE, logins["Company A"]);
+  page = await ctx.newPage();
+  await go(page, "/company/dashboard?tab=lots&view=create");
+  await check("Company: 'Send a Lot' tab; every Send button names its candidate (item 7)", async () => {
+    await page.getByRole("button", { name: /^Send a task/ }).first().waitFor({ timeout: 20000 }).catch(() => {});
+    const names = await page.getByRole("button", { name: /^Send a task/ }).allInnerTexts();
+    return (await page.getByText("Send a Lot").count()) > 0 && names.length > 0 && names.every((n) => !/^Send a task$/.test(n.trim()) && !/this candidate/.test(n));
+  });
+  await check("Company: Written/Code choice shows which one is picked (item 7)", async () => {
+    await page.getByRole("button", { name: /^Send a task/ }).first().click();
+    return (await page.locator('[aria-pressed="true"]').count()) === 1 && /✓/.test(await page.locator('[aria-pressed="true"]').first().innerText());
+  });
   await ctx.close();
 
   // ---- admin

@@ -8,7 +8,7 @@ import { explicitCodingProblem } from '../_shared/coding-mode.ts';
 import { assignScope, clampTask, targetIds, templateAllowed } from '../_shared/assign-scope.ts';
 
 interface AssignTasksRequest {
-  mode: 'manual' | 'ai' | 'template' | 'personalized';
+  mode: 'manual' | 'template' | 'personalized';
   // Common fields
   due_date: string;
   selected_students: string[];
@@ -306,64 +306,6 @@ serve(async (req) => {
           description: trimmedDescription,
           xp_reward,
           source: 'manual',
-          ...gradingConfig
-        });
-
-        createdTasks.push(task);
-        
-        // Only assign if students are selected
-        if (selected_students.length > 0) {
-          const taskAssignments = await insertAssignments(task.id, selected_students);
-          assignments.push(...taskAssignments);
-        }
-        break;
-      }
-
-      case 'ai': {
-        const { keywords, branch } = requestData;
-        
-        if (!keywords) {
-          throw new Error('Keywords are required for AI mode');
-        }
-
-        console.log('Generating AI task with keywords:', keywords, 'branch:', branch);
-        
-        const prompt = `You are a computer science professor creating a mini-project for engineering students. Generate a programming task based on these requirements:
-
-REQUIREMENTS:
-- Topic keywords: ${keywords}
-- Student branch: ${branch || 'Computer Science'}
-- Duration: 7-10 days to complete
-- Difficulty: Intermediate level suitable for students
-- Must include practical coding/development work
-
-RESPONSE FORMAT (MUST follow this exact format):
-Title: [Write a clear 4-8 word project title without using "Challenge" or "Task"]
-Description: [Write a detailed 3-5 sentence description that includes: (1) the main objective, (2) specific deliverables like code/report/prototype, (3) technologies to use, (4) real-world application or importance]
-
-EXAMPLE FORMAT:
-Title: React E-commerce Product Catalog
-Description: Build a dynamic web application that displays and filters product listings using React.js and a REST API. Students must create components for product cards, search functionality, and category filtering. The deliverables include a working React application, clean component architecture, and API integration code. This project teaches modern frontend development skills essential for building user-facing web applications in the e-commerce industry.
-
-Now generate a task for: ${keywords}`;
-
-        const { title, description, model } = await generateWithGemini(prompt, 'gemini-flash-latest');
-
-        const aiMetadata = {
-          model: model,
-          keywords,
-          branch: branch || 'Computer Science',
-          generated_at: currentTime,
-          prompt_used: prompt
-        };
-
-        const gradingConfig = await attachGradingConfig(title, description);
-        const task = await insertTask({
-          title,
-          description,
-          xp_reward,
-          source: 'ai',
-          ai_metadata: aiMetadata,
           ...gradingConfig
         });
 

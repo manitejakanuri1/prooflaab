@@ -37,17 +37,6 @@ const manualDefaults = {
   attachmentFile: null as File | null,
 };
 
-const aiDefaults = {
-  selectedBranch: "",
-  topicArea: "",
-  dueDate: undefined as Date | undefined,
-  visibility: "Public",
-  title: "",
-  description: "",
-  xpReward: "100",
-  generated: false,
-};
-
 const templateDefaults = {
   selectedTemplate: "",
   title: "",
@@ -69,7 +58,6 @@ const personalDefaults = {
 
 export function useTaskForms(activeTab: string) {
   const [manualForm, setManualForm] = useState(manualDefaults);
-  const [aiForm, setAiForm] = useState(aiDefaults);
   const [templateForm, setTemplateForm] = useState(templateDefaults);
   const [personalForm, setPersonalForm] = useState(personalDefaults);
 
@@ -77,8 +65,6 @@ export function useTaskForms(activeTab: string) {
     switch (activeTab) {
       case "manual":
         return manualForm;
-      case "ai":
-        return aiForm;
       case "template":
         return templateForm;
       case "personalized":
@@ -92,9 +78,6 @@ export function useTaskForms(activeTab: string) {
     switch (activeTab) {
       case "manual":
         setManualForm((prev) => ({ ...prev, ...updates }));
-        break;
-      case "ai":
-        setAiForm((prev) => ({ ...prev, ...updates }));
         break;
       case "template":
         setTemplateForm((prev) => ({ ...prev, ...updates }));
@@ -112,9 +95,6 @@ export function useTaskForms(activeTab: string) {
   const clearManualTask = () =>
     setManualForm((prev) => ({ ...prev, title: "", description: "", xpReward: "100", category: "Writing" }));
 
-  const clearAITask = () =>
-    setAiForm((prev) => ({ ...prev, title: "", description: "", xpReward: "100", generated: false }));
-
   const clearTemplate = () =>
     setTemplateForm((prev) => ({
       ...prev,
@@ -130,8 +110,6 @@ export function useTaskForms(activeTab: string) {
   return {
     manualForm,
     setManualForm,
-    aiForm,
-    setAiForm,
     templateForm,
     setTemplateForm,
     personalForm,
@@ -149,15 +127,12 @@ export function useTaskForms(activeTab: string) {
     category: "category" in currentForm ? currentForm.category : "Writing",
 
     // Fields only one tab has.
-    selectedBranch: aiForm.selectedBranch,
-    topicArea: aiForm.topicArea,
     selectedTemplate: templateForm.selectedTemplate,
     attachmentType: manualForm.attachmentType,
     attachmentUrl: manualForm.attachmentUrl,
     attachmentFile: manualForm.attachmentFile,
 
     clearManualTask,
-    clearAITask,
     clearTemplate,
     clearPersonalForm,
   };

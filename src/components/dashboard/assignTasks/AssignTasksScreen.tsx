@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -129,15 +129,24 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
   // useTaskForms — they were byte-identical in both original screens.
   const {
     setManualForm,
-    aiForm, setAiForm,
     setTemplateForm,
     setPersonalForm,
     updateActiveForm,
     title, description, xpReward, dueDate, visibility, category,
-    selectedBranch, topicArea, selectedTemplate,
+    selectedTemplate,
     attachmentType, attachmentUrl, attachmentFile,
-    clearManualTask, clearAITask, clearTemplate, clearPersonalForm,
+    clearManualTask, clearTemplate, clearPersonalForm,
   } = useTaskForms(activeTab);
+
+  // Owner 12 Nov 2026: no AI tab; the category follows the text by itself (code task -> Coding, else Writing)
+  // until the author picks one by hand.
+  const categoryPicked = useRef(false);
+  useEffect(() => {
+    if (categoryPicked.current || (activeTab !== "manual" && activeTab !== "personalized")) return;
+    const auto = looksLikeCoding(`${title} ${description}`) ? "Coding" : "Writing";
+    if (auto !== category) updateActiveForm({ category: auto });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, description, activeTab]);
 
   // Personalized tasks state
   const [personalizedTasks, setPersonalizedTasks] = useState<PersonalizedTask[]>([]);
@@ -464,61 +473,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
     );
   };
 
-  const generateAITask = async () => {
-    if (!aiForm.selectedBranch || !aiForm.topicArea.trim()) {
-      toast({
-        title: "Error",
-        description: "Please select branch and enter topic keywords",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setAiGenerating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('assign_tasks', {
-        body: {
-          mode: 'ai',
-          keywords: aiForm.topicArea,
-          branch: aiForm.selectedBranch,
-          due_date: aiForm.dueDate?.toISOString(),
-          selected_students: [],
-          category: 'Coding',
-          visibility: aiForm.visibility.toLowerCase()
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.tasks?.[0]) {
-        const generatedTask = data.tasks[0];
-        setAiForm(prev => ({
-          ...prev,
-          title: generatedTask.title,
-          description: generatedTask.description,
-          xpReward: generatedTask.xp_reward?.toString() || '50',
-          generated: true
-        }));
-
-        toast({
-          title: "Success",
-          description: "AI task generated successfully!",
-        });
-      } else {
-        throw new Error('No task generated');
-      }
-    } catch (error) {
-      console.error('AI generation error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate AI task. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setAiGenerating(false);
-    }
-  };
-
   const validateForm = () => {
     const errors: FormErrors = {};
 
@@ -708,26 +662,17 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
   };
 
   const resetAllForms = () => {
+    categoryPicked.current = false;
     setManualForm({
       title: "",
       description: "",
       xpReward: "",
       dueDate: undefined,
-      category: "Coding",
+      category: "Writing",
       visibility: "Public",
       attachmentType: 'url',
       attachmentUrl: "",
       attachmentFile: null
-    });
-    setAiForm({
-      selectedBranch: "",
-      topicArea: "",
-      dueDate: undefined,
-      visibility: "Public",
-      title: "",
-      description: "",
-      xpReward: "",
-      generated: false
     });
     setTemplateForm({
       selectedTemplate: "",
@@ -735,7 +680,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
       description: "",
       xpReward: "",
       dueDate: undefined,
-      category: "Coding",
+      category: "Writing",
       visibility: "Public"
     });
     setPersonalForm({
@@ -743,7 +688,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
       description: "",
       xpReward: "",
       dueDate: undefined,
-      category: "Coding",
+      category: "Writing",
       visibility: "Public"
     });
     setSelectedStudents([]);
@@ -777,9 +722,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
       if (activeTab === 'manual') {
         requestBody.title = confirmationData.title;
         requestBody.description = confirmationData.description;
-      } else if (activeTab === 'ai') {
-        requestBody.keywords = topicArea;
-        requestBody.branch = selectedBranch;
       } else if (activeTab === 'template') {
         requestBody.template_id = selectedTemplate;
       }
@@ -924,7 +866,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
   const getTabIcon = (tab: string) => {
     switch(tab) {
       case 'manual': return <Plus className="h-4 w-4" />;
-      case 'ai': return <Wand2 className="h-4 w-4" />;
       case 'template': return <FileText className="h-4 w-4" />;
       case 'personalized': return <User className="h-4 w-4" />;
       default: return <Plus className="h-4 w-4" />;
@@ -1005,20 +946,13 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
             </CardHeader>
             <CardContent>
               <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger
                     value="manual"
                     className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                   >
                     {getTabIcon('manual')}
                     <span className="hidden sm:inline">Manual</span>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="ai"
-                    className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    {getTabIcon('ai')}
-                    <span className="hidden sm:inline">AI</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="template"
@@ -1152,7 +1086,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="category">Category</Label>
-                        <Select value={category} onValueChange={(value) => updateActiveForm({ category: value })}>
+                        <Select value={category} onValueChange={(value) => { categoryPicked.current = true; updateActiveForm({ category: value }); }}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -1164,6 +1098,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                             <SelectItem value="Analysis">Analysis</SelectItem>
                           </SelectContent>
                         </Select>
+                        <p className="text-xs text-muted-foreground" data-testid="category-auto">Set from the task text: a code task is Coding, anything else is Writing. You can change it.</p>
                         {formErrors.category && <p className="text-sm text-destructive" data-testid="category-error">{formErrors.category}</p>}
                       </div>
                     </div>
@@ -1260,144 +1195,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
 
                 </TabsContent>
 
-                {/* AI Tab */}
-                <TabsContent value="ai" className="space-y-4">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="ai-branch">Branch *</Label>
-                      <Select value={selectedBranch} onValueChange={(value) => setAiForm(prev => ({ ...prev, selectedBranch: value }))}>
-                        <SelectTrigger id="ai-branch">
-                          <SelectValue placeholder="Select branch" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {["CSE", "ECE", "ME", "CE", "EEE", "IT"].map(branch => (
-                            <SelectItem key={branch} value={branch}>{branch}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="topic-area">Topic Area *</Label>
-                      <Input
-                        id="topic-area"
-                        placeholder="e.g., Machine Learning, Data Structures"
-                        value={topicArea}
-                        onChange={(e) => setAiForm(prev => ({ ...prev, topicArea: e.target.value }))}
-                      />
-                    </div>
-
-                    {/* Due Date and Visibility - Always visible */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Due Date *</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !dueDate && "text-muted-foreground"
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {dueDate ? format(dueDate, "PPP") : "Pick a date"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={dueDate}
-                              onSelect={(date) => setAiForm(prev => ({ ...prev, dueDate: date }))}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Visibility</Label>
-<p className="text-xs text-muted-foreground">{VISIBILITY_HELP}</p>
-                        <Select value={visibility} onValueChange={(value) => setAiForm(prev => ({ ...prev, visibility: value }))}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Public">
-                              <div className="flex items-center gap-2">
-                                <Globe className="h-4 w-4" />
-                                Public
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="Private">
-                              <div className="flex items-center gap-2">
-                                <Lock className="h-4 w-4" />
-                                Private
-                              </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <Button
-                      onClick={generateAITask}
-                      disabled={aiGenerating}
-                      className="w-full"
-                    >
-                      <Wand2 className="mr-2 h-4 w-4" />
-                      {aiGenerating ? "Generating..." : "Generate AI Task"}
-                    </Button>
-
-                    {aiForm.generated && title && (
-                      <div className="space-y-4 pt-4 border-t">
-                        <div className="space-y-2">
-                          <Label>Generated Title</Label>
-                          <Input
-                            value={title}
-                            onChange={(e) => setAiForm(prev => ({ ...prev, title: e.target.value }))}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Generated Description</Label>
-                          <Textarea
-                            value={description}
-                            onChange={(e) => setAiForm(prev => ({ ...prev, description: e.target.value }))}
-                            rows={4}
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>XP Reward</Label>
-                            <Input
-                              type="number"
-                              value={xpReward}
-                              onChange={(e) => setAiForm(prev => ({ ...prev, xpReward: e.target.value }))}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Category</Label>
-                            <Select value="Coding" disabled>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                            </Select>
-                          </div>
-                        </div>
-
-                        {(title || description || xpReward) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full"
-                            onClick={clearAITask}
-                          >
-                            <X className="h-4 w-4 mr-2" />
-                            Clear Generated Task
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
 
                 {/* Template Tab */}
                 <TabsContent value="template" className="space-y-4">
@@ -1946,20 +1743,13 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger
                   value="manual"
                   className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   {getTabIcon('manual')}
                   <span className="hidden sm:inline">Manual</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="ai"
-                  className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  {getTabIcon('ai')}
-                  <span className="hidden sm:inline">AI</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="template"
@@ -2092,7 +1882,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="category">Category</Label>
-                      <Select value={category} onValueChange={(value) => updateActiveForm({ category: value })}>
+                      <Select value={category} onValueChange={(value) => { categoryPicked.current = true; updateActiveForm({ category: value }); }}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -2104,7 +1894,8 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                           <SelectItem value="Analysis">Analysis</SelectItem>
                         </SelectContent>
                       </Select>
-                      {formErrors.category && <p className="text-sm text-destructive" data-testid="category-error">{formErrors.category}</p>}
+                      <p className="text-xs text-muted-foreground" data-testid="category-auto">Set from the task text: a code task is Coding, anything else is Writing. You can change it.</p>
+                        {formErrors.category && <p className="text-sm text-destructive" data-testid="category-error">{formErrors.category}</p>}
                     </div>
                   </div>
 
@@ -2124,89 +1915,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="ai" className="space-y-4">
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="branch">Branch *</Label>
-                      <Select value={selectedBranch} onValueChange={(value) => setAiForm(prev => ({ ...prev, selectedBranch: value }))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select branch" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {uniqueBranches.map(branch => (
-                            <SelectItem key={branch} value={branch!}>
-                              {branch}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="topic">Topic Keywords</Label>
-                      <Input
-                        id="topic"
-                        placeholder="e.g., algorithms, web dev"
-                        value={topicArea}
-                        onChange={(e) => setAiForm(prev => ({ ...prev, topicArea: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-
-                  <Button
-                    onClick={generateAITask}
-                    disabled={aiGenerating || !selectedBranch}
-                    className="w-full"
-                  >
-                    {aiGenerating ? "Generating..." : "Generate AI Task"}
-                  </Button>
-
-                   {aiForm.generated && title && (
-                     <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                       <div>
-                         <Label className="text-sm font-medium">Generated Title</Label>
-                         <Input
-                           value={title}
-                           onChange={(e) => setAiForm(prev => ({ ...prev, title: e.target.value }))}
-                           className="mt-1"
-                         />
-                       </div>
-                       <div>
-                         <Label className="text-sm font-medium">Generated Description</Label>
-                         <Textarea
-                           value={description}
-                           onChange={(e) => setAiForm(prev => ({ ...prev, description: e.target.value }))}
-                           rows={4}
-                           className="mt-1"
-                         />
-                       </div>
-                       <div>
-                         <Label className="text-sm font-medium">XP Reward</Label>
-                         <Input
-                           type="number"
-                           value={xpReward}
-                           onChange={(e) => setAiForm(prev => ({ ...prev, xpReward: e.target.value }))}
-                           className="mt-1"
-                         />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Clear Task Button - only show if AI task was generated */}
-                    {aiForm.generated && title && (
-                      <div className="pt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={clearAITask}
-                          className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                        >
-                          Clear Task
-                        </Button>
-                      </div>
-                    )}
-                 </div>
-               </TabsContent>
 
               <TabsContent value="template" className="space-y-4">
                 <div className="space-y-4">

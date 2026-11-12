@@ -48,9 +48,14 @@ serve(async (req) => {
 
     // Nothing is generated (and paid for) unless at least one student can receive it.
     const { data: shortlisted } = await db.from("recruiter_shortlists")
-      .select("student_id").eq("recruiter_id", companyId).in("student_id", studentIds);
+      .select("student_id, student_response").eq("recruiter_id", companyId).in("student_id", studentIds);
+    // F21 (migration 370 checks it again): a task only after the student accepted the shortlist.
+    const accepted = (shortlisted ?? []).filter((r: { student_response: string | null }) => r.student_response === "accepted");
+    if ((shortlisted ?? []).length && !accepted.length) {
+      return json({ error: "The student has not accepted your shortlist yet. You can send a task once they accept." }, 400);
+    }
     const eligible: string[] = [];
-    for (const sid of (shortlisted ?? []).map((r: { student_id: string }) => r.student_id)) {
+    for (const sid of accepted.map((r: { student_id: string }) => r.student_id)) {
       const { data: ok } = await db.rpc("student_is_discoverable", { _student_id: sid });
       if (ok === true) eligible.push(sid);
     }

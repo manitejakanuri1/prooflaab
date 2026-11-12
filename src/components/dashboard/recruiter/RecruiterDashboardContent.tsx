@@ -34,6 +34,8 @@ import {
 interface Props {
   activeTab: string;
   onTabChange?: (tab: string) => void;
+  /** F20: show only shortlisted students who have not replied yet. */
+  awaitingOnly?: boolean;
 }
 
 const OUTCOMES = [
@@ -42,7 +44,7 @@ const OUTCOMES = [
 // MF-047 (migration 198): these need the student to press Accept first.
 const NEEDS_YES: readonly string[] = ["interviewing", "offered", "hired"];
 
-const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
+const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Props) => {
   const { toast } = useToast();
   const [home, setHome] = useState<Record<string, any> | null>(null);
   const [talent, setTalent] = useState<Candidate[] | null>(null);
@@ -127,6 +129,8 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
 
   const doShortlist = async () => {
     if (!open) return;
+    // F10: shortlisting notifies the student at once, so ask first.
+    if (!window.confirm(`Are you sure? ${open.name} will be told they were shortlisted.`)) return;
     setBusy(true);
     try {
       await saveShortlist(open.id, note);
@@ -235,7 +239,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
               { k: "Candidates", v: home.candidates_available, go: "talent" },
               { k: "New this week", v: home.new_this_week, go: "talent" },
               { k: "Shortlisted", v: home.shortlisted, go: "shortlist" },
-              { k: "Awaiting reply", v: home.awaiting_response, go: "shortlist" },
+              { k: "Awaiting reply", v: home.awaiting_response, go: "awaiting" },
             ].map((c) => (
               <Card key={c.k}
                     className={Number(c.v) > 0 ? "cursor-pointer transition-colors hover:border-primary" : ""}
@@ -386,6 +390,8 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
           <CardContent className="pt-5">
             {!listsReady ? (
               <Skeleton className="h-24 w-full rounded-lg" />
+            ) : awaitingOnly && !saved.some((s) => !s.student_response) ? (
+              <p className="text-sm text-muted-foreground">Nobody is waiting to reply. Everyone has answered.</p>
             ) : saved.length === 0 ? (
               <p className="text-sm text-muted-foreground max-w-prose">
                 Nobody saved yet. Open a candidate from Talent and shortlist them — they are
@@ -393,7 +399,15 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
               </p>
             ) : (
               <div>
-                {saved.map((s) => (
+                {awaitingOnly && (
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Showing only students who have not replied yet.{" "}
+                    <button type="button" className="underline text-primary" onClick={() => onTabChange?.("shortlist")}>
+                      Show everyone
+                    </button>
+                  </p>
+                )}
+                {saved.filter((s) => !awaitingOnly || !s.student_response).map((s) => (
                   <div key={s.id} className="py-3 border-b last:border-b-0">
                     <div className="flex items-baseline gap-2 flex-wrap">
                       <button className="text-sm font-medium hover:underline"
@@ -426,8 +440,9 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                           ))}
                         </SelectContent>
                       </Select>
-                      {/* Assigned-work test item 7: every button names its candidate. */}
-                      <Button size="sm" variant="outline" className="h-8"
+                      {/* Assigned-work test item 7: every button names its candidate.
+                          F21: a task only after the student accepts (company-lot and migration 370 refuse it too). */}
+                      <Button size="sm" variant="outline" className="h-8" disabled={s.student_response !== "accepted"}
                               onClick={() => setSponsorFor({ id: s.student_id, name: talent.find((c) => c.id === s.student_id)?.name ?? "this candidate" })}>
                         Send a task to {talent.find((c) => c.id === s.student_id)?.name ?? "this candidate"}
                       </Button>
@@ -436,6 +451,13 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                         Remove
                       </Button>
                     </div>
+                    {s.student_response !== "accepted" && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {s.student_response === "declined"
+                          ? `${talent.find((c) => c.id === s.student_id)?.name ?? "This candidate"} declined - you cannot send them a task.`
+                          : `Waiting for ${talent.find((c) => c.id === s.student_id)?.name ?? "this candidate"} to accept - you can send a task once they accept.`}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -562,12 +584,18 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
 
               <ProofProfile candidate={open} />
 
-              {open.shortlisted && (
+              {open.shortlisted && (saved.find((s) => s.student_id === open.id)?.student_response === "accepted" ? (
                 <Button variant="outline"
                         onClick={() => setSponsorFor({ id: open.id, name: open.name })}>
                   Send a task to {open.name}
                 </Button>
-              )}
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {saved.find((s) => s.student_id === open.id)?.student_response === "declined"
+                    ? `${open.name} declined - you cannot send them a task.`
+                    : `Waiting for ${open.name} to accept - you can send a task once they accept.`}
+                </p>
+              ))}
             </div>
           )}
         </DialogContent>

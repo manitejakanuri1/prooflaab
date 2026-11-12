@@ -15,6 +15,7 @@ import {
   useStartupSubmissions, useReviewSubmission, type CompanySubmission, type ReviewDecision,
 } from "@/hooks/useStartupSubmissions";
 import { passedLabel } from "@/lib/passedNote";
+import { plural } from "@/lib/utils";
 
 const DECISION_LABEL: Record<ReviewDecision, string> = {
   accepted: "Accepted", needs_work: "Needs work", rejected: "Rejected",
@@ -70,7 +71,7 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
           <h2 className="text-2xl font-bold">Submissions</h2>
           <p className="text-muted-foreground">Student work on your posted and sponsored tasks, graded automatically</p>
         </div>
-        <Badge variant="outline">{shown.length} submissions</Badge>
+        <Badge variant="outline">{plural(shown.length, "submission")}</Badge>
       </div>
 
       {error && (
@@ -172,7 +173,8 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
                     Submitted {fmtDay(s.submitted_at)}
                     {s.attempts > 1 ? ` · attempt ${s.attempts}` : ""}
                   </span>
-                  <div className="flex gap-2">
+                  {/* P6: an accepted submission is final (company_review_submission refuses another decision, migration 410). */}
+                  {s.review_decision !== "accepted" && <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="text-alert"
                             onClick={() => { setOpen(s); setDecision("rejected"); }}>
                       <X className="mr-1 h-4 w-4" />Reject
@@ -183,7 +185,7 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
                     <Button size="sm" onClick={() => { setOpen(s); setDecision("accepted"); }}>
                       <CheckCircle className="mr-1 h-4 w-4" />Accept
                     </Button>
-                  </div>
+                  </div>}
                 </div>
                 {s.review_note && <p className="text-sm text-muted-foreground">Your note: {s.review_note}</p>}
               </CardContent>

@@ -30,3 +30,9 @@ export function fmtDayTime(iso: string | number | Date | null | undefined): stri
 export function istWall(d: Date = new Date()): Date {
   return new Date(d.getTime() + (330 + d.getTimezoneOffset()) * 60_000);
 }
+
+const IST_YMD = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" });
+/** P6 company (12 Nov 2026): a due date on an India day before today (a Lot due 10 Nov is missed on 12 Nov). */
+export function pastDueIST(due: string | number | Date | null | undefined, now: Date = new Date()): boolean {
+  return due != null && due !== "" && IST_YMD.format(new Date(due)) < IST_YMD.format(now);
+}

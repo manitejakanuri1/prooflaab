@@ -43,7 +43,7 @@ export function CompanyBell({ onOpenLots }: { onOpenLots?: () => void }) {
         <ScrollArea className="h-[360px]">
           {notifications.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">
-              Nothing yet. You will hear here when a student finishes a Lot you set.
+              No notifications yet.
             </div>
           ) : (
             <div className="divide-y">

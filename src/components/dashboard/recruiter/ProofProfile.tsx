@@ -8,6 +8,7 @@ import type { Candidate, ProofItem } from "@/recruiter/types";
 import VoicePlayButton from "./VoicePlayButton";
 import FinishedWork from "../FinishedWork";
 import { passedLabel } from "@/lib/passedNote";
+import { plural } from "@/lib/utils";
 
 /**
  * The Proof Profile, as delivered — screens built against mock data, now fed
@@ -75,7 +76,7 @@ function ProofProfile({ candidate }: { candidate: Candidate }) {
               <div className='space-y-2'>
                 {candidate.skills.map(skill => (
                   <div key={skill.name} className='rounded-lg border border-border bg-secondary/30 p-3'>
-                    <div className='mb-2 flex items-center justify-between'><span className='text-sm font-medium'>{skill.name}</span><span className='text-[11px] font-mono text-muted-foreground'>{skill.assessments} assessments</span></div>
+                    <div className='mb-2 flex items-center justify-between'><span className='text-sm font-medium'>{skill.name}</span><span className='text-[11px] font-mono text-muted-foreground'>{plural(skill.assessments, 'assessment')}</span></div>
                     <ScorePill label={skill.name} score={skill.score} proof={skill.proof} verified={skill.verified} />
                   </div>
                 ))}

@@ -1,4 +1,4 @@
-import { fmtDay } from "@/lib/ist";
+import { fmtDay, pastDueIST } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarksText";
 import { supabase } from "@/integrations/supabase/client";
 import type { Candidate, ProofItem, SkillScore } from "./types";
@@ -218,6 +218,7 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
       title: String(l.title ?? "Lot"),
       description: l.score != null
         ? `Score ${of10(l.score as number)} · ${grade(l)}`
+        : !l.submitted_at && pastDueIST(l.due_date as string | null) ? "Missed"
         : l.task_status === "pending" ? "Not started yet" : "In progress",
       status: l.submission_status === "passed" || l.submission_status === "failed" ? "reviewed"
         : l.submitted_at ? "submitted" : "pending",

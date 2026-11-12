@@ -13,7 +13,7 @@ import CodingBreakdown from "./CodingBreakdown";
 import type { Json } from "@/integrations/supabase/types";
 import { readFunctionError } from "@/lib/functionError";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { useToast, toast as showToast } from "@/hooks/use-toast";
 import TimedResumeAssessment, { ResumeScoreResult, readOpenTest } from "./TimedResumeAssessment";
 import { RoadmapStages } from "./RoadmapStages";
 import { SkillGap } from "./SkillGap";
@@ -999,7 +999,12 @@ const resumeFileName = (path: string) => path.split("/").pop()!.replace(/^\d+-/,
 async function viewResume(path: string) {
   const tab = window.open("", "_blank");
   const { data, error } = await supabase.storage.from("resumes").download(path);
-  if (error || !data) { tab?.close(); return; }
+  if (error || !data) {
+    // Said out loud: before this the new tab just closed (or stayed blank) and nothing explained why.
+    tab?.close();
+    showToast({ title: "Couldn't open your resume", description: "The file isn't there any more. Use Replace to upload it again.", variant: "destructive" });
+    return;
+  }
   const url = URL.createObjectURL(data as Blob);
   if (tab) tab.location.href = url; else window.open(url, "_blank");
 }

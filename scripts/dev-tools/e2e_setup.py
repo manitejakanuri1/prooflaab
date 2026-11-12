@@ -92,17 +92,21 @@ do $s$ declare uid uuid; pid uuid; cid uuid; aid uuid; begin
         gap = {"verified": skills[:3], "needs_improvement": skills[3:4], "missing": skills[4:]}
         roadmap = [{"skill": k, "title": f"Practise {k}", "why": f"{role}s use {k} every day.",
                     "action": f"Do one {k} Lot a day for a week."} for k in skills[3:]]
+        rq, ats, sk, rs = 60 + n % 25, 55 + n % 30, 50 + n % 30, 55 + n % 25
+        # Readiness = the same weighted mix resume-assessment-submit uses (20/20/30/15, no project part),
+        # so the Readiness tab's parts add up to its total. A random number here made 45 TEST rows disagree.
+        ready = int((rq * 20 + ats * 20 + sk * 30 + rs * 15) / 85 + 0.5)
         s += f"""
   insert into public.resume_claims (student_id, storage_path, raw_extraction, skills, projects, target_role, status,
          resume_quality_score, ats_match_score, resume_text, confirmed_at, feedback_acknowledged)
   values (pid, 'e2e/' || uid || '/resume.pdf', {q(json.dumps({"name": name, "skills": skills}))}::jsonb, {arr(skills)},
           {q(json.dumps([{"title": f"{skills[0]} mini project", "tech": skills[:2]}]))}::jsonb, {q(role)}, 'confirmed',
-          {60 + n % 25}, {55 + n % 30}, {q(resume)}, now(), true)
+          {rq}, {ats}, {q(resume)}, now(), true)
   returning id into cid;
   insert into public.resume_assessments (student_id, resume_claims_id, status) values (pid, cid, 'graded') returning id into aid;
   insert into public.resume_scorecards (student_id, assessment_id, resume_claims_id, skill_proof_score, reasoning_score,
          interview_readiness_score, resume_quality_score, ats_match_score, skill_gap, roadmap)
-  values (pid, aid, cid, {50 + n % 30}, {55 + n % 25}, {45 + n % 35}, {60 + n % 25}, {55 + n % 30},
+  values (pid, aid, cid, {sk}, {rs}, {ready}, {rq}, {ats},
           {q(json.dumps(gap))}::jsonb, {q(json.dumps(roadmap))});
   insert into public.student_intake (user_id, has_seen_welcome, welcome_seen_at, task_source, intake_completed_at)
   values (uid, true, now(), 'resume', now())

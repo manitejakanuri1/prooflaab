@@ -105,6 +105,7 @@ const StudentDailyCard = () => {
   const [coding, setCoding] = useState(false);
   const [writing, setWriting] = useState(false);
   const [explaining, setExplaining] = useState(false);
+  const [needAnswer, setNeedAnswer] = useState(false);
   const [roadmap, setRoadmap] = useState(false);
   const [taskPassed, setTaskPassed] = useState(false);
   // MF-114: the voice counts only once the server has scored it. "checking" = saved, score not back yet
@@ -315,6 +316,7 @@ const StudentDailyCard = () => {
   const openLot = () => {
     if (!lot) return;
     setTaskPassed(false);
+    setNeedAnswer(false);
     setVoiceStatus(null);
     if (lot.sandbox_config_id) setCoding(true);
     else setWriting(true); // no uploads: every other Lot is a written answer
@@ -503,7 +505,7 @@ const StudentDailyCard = () => {
               {lot.status === "pending_voice" ? (
                 <>
                   {!lotState?.voice_closed && <Button
-                    onClick={() => void explainIfSubmitted(lot.id, () => setExplaining(true))}
+                    onClick={() => void explainIfSubmitted(lot.id, () => setExplaining(true), () => setNeedAnswer(true))}
                     className="flex-1 min-w-36 bg-[#c8492a] text-white hover:bg-[#a83c22]"
                     data-testid="lot-action-explain"
                   >
@@ -539,7 +541,7 @@ const StudentDailyCard = () => {
                   ) : (
                     <Button
                       variant="outline"
-                      onClick={() => void explainIfSubmitted(lot.id, () => setExplaining(true))}
+                      onClick={() => void explainIfSubmitted(lot.id, () => setExplaining(true), () => setNeedAnswer(true))}
                       className="flex-1 min-w-36 border-[#c6bfae] bg-transparent text-[#191b1f] hover:bg-[#e7e1d2]"
                     >
                       <Mic className="mr-2 h-4 w-4" /> Record 60s explain
@@ -548,6 +550,11 @@ const StudentDailyCard = () => {
                 </>
               )}
             </div>
+            {needAnswer && (
+              <p className="mt-2 text-sm font-medium text-[#a83c22]" role="status" data-testid="explain-need-answer">
+                Write your answer first. Then record 60 seconds explaining it.
+              </p>
+            )}
           </div>
         ) : (
           <div className="rounded-xl border border-dashed p-8 text-center">

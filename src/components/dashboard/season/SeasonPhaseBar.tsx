@@ -1,5 +1,6 @@
 import { fmtDayTime } from "@/lib/ist";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -70,13 +71,15 @@ export function useSeasonStatus() {
   const [status, setStatus] = useState<SeasonStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    void (async () => {
-      const { data } = await supabase.rpc("my_season_status");
-      setStatus((data ?? null) as unknown as SeasonStatus | null);
-      setLoading(false);
-    })();
+  const load = useCallback(async () => {
+    const { data } = await supabase.rpc("my_season_status");
+    setStatus((data ?? null) as unknown as SeasonStatus | null);
+    setLoading(false);
   }, []);
+  useEffect(() => { void load(); }, [load]);
+  // Owner E2E 12 Nov R3: the week label was read once per visit while the squad page refreshed every 30 s,
+  // so on TEST (10-minute weeks) it jumped Week 9 -> 11 on the next visit. Refresh it with the page.
+  useLiveRefresh(load, 30_000);
 
   return { status, loading };
 }

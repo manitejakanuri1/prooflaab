@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Navigate, useNavigate } from "react-router-dom";
 import { roleHome } from "@/lib/roleHome";
+import LoadingScreen from "@/components/LoadingScreen";
 
 interface RoleBasedProtectedRouteProps {
   children: React.ReactNode;
@@ -79,11 +80,7 @@ export default function RoleBasedProtectedRoute({
   // On a reload the role check can finish (no user yet) before the session has loaded; without the last
   // condition a signed-in student was briefly sent to sign-in and from there to the dashboard.
   if (loading || roleLoading || (user && userRole === null)) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#51A6FB]"></div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!user) {

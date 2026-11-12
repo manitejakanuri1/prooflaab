@@ -439,3 +439,32 @@ test("email verification and resend stay behind BFF", async () => {
       originalFetch;
   }
 });
+
+test("17b: a fast HTML 502 from the hosting edge is sent once more; a JSON 503 or 429 is not", async () => {
+  const originalFetch = globalThis.fetch;
+  const ok = () => Response.json({ session: { user: { id: "u1", email: "a@b.c", email_confirmed_at: null, role: "x", user_metadata: {} }, expires_at: 1 } });
+  try {
+    let calls = 0;
+    globalThis.fetch = async () => (++calls === 1
+      ? new Response("<html>Error 502 (Server Error)</html>", { status: 502, headers: { "content-type": "text/html" } })
+      : ok());
+    assert.equal((await startBffSession("a@b.c", "pw")).user.id, "u1");
+    assert.equal(calls, 2);
+
+    for (const status of [503, 429]) {
+      calls = 0;
+      globalThis.fetch = async () => { calls++; return Response.json({ error: "busy" }, { status }); };
+      await assert.rejects(() => startBffSession("a@b.c", "pw"), /busy/);
+      assert.equal(calls, 1, `password must not be checked twice on ${status}`);
+    }
+
+    calls = 0;
+    globalThis.fetch = async () => (++calls === 1
+      ? new Response("<html>502</html>", { status: 502, headers: { "content-type": "text/html" } })
+      : Response.json({ session: null }));
+    assert.equal(await readBffSession(), null);
+    assert.equal(calls, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

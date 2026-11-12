@@ -8,6 +8,7 @@ import InterestReview from "@/components/onboarding/InterestReview";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureStudentProfile } from "@/lib/ensureStudentProfile";
+import LoadingScreen from "@/components/LoadingScreen";
 import { AnimatePresence, motion } from "motion/react";
 import { BrandFrame, brandCard, panelMotion } from "@/components/auth/AccessShell";
 
@@ -160,11 +161,7 @@ const StudentStart = () => {
   let panel: React.ReactNode;
   if (loading || passThrough || intake?.task_source === "resume") {
     step = "loading";
-    panel = (
-      <div className="flex justify-center py-16">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#51A6FB]" />
-      </div>
-    );
+    panel = <LoadingScreen className="py-16" />;
   } else if (!hasSeenWelcome) {
     step = "welcome";
     panel = <div className={brandCard}><WelcomeScreen onStart={handleStart} starting={starting} /></div>;

@@ -67,19 +67,37 @@ async function errorMessage(
   return fallback;
 }
 
+/**
+ * 17b (owner retest 12 Nov): Google's hosting edge sometimes answers a fast HTML 502/503 page without
+ * passing the request on (TEST web-bff logged no 5xx for /api/auth/* that day). Our BFF always answers
+ * JSON, so an HTML 5xx that came back within 3 s never reached it and is safe to send once more - even a
+ * sign-in, because no password was checked. Anything else (a JSON error, a slow failure, a network
+ * error) is never repeated.
+ */
+const isEdgeFault = (res: Response, ms: number) =>
+  res.status >= 500 && ms < 3000 && (res.headers.get("content-type") ?? "").includes("text/html");
+
+async function sendOnceMoreIfEdge(send: () => Promise<Response>): Promise<Response> {
+  const started = Date.now();
+  const res = await send();
+  if (!isEdgeFault(res, Date.now() - started)) return res;
+  await new Promise((r) => setTimeout(r, 300));
+  return send();
+}
+
 async function jsonPost(
   path: string,
   body: unknown,
   fallback: string,
 ): Promise<Response> {
-  const response = await fetch(path, {
+  const response = await sendOnceMoreIfEdge(() => fetch(path, {
     method: "POST",
     credentials: "same-origin",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
-  });
+  }));
 
   if (!response.ok) {
     throw Object.assign(new Error(await errorMessage(response, fallback)), { status: response.status });
@@ -88,19 +106,13 @@ async function jsonPost(
   return response;
 }
 
-// Overnight TEST 12 Nov item 11: two sign-ins failed for about a minute while a new website version was
-// being released (no request reached the server). A wrong password is 400/401 and is never retried.
+// Overnight TEST 12 Nov item 11 / 17b: a sign-in that hit a release or an edge fault is sent once more by
+// jsonPost, only when the request provably never reached the server (no password checked twice).
 export async function startBffSession(
   email: string,
   password: string,
 ): Promise<BffSession> {
-  try {
-    return await startBffSessionOnce(email, password);
-  } catch (e) {
-    if ((e as { status?: number }).status === 400 || (e as { status?: number }).status === 401) throw e;
-    await new Promise((r) => setTimeout(r, 4000));
-    return startBffSessionOnce(email, password);
-  }
+  return startBffSessionOnce(email, password);
 }
 
 async function startBffSessionOnce(
@@ -152,13 +164,14 @@ export async function signupBffSession(
 
 export async function readBffSession():
   Promise<BffSession | null> {
-  const response = await fetch(
+  // R8: a read changes nothing, so an edge fault is repeated here too (else a reload looked signed out).
+  const response = await sendOnceMoreIfEdge(() => fetch(
     "/api/auth/session",
     {
       method: "GET",
       credentials: "same-origin",
     },
-  );
+  ));
 
   if (!response.ok) {
     throw new Error(

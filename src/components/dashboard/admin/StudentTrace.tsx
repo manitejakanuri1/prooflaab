@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { fmtIST } from "@/lib/ist";
+import { maskAll, plainError } from "@/lib/mask";
 
 /**
  * Admin "Student Trace": the step trail the student area records (see src/lib/tracker.ts).
@@ -30,7 +31,7 @@ const call = async <T,>(fn: string, args: Record<string, unknown>): Promise<T[]>
 
 const KIND_LABEL: Record<string, string> = { page: "Opened", click: "Pressed", call: "Server call", error: "Error" };
 
-const Timeline = () => {
+const Timeline = ({ tech }: { tech: boolean }) => {
   const [q, setQ] = useState("");
   const [students, setStudents] = useState<Student[]>([]);
   const [picked, setPicked] = useState<Student | null>(null);
@@ -91,8 +92,10 @@ const Timeline = () => {
                     <TableRow key={i} className={e.status === "error" ? "bg-alert/5" : ""}>
                       <TableCell className="whitespace-nowrap font-mono text-xs">{fmtIST(e.created_at, true)}</TableCell>
                       <TableCell><Badge variant="outline">{KIND_LABEL[e.kind] ?? e.kind}</Badge> <span className="text-sm">{e.action ?? e.target ?? ""}</span></TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{e.screen ?? (e.kind === "call" ? e.target : "")}</TableCell>
-                      <TableCell className="text-xs">{e.status === "error" ? <span className="text-alert">failed{e.detail?.http ? ` (${e.detail.http})` : ""}{e.detail?.message ? `: ${e.detail.message}` : ""}</span> : e.status === "ok" ? "ok" : ""}{e.request_id && <div className="font-mono text-[10px] text-muted-foreground" title="Search this id in Google Cloud Logs Explorer">{e.request_id}</div>}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{tech ? e.screen ?? (e.kind === "call" ? e.target : "") : maskAll(e.screen ?? (e.kind === "call" ? e.target : ""))}</TableCell>
+                      <TableCell className="text-xs">{e.status === "error" ? <span className="text-alert">{tech
+                        ? <>failed{e.detail?.http ? ` (${e.detail.http})` : ""}{e.detail?.message ? `: ${e.detail.message}` : ""}</>
+                        : `failed: ${plainError(e.detail?.message ?? (e.detail?.http ? `HTTP ${e.detail.http}` : "unknown"))}`}</span> : e.status === "ok" ? "ok" : ""}{tech && e.request_id && <div className="font-mono text-[10px] text-muted-foreground" title="Search this id in Google Cloud Logs Explorer">{e.request_id}</div>}</TableCell>
                       <TableCell className="text-right font-mono text-xs">{e.duration_ms ?? ""}</TableCell>
                     </TableRow>
                   ))}
@@ -143,7 +146,7 @@ const Funnels = () => {
   );
 };
 
-const Problems = () => {
+const Problems = ({ tech }: { tech: boolean }) => {
   const [days, setDays] = useState(7);
   const [errors, setErrors] = useState<ErrRow[]>([]);
   const [slow, setSlow] = useState<SlowRow[]>([]);
@@ -163,7 +166,7 @@ const Problems = () => {
             <Table>
               <TableHeader><TableRow><TableHead>Where</TableHead><TableHead>What</TableHead><TableHead className="text-right">Times</TableHead><TableHead className="text-right">Students</TableHead><TableHead>Last</TableHead></TableRow></TableHeader>
               <TableBody>{errors.map((r, i) => (
-                <TableRow key={i}><TableCell className="font-mono text-xs">{r.where_}</TableCell><TableCell className="text-sm">{r.what}</TableCell><TableCell className="text-right font-mono">{r.times}</TableCell><TableCell className="text-right font-mono">{r.students}</TableCell><TableCell className="whitespace-nowrap text-xs">{fmtIST(r.last_seen)}</TableCell></TableRow>
+                <TableRow key={i}><TableCell className="font-mono text-xs">{r.where_}</TableCell><TableCell className="text-sm">{tech ? r.what : plainError(r.what)}</TableCell><TableCell className="text-right font-mono">{r.times}</TableCell><TableCell className="text-right font-mono">{r.students}</TableCell><TableCell className="whitespace-nowrap text-xs">{fmtIST(r.last_seen)}</TableCell></TableRow>
               ))}</TableBody>
             </Table>
           )}
@@ -188,6 +191,8 @@ const Problems = () => {
 
 const StudentTrace = () => {
   const [tab, setTab] = useState<"timeline" | "funnels" | "problems">("timeline");
+  // F14: plain, masked errors by default; the raw text and request ids only on demand (this page is admin-only).
+  const [tech, setTech] = useState(false);
   return (
     <div className="space-y-4">
       <div>
@@ -199,9 +204,12 @@ const StudentTrace = () => {
           <Button key={id} variant={tab === id ? "default" : "outline"} onClick={() => setTab(id)}>{name}</Button>
         ))}
       </div>
-      {tab === "timeline" && <Timeline />}
+      <label className="flex items-center gap-2 text-sm text-muted-foreground">
+        <input type="checkbox" checked={tech} onChange={(e) => setTech(e.target.checked)} /> Show technical details
+      </label>
+      {tab === "timeline" && <Timeline tech={tech} />}
       {tab === "funnels" && <Funnels />}
-      {tab === "problems" && <Problems />}
+      {tab === "problems" && <Problems tech={tech} />}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import { fmtDay, fmtIST } from "@/lib/ist";
 import { of10, scoreText10 } from "@/lib/lotMarks";
 import { useEffect, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { removalSummary, removeStudents } from "@/lib/removeStudents";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
@@ -97,7 +97,10 @@ const StudentOversight = () => {
         ...s,
         email: s.student_contact?.email ?? '',
       }));
-    }
+    },
+    // F11: keep the old rows while a new search loads, so the page never swaps to the loading skeleton (that
+    // unmounted the search box mid-typing - "Vikram" stopped at "Vi" and the unfiltered list stayed).
+    placeholderData: keepPreviousData,
   });
 
   // The exact number in the database for the same search and college (the list itself stops at ADMIN_LIST_CAP).
@@ -396,7 +399,8 @@ const StudentOversight = () => {
               <Input
                 placeholder="Search student..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                aria-label="Search student by name"
                 className="pl-10"
               />
             </div>
@@ -447,6 +451,13 @@ const StudentOversight = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {students && students.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    {searchTerm ? `No student matches "${searchTerm}"` : 'No students yet'}
+                  </TableCell>
+                </TableRow>
+              )}
               {paginatedStudents?.map((student) => (
                 <TableRow key={student.id} className="hover:bg-muted/30">
                   <TableCell>
@@ -474,7 +485,7 @@ const StudentOversight = () => {
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" aria-label={`Actions for ${student.full_name}`}>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>

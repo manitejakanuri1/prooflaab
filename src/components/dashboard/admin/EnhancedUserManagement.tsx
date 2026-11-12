@@ -723,7 +723,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                            <TableCell className="text-right">
                            <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
+                              <Button variant="ghost" size="sm" aria-label={`Actions for ${tab === 'students' ? user.full_name : user.name}`}>
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>

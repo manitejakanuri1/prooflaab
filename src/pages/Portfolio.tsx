@@ -1,3 +1,4 @@
+import { of10 } from "@/lib/lotMarksText";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { usePortfolio } from "@/hooks/usePortfolio";
@@ -291,7 +292,7 @@ const Portfolio = () => {
                     ["Interview Readiness", scorecard.interview_readiness_score],
                   ].map(([label, value]) => (
                     <div key={label as string} className="border rounded-xl p-4 text-center bg-card">
-                      <div className="text-2xl font-bold">{value ?? "—"}</div>
+                      <div className="text-2xl font-bold">{of10(value as number | null)}</div>
                       <div className="text-xs text-muted-foreground mt-1">{label}</div>
                     </div>
                   ))}

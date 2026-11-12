@@ -3,7 +3,7 @@
 // (skill proof, project proof, reasoning, interview readiness) and resume-code-execute (coding).
 // Change them together.
 
-import { of10 } from "@/lib/lotMarks";
+import { fmtMark, of10 } from "@/lib/lotMarks";
 export interface ExplainedAnswer {
   question_type: "mcq" | "short_answer";
   category?: "skill" | "project_defense";
@@ -41,8 +41,9 @@ interface ScoreExplainerProps {
 
 const WEIGHTS = { quality: 20, ats: 20, skill: 30, project: 15, reasoning: 15 } as const;
 
+// S5 (12 Nov 2026): every resume mark is shown out of 10 (stored 0-100; display only).
 const avgLine = (marks: number[]) =>
-  marks.length ? `(${marks.join(" + ")}) ÷ ${marks.length} = ${Math.round(marks.reduce((a, b) => a + b, 0) / marks.length)}` : null;
+  marks.length ? `(${marks.map((m) => fmtMark(m / 10)).join(" + ")}) ÷ ${marks.length} = ${fmtMark(Math.round(marks.reduce((a, b) => a + b, 0) / marks.length) / 10)}` : null;
 
 function Part({ title, score, children }: { title: string; score?: number | null; children: React.ReactNode }) {
   return (
@@ -78,50 +79,50 @@ export function ScoreExplainer({ quality, ats, skill, project, reasoning, readin
       <div className="mt-3 space-y-2">
         {quality !== undefined && (
           <Part title="Resume quality: how well your resume is written" score={quality}>
-            <p>The AI reads your resume and gives 0-100 for: clear structure, results with numbers (not just duties), action words, no fluff, and the right length (about one page).</p>
+            <p>The AI reads your resume and gives 0-10 for: clear structure, results with numbers (not just duties), action words, no fluff, and the right length (about one page).</p>
             <p>It is about the writing only, not how skilled you are.</p>
           </Part>
         )}
         {ats !== undefined && (
           <Part title="ATS match: will a company's hiring software find you" score={ats}>
-            <p>Companies scan resumes with software (ATS) before a person reads them. The AI gives 0-100 for: the keywords and skills your target role needs, standard section headings (SKILLS, PROJECTS, EDUCATION...), and plain text the software can read (no images or tables).</p>
-            <p>Below 60 you need the one-time Auto-fix or a better resume before the assessment.</p>
+            <p>Companies scan resumes with software (ATS) before a person reads them. The AI gives 0-10 for: the keywords and skills your target role needs, standard section headings (SKILLS, PROJECTS, EDUCATION...), and plain text the software can read (no images or tables).</p>
+            <p>Below 6 you need the one-time Auto-fix or a better resume before the assessment.</p>
           </Part>
         )}
         {skill !== undefined && (
           <Part title="Skill proof: do you really know the skills you wrote" score={skill}>
-            <p>Marks for being <b>right</b>. 5 multiple-choice questions on your skills (30 seconds each): right = 100, wrong or no answer = 0. A written skill question, if you got one, is marked 0-100 for correctness.</p>
+            <p>Marks for being <b>right</b>. 5 multiple-choice questions on your skills (30 seconds each): right = 10, wrong or no answer = 0. A written skill question, if you got one, is marked 0-10 for correctness.</p>
             <p>Skill proof = the average of these marks.</p>
             {skillMarks.length > 0 && <p className="font-mono">Yours: {avgLine(skillMarks)}{mcqs.length > 0 && ` (${mcqs.filter((a) => a.final_score >= 100).length} of ${mcqs.length} MCQs right)`}</p>}
           </Part>
         )}
         {project !== undefined && (
           <Part title="Project proof: did you really build your projects" score={project}>
-            <p>Up to 3 of your projects, 2 written questions each (90 seconds each), e.g. "What exactly was your own part?". The AI marks each answer 0-100 for correctness: real, specific details score high; vague or copied-sounding answers score low.</p>
+            <p>Up to 3 of your projects, 2 written questions each (90 seconds each), e.g. "What exactly was your own part?". The AI marks each answer 0-10 for correctness: real, specific details score high; vague or copied-sounding answers score low.</p>
             <p>Project proof = the average of these marks. No projects on your resume = not asked.</p>
             {projectMarks.length > 0 && <p className="font-mono">Yours: {avgLine(projectMarks)}</p>}
           </Part>
         )}
         {reasoning !== undefined && (
           <Part title="Reasoning: can you explain your thinking clearly" score={reasoning}>
-            <p>Marks for <b>how clearly</b> you explain, not whether you are right. Every written answer (project and skill) gets a second, separate mark 0-100 for clear, logical explanation, even if the answer is not fully correct.</p>
+            <p>Marks for <b>how clearly</b> you explain, not whether you are right. Every written answer (project and skill) gets a second, separate mark 0-10 for clear, logical explanation, even if the answer is not fully correct.</p>
             <p>Reasoning = the average of these clarity marks. MCQs do not count here.</p>
             {clarityMarks.length > 0 && <p className="font-mono">Yours: {avgLine(clarityMarks)}</p>}
           </Part>
         )}
         {coding !== undefined && coding !== null && (
           <Part title="Coding round" score={coding}>
-            <p>Each coding problem (5 minutes) is run against hidden tests. Coding = tests passed ÷ all tests × 100. Tests that the starting code already passes are not counted.</p>
+            <p>Each coding problem (5 minutes) is run against hidden tests. Coding = tests passed ÷ all tests × 10. Tests that the starting code already passes are not counted.</p>
             <p>Shown on its own; it is not part of Interview Readiness.</p>
           </Part>
         )}
         {readiness !== undefined && (
           <Part title="Interview Readiness: your final score" score={readiness}>
             <p>A weighted mix: Resume quality 20% + ATS match 20% + Skill proof 30% + Project proof 15% + Reasoning 15%.</p>
-            <p>A part that was not asked is left out, and the others are scaled back up to 100.</p>
+            <p>A part that was not asked is left out, and the others are scaled back up to 10.</p>
             {parts.length > 0 && (
               <p className="font-mono">
-                Yours: ({parts.map(([, v, w]) => `${v}×${w}`).join(" + ")}) ÷ {weightSum} = {(total / weightSum).toFixed(1)}, rounded {readiness ?? Math.round(total / weightSum)}
+                Yours: ({parts.map(([, v, w]) => `${fmtMark(v / 10)}×${w}`).join(" + ")}) ÷ {weightSum} = {(total / weightSum / 10).toFixed(2)}, shown {of10(readiness ?? Math.round(total / weightSum))}
               </p>
             )}
           </Part>

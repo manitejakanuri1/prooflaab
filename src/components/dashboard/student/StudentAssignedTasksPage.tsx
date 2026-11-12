@@ -364,7 +364,7 @@ const StudentAssignedTasksPage = () => {
                               {task.review?.returned ? `Changes asked${task.company ? ` by ${task.company}` : ''}`
                                 : task.review?.decision === 'accepted' ? `Accepted by ${task.company ?? 'the company'}`
                                 : task.review?.decision === 'rejected' ? `Not accepted by ${task.company ?? 'the company'}`
-                                : overdue(task) ? 'Overdue' : task.voice_owed ? (task.not_passed ? 'Not passed · voice owed' : 'Submitted · voice owed') : task.not_passed && task.status !== 'Completed' ? 'Not passed · try again' : task.status === 'Applied' ? 'Not started' : task.status}
+                                : overdue(task) ? 'Overdue' : task.voice_owed ? (task.not_passed ? 'Not passed · voice not done' : 'Passed · voice not done') : task.not_passed && task.status !== 'Completed' ? 'Not passed · try again' : task.status === 'Applied' ? 'Not started' : task.status}
                             </Badge>
                           </div>
                         </div>

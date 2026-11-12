@@ -1,4 +1,4 @@
-import { plainCode } from "@/lib/lotText";
+import { lotLine, pickVoice, plainCode, voiceWord } from "@/lib/lotText";
 import { of10 } from "@/lib/lotMarks";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
@@ -23,7 +23,25 @@ interface Row {
   tasks: { title: string; source: string | null } | null;
   student_profiles: { full_name: string } | null;
   voice?: boolean;
+  task_id?: string;
+  student_id?: string;
+  /** Y1: the Lot's voice, for an answer/code row (an accepted recording wins, else the newest). */
+  lotVoice?: { status: string; evaluation: { attempt_fail?: string } | null; communication_score: number | null } | null;
 }
+
+type V = { task_id: string; student_id: string; status: string; evaluation: { attempt_fail?: string } | null;
+           communication_score: number | null; created_at: string; withdrawn_at: string | null };
+
+// Y1/Y2 (12 Nov 2026): one status line, the same words as the student and college screens (lotLine).
+const resultText = (r: Row) => {
+  const mark10 = r.sandbox_score != null ? r.sandbox_score / 10 : null;
+  if (r.voice) {
+    const w = voiceWord(r.status, r.flags?.[0], r.sandbox_score);
+    return `${w[0].toUpperCase()}${w.slice(1)}${r.status === "scored" && mark10 != null ? ` · ${of10(r.sandbox_score)}` : ""}`;
+  }
+  const v = r.lotVoice;
+  return lotLine({ answer: r.status, mark10, voice: v?.status ?? null, reason: v?.evaluation?.attempt_fail, voiceScore: v?.communication_score });
+};
 
 interface VoiceRow {
   id: string;
@@ -65,12 +83,19 @@ const AdminSubmissions = () => {
     queryFn: async (): Promise<Row[]> => {
       if (status === "voice") return voiceRows("all");
       let q = supabase.from("task_submissions")
-        .select("id, status, sandbox_score, passed_count, total_count, runner, flags, created_at, sandbox_config_id, tasks(title, source), student_profiles(full_name)")
+        .select("id, task_id, student_id, status, sandbox_score, passed_count, total_count, runner, flags, created_at, sandbox_config_id, tasks(title, source), student_profiles(full_name)")
         .order("created_at", { ascending: false }).limit(200);
       if (status !== "all") q = q.eq("status", status);
       const [{ data, error }, voices] = await Promise.all([q, voiceRows(status)]);
       if (error) throw error;
-      return [...((data as unknown as Row[]) ?? []), ...voices]
+      const rows = (data as unknown as Row[]) ?? [];
+      const ids = [...new Set(rows.map((r) => r.task_id).filter(Boolean))] as string[];
+      const { data: vs } = ids.length
+        ? await supabase.from("voice_explanations")
+            .select("task_id, student_id, status, evaluation, communication_score, created_at, withdrawn_at").in("task_id", ids)
+        : { data: [] };
+      for (const r of rows) r.lotVoice = pickVoice(((vs ?? []) as unknown as V[]).filter((v) => v.task_id === r.task_id && v.student_id === r.student_id));
+      return [...rows, ...voices]
         .sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 200);
     },
   });
@@ -129,7 +154,7 @@ const AdminSubmissions = () => {
                     <td className="py-2 pr-3">{r.student_profiles?.full_name ?? "—"}</td>
                     <td className="py-2 pr-3">{r.tasks?.title ?? "—"}</td>
                     <td className="py-2 pr-3">{r.voice ? "voice" : r.sandbox_config_id ? `code (${r.passed_count ?? 0}/${r.total_count ?? 0})` : "written"}</td>
-                    <td className="py-2 pr-3"><Badge variant={r.status === "passed" || (r.voice && r.status === "scored") ? "default" : "secondary"}>{plainCode(r.status)}{r.sandbox_score != null ? ` · ${of10(r.sandbox_score)}` : ""}</Badge></td>
+                    <td className="py-2 pr-3"><Badge variant={r.status === "passed" || (r.voice && r.status === "scored") ? "default" : "secondary"}>{resultText(r)}</Badge></td>
                     <td className="py-2 text-xs text-muted-foreground">{flagText(r) || "—"}</td>
                   </tr>
                 ))}
@@ -149,7 +174,7 @@ const AdminSubmissions = () => {
                 <p><span className="font-medium">Source:</span> {open.tasks?.source ?? "—"}</p>
                 <p><span className="font-medium">Kind:</span> {open.voice ? "voice" : open.sandbox_config_id ? "code" : "written"}</p>
                 {open.total_count != null && <p><span className="font-medium">Tests passed:</span> {open.passed_count ?? 0} of {open.total_count}</p>}
-                <p><span className="font-medium">Result:</span> {plainCode(open.status)}{open.sandbox_score != null ? ` · ${of10(open.sandbox_score)}` : ""}</p>
+                <p><span className="font-medium">Result:</span> {resultText(open)}</p>
                 {open.runner && <p><span className="font-medium">Runner:</span> {open.runner}</p>}
                 <p><span className="font-medium">Flags:</span> {flagText(open) || "—"}</p>
                 <p className="font-mono text-[10px] text-muted-foreground">id {open.id}</p>

@@ -31,9 +31,8 @@ export const dropHelper = (text: string) => text.replace(HELPER_LEAK, "").trim()
  * A Daily Lot is "submitted" once its best check is handed in; its mark can be under the pass line.
  */
 export function lotStatusText(o: { passed: boolean; submitted: boolean; mark10?: number | null }): string {
-  if (o.passed) return "Passed";
-  const mark = o.mark10 != null ? ` (${fmtMark(o.mark10)}/10)` : "";
-  return o.submitted ? `Submitted, not passed${mark}` : `Not passed yet${mark}`;
+  // Y1 (12 Nov 2026): the same words as the college and admin screens (lotLine).
+  return lotLine({ answer: o.passed ? "passed" : "failed", mark10: o.passed ? null : o.mark10 });
 }
 
 /** QA round 2 items 3 and 12: a rubric part's points as x/10 ("25 of 25" -> "10/10"). */
@@ -56,8 +55,8 @@ export function triesSummary(rows: { task_id: string; status: string }[]) {
  * the Build-log. "Code passed - record your 60s explanation to finish (due today)".
  */
 export function voiceOwedText(o: { coding: boolean; passed: boolean; mark10?: number | null; dueToday: boolean }): string {
-  const work = o.passed ? (o.coding ? "Code passed" : "Answer passed")
-    : lotStatusText({ passed: false, submitted: true, mark10: o.mark10 });
+  // Y1: the status part is lotLine's, so the college and admin screens read the same words.
+  const work = lotLine({ answer: o.passed ? "passed" : "failed", mark10: o.passed ? null : o.mark10, voice: null });
   return `${work} - record your 60s explanation to finish${o.dueToday ? " (due today)" : ""}`;
 }
 
@@ -100,7 +99,7 @@ export const AUTO_TRANSCRIPT_NOTE = "Auto transcript, may have errors.";
 const PLAIN: Record<string, string> = {
   passed: "Passed", failed: "Not passed", needs_review: "Waiting for a person", scored: "Scored", pending: "Waiting",
   completed: "Finished", copied_answer: "Looks copied", off_topic: "Off topic", silence: "No speech heard",
-  too_short: "Too short", no_audio: "No sound recorded",
+  too_short: "Too short", no_audio: "No sound recorded", too_few_words: "Too few words", repetitive: "Repeats itself",
 };
 export const plainCode = (code: string | null | undefined): string =>
   !code ? "—" : PLAIN[code] ?? code.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
@@ -108,9 +107,36 @@ export const plainCode = (code: string | null | undefined): string =>
 /** College E2E item 10 (migration 275): one Lot's state in the college drawer, in the student's own words
  *  (lotStatusText) and the drawer header's ("Lots passed · finished · voice owed"). */
 export function lotRowText(status: string | null | undefined, taskStatus?: string | null): string {
-  if (status === "passed") return taskStatus === "pending_voice" ? "Passed · voice owed" : "Passed";
-  if (status === "failed") return "Not passed yet";
-  return plainCode(status);
+  if (status === "passed") return taskStatus === "pending_voice" ? lotLine({ answer: "passed", voice: null }) : "Passed";
+  return lotLine({ answer: status });
+}
+
+/** Y2 (12 Nov 2026): one voice word everywhere. "scored" under 5/10 is a low voice score (owner rule B, passedNote). */
+export function voiceWord(status: string | null | undefined, reason?: string | null, score?: number | null): string {
+  if (status === "scored") return score != null && score < 50 ? "low voice score" : "voice done";
+  if (status === "failed") return `voice not accepted${reason ? ` - ${plainCode(reason).toLowerCase()}` : ""}`;
+  if (status === "closed") return "spoken part closed";
+  if (status) return "voice being checked";
+  return "voice not done";
+}
+
+/**
+ * Y1/Y2 (owner E2E 12 Nov 2026): ONE status line for a Lot on the student, college and admin screens:
+ * answer status · mark out of 10 · voice status, e.g. "Not passed · 1.9/10 · voice not done",
+ * "Passed · 10/10 · voice not accepted - off topic". `voice` undefined = the screen does not show the voice part.
+ * Done (passing answer + accepted voice) is the dashboard's rule (lot_marks, migration 320).
+ */
+export function lotLine(o: { answer: string | null | undefined; mark10?: number | null; voice?: string | null;
+                             reason?: string | null; voiceScore?: number | null }): string {
+  const answer = o.answer === "failed" ? "Not passed" : plainCode(o.answer);
+  return [answer, o.mark10 != null ? `${fmtMark(o.mark10)}/10` : null,
+          o.voice !== undefined ? voiceWord(o.voice, o.reason, o.voiceScore) : null].filter(Boolean).join(" · ");
+}
+
+/** The voice row the status line reads: an accepted (scored) recording wins, else the newest one. Withdrawn ones are gone. */
+export function pickVoice<T extends { status: string; created_at: string; withdrawn_at?: string | null }>(vs: T[]): T | null {
+  const live = vs.filter((v) => !v.withdrawn_at).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  return live.find((v) => v.status === "scored") ?? live[0] ?? null;
 }
 
 /** Sweep S28 + retest 11: shown text only (stored task text is never changed) - plain quotes, and old Lots that talk

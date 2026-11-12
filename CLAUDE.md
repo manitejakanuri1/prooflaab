@@ -60,6 +60,7 @@ Dashboards:
 - **Students are never sent outside the app.** No external links on student screens.
   - Outside content is shown in-app only if its licence allows it (MIT, Apache, BSD, CC-BY, CC-BY-SA, CC0), with a plain-text credit.
   - W3Schools can't be used.
+  - Exception (owner, 12 Nov 2026): the **Apply** button on a job in the student Jobs page (own-college jobs and admin-approved company jobs, migration 310). It asks first and opens only an https:// link in a new tab.
 - Questions are shown **in simple words** (`task_explainers`), with the original wording one tap away. The task data itself is never changed.
 - AI content is written **once and stored**. Say the cost before any paid AI job; the owner is cost-conscious.
 - Everything should happen automatically (squads at import, auto-refresh, sync).

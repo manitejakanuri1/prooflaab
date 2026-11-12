@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Activity, AlertTriangle, Shield, Trophy } from "lucide-react";
 import PostJobDescription from "./PostJobDescription";
+import CollegeJobPosts from "./CollegeJobPosts";
 import {
   SeasonCompleteCard, StandingsKey, shownSeasonId, tieNote, type SeasonStatus,
 } from "@/components/dashboard/season/SeasonPhaseBar";
@@ -62,6 +63,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
   const [standings, setStandings] = useState<Standing[]>([]);
   const [season, setSeason] = useState<SeasonStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [jobsPosted, setJobsPosted] = useState(0);
 
   const load = useCallback(async () => {
     const { data: res, error: err } = await supabase.rpc("tpo_home" as never);
@@ -134,11 +136,12 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
         </p>
         <div className="ml-auto flex gap-2">
           <PostSourceMaterial />
-          <PostJobDescription />
+          <PostJobDescription onPosted={() => setJobsPosted((n) => n + 1)} />
         </div>
       </div>
 
       <CopiedAnswerNotes />
+      <CollegeJobPosts refresh={jobsPosted} />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => {

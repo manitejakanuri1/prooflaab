@@ -5,6 +5,7 @@ import {
   NotebookPen,
   Users,
   IdCard,
+  Briefcase,
   LogOut,
   ChevronDown,
   ChevronRight,
@@ -43,6 +44,8 @@ const menuItems: MenuItem[] = [
   { id: "log", label: "Build-log", icon: NotebookPen },
   { id: "squad", label: "Squad", icon: Users },
   { id: "profile", label: "Profile", icon: IdCard },
+  // Owner 12 Nov 2026 (migration 310): own-college jobs + admin-approved company jobs.
+  { id: "jobs", label: "Jobs", icon: Briefcase },
 ];
 
 const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {

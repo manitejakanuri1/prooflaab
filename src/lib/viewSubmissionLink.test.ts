@@ -27,7 +27,7 @@ test("View Submission goes to the Build-log entry of that task", () => {
 
 test("the dashboard opens Build-log > Recent work from that link", () => {
   assert.match(page, /useUrlTab\("tab"/, "the destination comes from ?tab=");
-  assert.match(dashboard, /\["lab", "log", "squad", "profile"\]/, "log is a destination");
+  assert.match(dashboard, /\["lab", "log", "squad", "profile", "jobs"\]/, "log is a destination");
   assert.match(dashboard, /useUrlTab\("view"/, "the inner tab comes from ?view=");
   assert.match(dashboard, /const LOG = \["entries"/, "entries is a Build-log tab");
   assert.match(dashboard, /<TabsContent value="entries"[^>]*>\s*<BuildLogEntries \/>/);

@@ -174,7 +174,7 @@ export function StartupJobsPage() {
         if (error) throw error;
         toast({
           title: "Success",
-          description: "Job post updated. An admin checks every job post. Students do not see a job list; once approved, its text can be used in their daily tasks.", // MF-028
+          description: "Job post updated. An admin checks every job post. Once approved, students of every college see it on their Jobs page until the last date.", // MF-028
         });
       } else {
         const { error } = await supabase
@@ -184,7 +184,7 @@ export function StartupJobsPage() {
         if (error) throw error;
         toast({
           title: "Success",
-          description: "Job post saved. An admin checks every job post. Students do not see a job list; once approved, its text can be used in their daily tasks.", // MF-028
+          description: "Job post saved. An admin checks every job post. Once approved, students of every college see it on their Jobs page until the last date.", // MF-028
         });
       }
 

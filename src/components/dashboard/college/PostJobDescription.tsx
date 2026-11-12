@@ -8,15 +8,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Briefcase } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { applyHost } from "@/lib/applyLink";
 
 const JOB_TYPES = ["Internship", "Full-time", "Part-time"];
 
 /**
- * A college posts a real job description into job_opportunities (Admin > Job sources reads it). Students
- * have no job board (it was removed; students are never sent outside the app), so the text is used only as
- * real source material the Daily Lot engine quotes from - see lot-pipeline's real-JD lookup.
+ * A college posts a real job into job_opportunities. Its own students see it on their Jobs page (migration 310,
+ * owner 12 Nov 2026) with an Apply button that opens the https:// apply link; the Daily Lot engine can also quote
+ * the text (lot-pipeline's real-JD lookup).
  */
-const PostJobDescription = () => {
+const PostJobDescription = ({ onPosted }: { onPosted?: () => void }) => {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [role, setRole] = useState("");
@@ -42,6 +43,10 @@ const PostJobDescription = () => {
       });
       return;
     }
+    if (!applyHost(applyLink.trim())) {
+      toast({ title: "Check the apply link", description: "It must start with https:// (for example https://careers.acme.com/job/1).", variant: "destructive" });
+      return;
+    }
 
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -65,8 +70,9 @@ const PostJobDescription = () => {
       return;
     }
 
-    toast({ title: "Job description saved", description: "Students do not see a job list. Daily tasks on matching topics can now quote this real job text." });
+    toast({ title: "Job posted", description: "Your students see it on their Jobs page until the last date." });
     reset();
+    onPosted?.();
     setOpen(false);
   };
 
@@ -83,7 +89,7 @@ const PostJobDescription = () => {
             <DialogTitle>Post a job description</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Students do not see a job list. This real job text can be quoted in daily tasks on matching topics.
+            Your students see this job on their Jobs page until the last date, with an Apply button that opens your link.
           </p>
 
           <div className="space-y-4">

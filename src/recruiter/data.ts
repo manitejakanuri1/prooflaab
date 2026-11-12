@@ -119,7 +119,6 @@ export function toCandidate(row: Record<string, unknown>): Candidate {
     notes: undefined,
     skillsProven: proven,
     proofsVerified: Number(row.proofs_verified ?? 0),
-    voiceCount: Number(row.explanations ?? 0),
   };
 }
 
@@ -188,7 +187,7 @@ interface ProofProfilePayload {
   scorecard?: Partial<Record<"skill_proof" | "project_proof" | "reasoning" | "coding" | "interview_readiness"
     | "resume_quality" | "ats_match", number | null>> & { at?: string | null } | null;
   consistency?: { current_streak?: number | null; active_weeks?: number | null } | null;
-  days_since_active?: number | null; communication?: number | null; voice_recordings?: number | null;
+  days_since_active?: number | null; communication?: number | null;
   squad?: { name?: string | null; rank?: number | null; points?: number | null; record?: string | null } | null;
   shortlist?: { note?: string | null } | null; contact_unlocked?: boolean | null; contact?: Candidate["contact"] | null;
 }
@@ -321,7 +320,6 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
     },
     seasonRank: Number(p.squad?.rank ?? 0),
     sponsoredTasks,
-    voiceCount: (p.explanations ?? []).length || (p.voice_recordings as number) || 0,
     recommended: false,
     shortlisted: Boolean(p.shortlist),
     notes: p.shortlist?.note ?? undefined,

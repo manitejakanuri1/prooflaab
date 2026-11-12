@@ -22,6 +22,7 @@ const DECISION_LABEL: Record<ReviewDecision, string> = {
 
 const GRADE_LABEL: Record<string, string> = {
   passed: "Passed", failed: "Not passed", needs_review: "Needs review",
+  returned: "Sent back for changes", // migration 300: you asked for changes; the next try shows here
 };
 
 // Owner rule B (1 Nov 2026): "Passed" only when the work passed AND the spoken explanation scored 50+.
@@ -108,7 +109,7 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
           <p className="text-muted-foreground">
             {submissions.length === 0
               ? "Work appears here as soon as a student submits one of your tasks."
-              : "Try a different search or filter."}
+              : "Try a different search or filter. Search covers every task your company sent or posted; tasks from a college or ProofLab are not shown here."}
           </p>
         </div>
       ) : (

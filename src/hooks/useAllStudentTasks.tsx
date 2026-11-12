@@ -29,6 +29,8 @@ interface StudentTask {
   voice_owed?: boolean; // Sweep S16: work handed in, the 60s explanation still owed
   not_passed?: boolean; // Retest 8: the latest try did not pass
   company?: string | null; // Migration 257: the company that set a company Lot
+  /** Migration 300: the company's review of the latest handed-in try (returned = sent back for changes). */
+  review?: { decision: 'accepted' | 'needs_work' | 'rejected'; note: string | null; at: string; returned: boolean } | null;
 }
 
 export const useAllStudentTasks = () => {
@@ -122,9 +124,11 @@ export const useAllStudentTasks = () => {
         supabase.from('task_submissions').select('task_id, status').eq('student_id', profile.id).order('created_at', { ascending: false }),
         codingIds.length ? supabase.from('tasks').select('id, any_language' as string).in('id', codingIds) : Promise.resolve({ data: [] }),
         // Assigned-work test item 7: the card names the company (sponsor_company, migration 257).
-        sponsoredIds.length ? supabase.from('tasks').select('id, sponsor_company' as string).in('id', sponsoredIds) : Promise.resolve({ data: [] }),
+        sponsoredIds.length ? supabase.from('tasks').select('id, sponsor_company, company_review' as string).in('id', sponsoredIds) : Promise.resolve({ data: [] }),
       ]);
-      const companyOf = new Map(((sponsorRows ?? []) as unknown as { id: string; sponsor_company: string | null }[]).map((r) => [r.id, r.sponsor_company]));
+      const sponsorList = (sponsorRows ?? []) as unknown as { id: string; sponsor_company: string | null; company_review: StudentTask['review'] }[];
+      const companyOf = new Map(sponsorList.map((r) => [r.id, r.sponsor_company]));
+      const reviewOf = new Map(sponsorList.map((r) => [r.id, r.company_review]));
       const anyLang = new Set(((langRows ?? []) as unknown as { id: string; any_language: boolean }[]).filter((r) => r.any_language).map((r) => r.id));
       const lang = (id: string, text: string) => (anyLang.has(id) ? anyLanguageText(text) : text);
       const lastStatusOf = new Map<string, string>();
@@ -171,10 +175,12 @@ export const useAllStudentTasks = () => {
           // Owner 12 Nov 2026: a Lot with the language menu says "your code" here too, as on the Lot screen.
           title: lang(task.id, task.lot_date ? tidyTitle(task.title) : task.title),
           description: task.description ? lang(task.id, oneRange(task.description, rangeOf.get(task.id))) : task.description,
-          voice_score: voiceScoreOf.get(task.id) ?? null,
+          // CO1: a try sent back and passed again owes a new voice, so an older scored one does not count.
+          voice_score: task.status === 'pending_voice' ? null : voiceScoreOf.get(task.id) ?? null,
           voice_owed: task.status === 'pending_voice',
           not_passed: lastStatusOf.get(task.id) === 'failed',
           company: companyOf.get(task.id) ?? null,
+          review: reviewOf.get(task.id) ?? null,
           deadline: task.due_date,
           lot_date: task.lot_date,
           status,

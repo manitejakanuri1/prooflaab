@@ -64,6 +64,12 @@ interface LearningPath {
   topics_total: number; topics_done: number; steps_done: number; last_active: string | null;
 }
 
+/** CO9 (migration 300): companies that shortlisted the student, and work they accepted. */
+interface CompanyInterest {
+  company: string; shortlisted_at: string; stage: string | null; student_response: string | null;
+  accepted: { title: string; at: string }[];
+}
+
 interface Props {
   studentId: string | null;
   onClose: () => void;
@@ -100,6 +106,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
   const { toast } = useToast();
   const [data, setData] = useState<Profile | null>(null);
   const [paths, setPaths] = useState<LearningPath[]>([]);
+  const [companies, setCompanies] = useState<CompanyInterest[]>([]);
   const [work, setWork] = useState<FinishedWorkItem[] | "error" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -111,7 +118,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
     if (!studentId) return;
     const seq = ++loadSeq.current;
     const current = () => seq === loadSeq.current;
-    setData(null); setError(null); setPaths([]); setWork(null);
+    setData(null); setError(null); setPaths([]); setWork(null); setCompanies([]);
     const { data: res, error: err } = await supabase.rpc(
       "tpo_student_profile" as never, { _student_id: studentId } as never);
     if (!current()) return;
@@ -122,6 +129,10 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
     const { data: lp } = await supabase.rpc("tpo_student_learning" as never, { _student_id: studentId } as never);
     if (!current()) return;
     setPaths(Array.isArray(lp) ? (lp as unknown as LearningPath[]) : []);
+    supabase.rpc("tpo_student_companies" as never, { _student_id: studentId } as never).then(({ data: cs }) => {
+      const list = (cs as { companies?: CompanyInterest[] } | null)?.companies;
+      if (current() && Array.isArray(list)) setCompanies(list);
+    }, () => {});
     // Admin and the own college see every finished task: answer, voice words, recording (migration 168).
     // Assigned-work test item 6: a failed call said "Nothing finished yet" next to a passed Lot. Try twice, then say so.
     const call = () => supabase.rpc("tpo_student_work" as never, { _student_id: studentId } as never);
@@ -287,6 +298,28 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                 )}
               </section>
             </div>
+
+            {companies.length > 0 && (
+              <section data-testid="profile-companies">
+                <h4 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+                  Companies
+                </h4>
+                <div className="space-y-1.5 text-sm">
+                  {companies.map((c) => (
+                    <div key={c.company + c.shortlisted_at}>
+                      <p>
+                        <span className="font-medium">Shortlisted by {c.company}</span>
+                        <span className="text-muted-foreground"> · {fmtDay(c.shortlisted_at)}
+                          {c.student_response === "accepted" ? " · student said yes" : ""}</span>
+                      </p>
+                      {c.accepted.map((a) => (
+                        <p key={a.title + a.at} className="text-verified">Accepted by {c.company} · {fmtDay(a.at)} · "{a.title}"</p>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <section>
               <h4 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">

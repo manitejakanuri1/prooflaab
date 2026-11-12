@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, CheckCheck } from "lucide-react";
+import { Bell, CheckCheck, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,11 +28,17 @@ export function CompanyBell({ onOpenLots }: { onOpenLots?: () => void }) {
       <PopoverContent className="w-[calc(100vw-2rem)] sm:w-96 p-0" align="end" sideOffset={8}>
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-semibold text-base">Notifications</h3>
-          {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" onClick={markAllAsRead} className="h-8 text-xs">
-              <CheckCheck className="h-4 w-4 mr-1" /> Mark all read
+          <div className="flex items-center gap-1">
+            {unreadCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={markAllAsRead} className="h-8 text-xs">
+                <CheckCheck className="h-4 w-4 mr-1" /> Mark all read
+              </Button>
+            )}
+            {/* CO5: a visible close, for touch screens with no Escape key (bell and Escape also close it). */}
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label="Close notifications" onClick={() => setOpen(false)}>
+              <X className="h-4 w-4" />
             </Button>
-          )}
+          </div>
         </div>
         <ScrollArea className="h-[360px]">
           {notifications.length === 0 ? (

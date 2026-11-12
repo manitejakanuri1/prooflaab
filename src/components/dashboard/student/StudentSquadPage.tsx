@@ -18,7 +18,7 @@ import { FAST_WEEK, FAST_WEEK_MINUTES } from "@/lib/testClock";
 import StudentSeasonReport from "./StudentSeasonReport";
 import SquadSwapCard from "./SquadSwapCard";
 import { fmtMark, SCORE_HELP } from "@/lib/lotMarks";
-import { matchScore, matchStatus, SEED_WIN } from "@/lib/matchStatus";
+import { matchScore, matchStatus, RESULT_COMING, SEED_WIN } from "@/lib/matchStatus";
 
 /** Why a student has no squad yet (migration 195: 5 waiting students of a section make a new squad). */
 function ReserveReason() {
@@ -303,7 +303,7 @@ const StudentSquadPage = () => {
                 </span>
               ) : (
                 <span className="text-muted-foreground">
-                  The championship race is over for this squad. Your daily work,
+                  {seedWords ? `${seedWords.long} ` : ""}The championship race is over for this squad. Your daily work,
                   your score and every individual award carry on to the end of
                   the season exactly as before.
                 </span>
@@ -373,7 +373,7 @@ const StudentSquadPage = () => {
                     {matchNames[waiting.home_squad] ?? "Squad to be set"} <span className="text-muted-foreground font-normal">vs</span>{" "}
                     {matchNames[waiting.away_squad] ?? "Squad to be set"}
                   </p>
-                  <p className="text-sm text-muted-foreground mt-1">Being played now. The result comes when the week is scored.</p>
+                  <p className="text-sm text-muted-foreground mt-1">{format(new Date(waiting.scheduled_at), "EEEE d MMM, h:mm a")} · {RESULT_COMING}.</p>
                 </button>
               ) : !restWeek && !ended ? (
                 <p className="text-sm text-muted-foreground mt-2">Nothing scheduled yet.</p>

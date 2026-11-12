@@ -43,6 +43,8 @@ const RestrictedAccessMessage = () => (
  */
 export const COMPANY_REDIRECTS: Record<string, [string, string]> = {
   shortlist: ["hiring", "shortlist"],
+  // F20: Home "Awaiting reply" opens the Shortlist filtered to students who have not replied.
+  awaiting: ["hiring", "awaiting"],
   jobs: ["hiring", "jobs"],
   submissions: ["lots", "submissions"],
   review: ["lots", "reviews"],
@@ -122,11 +124,12 @@ export function StartupDashboardContent({ activeTab, onTabChange, isVerified }: 
     }
 
     case "hiring": {
-      const v = HIRING_VIEWS.some(([id]) => id === view) ? view : "shortlist";
+      const awaiting = view === "awaiting";
+      const v = awaiting ? "shortlist" : HIRING_VIEWS.some(([id]) => id === view) ? view : "shortlist";
       return (
         <div>
           {inner(HIRING_VIEWS, v)}
-          {v === "shortlist" && <RecruiterDashboardContent activeTab="shortlist" onTabChange={go} />}
+          {v === "shortlist" && <RecruiterDashboardContent activeTab="shortlist" onTabChange={go} awaitingOnly={awaiting} />}
           {v === "jobs" && <StartupJobsPage />}
         </div>
       );

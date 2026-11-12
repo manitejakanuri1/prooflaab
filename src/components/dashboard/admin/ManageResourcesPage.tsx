@@ -1,65 +1,24 @@
 import { fmtDay } from "@/lib/ist";
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, ExternalLink, MoreVertical, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, MoreVertical, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { safeExternalUrl } from "@/lib/safeNavigation";
-
-// Convert only real YouTube URLs into privacy-enhanced embed URLs.
-// Database/user supplied URLs must never be able to choose an arbitrary iframe host.
-const getYouTubeEmbedUrl = (value: string): string | null => {
-  try {
-    const url = new URL(value);
-    const host = url.hostname.toLowerCase().replace(/\.$/, "");
-
-    let videoId: string | null = null;
-
-    if (
-      host === "youtube.com" ||
-      host === "www.youtube.com" ||
-      host === "m.youtube.com" ||
-      host === "youtube-nocookie.com" ||
-      host === "www.youtube-nocookie.com"
-    ) {
-      if (url.pathname === "/watch") {
-        videoId = url.searchParams.get("v");
-      } else if (url.pathname.startsWith("/embed/")) {
-        videoId = url.pathname.split("/")[2] ?? null;
-      } else if (url.pathname.startsWith("/shorts/")) {
-        videoId = url.pathname.split("/")[2] ?? null;
-      }
-    } else if (host === "youtu.be") {
-      videoId = url.pathname.slice(1).split("/")[0] || null;
-    }
-
-    if (!videoId || !/^[A-Za-z0-9_-]{11}$/.test(videoId)) {
-      return null;
-    }
-
-    return `https://www.youtube-nocookie.com/embed/${videoId}`;
-  } catch {
-    return null;
-  }
-};
-
-const isYouTubeUrl = (url: string): boolean =>
-  getYouTubeEmbedUrl(url) !== null;
 
 interface LearningResource {
   id: string;
   title: string;
   description: string | null;
-  url: string;
+  body: string | null;
+  url: string | null;
   platform: string;
   branch: string;
   category: string | null;
@@ -68,23 +27,19 @@ interface LearningResource {
   status: string;
 }
 
+// Owner 12 Nov 2026 (A2 option b, migration 335): a resource is TEXT written here and read inside the student app.
+// Students are never sent outside the app, so there is no link field; old link-only rows are not shown to students.
+// Limits match the learning_resources_text_length check on the table.
 interface ResourceFormData {
   title: string;
   description: string;
-  url: string;
-  platform: string;
+  body: string;
   category: string;
 }
 
-const initialFormData: ResourceFormData = {
-  title: "",
-  description: "",
-  url: "",
-  platform: "",
-  category: "",
-};
+const initialFormData: ResourceFormData = { title: "", description: "", body: "", category: "" };
 
-const categories = ["Roadmaps", "Courses", "Articles", "Videos", "GitHub Repos"];
+const hasText = (r: LearningResource) => (r.body ?? "").trim() !== "";
 
 const ManageResourcesPage = () => {
   const [resources, setResources] = useState<LearningResource[]>([]);
@@ -125,15 +80,18 @@ const ManageResourcesPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.title.trim() || !formData.body.trim()) {
+      toast({ title: "Add a title and the text students read", variant: "destructive" });
+      return;
+    }
     setSubmitting(true);
 
     try {
       const submitData = {
-        title: formData.title,
-        description: formData.description,
-        url: formData.url,
-        platform: formData.platform,
-        category: formData.category,
+        title: formData.title.trim(),
+        description: formData.description.trim() || null,
+        body: formData.body,
+        category: formData.category.trim() || null,
         branch: 'ALL',
         is_premium: false,
         // E2E O2: the table allows draft / published / archived; students read 'published'
@@ -211,8 +169,7 @@ const ManageResourcesPage = () => {
     setFormData({
       title: resource.title,
       description: resource.description || "",
-      url: resource.url,
-      platform: resource.platform,
+      body: resource.body || "",
       category: resource.category || "",
     });
     setIsDialogOpen(true);
@@ -288,8 +245,7 @@ const ManageResourcesPage = () => {
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-muted-foreground/10">
                   <TableHead className="font-semibold">Title</TableHead>
-                  <TableHead className="font-semibold">Category</TableHead>
-                  <TableHead className="font-semibold">Platform</TableHead>
+                  <TableHead className="font-semibold">Tag</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
                   <TableHead className="font-semibold">Created</TableHead>
                   <TableHead className="font-semibold text-right">Actions</TableHead>
@@ -310,16 +266,20 @@ const ManageResourcesPage = () => {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{resource.category || 'General'}</TableCell>
-                    <TableCell>{resource.platform}</TableCell>
-                    <TableCell>{getStatusBadge(resource.status || 'approved')}</TableCell>
+                    <TableCell>{resource.category || '-'}</TableCell>
+                    <TableCell>
+                      {getStatusBadge(resource.status || 'approved')}
+                      {!hasText(resource) && (
+                        <div className="text-xs text-alert mt-1" data-testid="link-only-note">Link-only: not shown to students - add text</div>
+                      )}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {fmtDay(resource.created_at)}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={`Actions for ${resource.title}`}>
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -361,56 +321,18 @@ const ManageResourcesPage = () => {
           </DialogHeader>
 
           <div className="space-y-4 mt-4">
-            {/* Resource Metadata */}
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">{previewResource?.platform}</Badge>
-              <Badge variant="outline">{previewResource?.category || 'General'}</Badge>
+              {previewResource?.category && <Badge variant="outline">{previewResource.category}</Badge>}
               <Badge variant="outline">
                 {previewResource?.created_at && fmtDay(previewResource.created_at)}
               </Badge>
             </div>
-
-            {/* YouTube Embed or Link */}
-            {previewResource && isYouTubeUrl(previewResource.url) ? (
-              <div className="w-full">
-                {getYouTubeEmbedUrl(previewResource.url) ? (
-                  <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                    <iframe
-                      src={getYouTubeEmbedUrl(previewResource.url)!}
-                      className="absolute top-0 left-0 w-full h-full rounded-lg"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                ) : (
-                  <div className="p-8 bg-muted rounded-lg text-center">
-                    <p className="text-alert">Invalid YouTube Link</p>
-                    <a
-                      href={safeExternalUrl(previewResource.url) ?? undefined}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline mt-2 inline-block"
-                    >
-                      Open original link
-                    </a>
-                  </div>
-                )}
-              </div>
+            {previewResource && hasText(previewResource) ? (
+              <p className="text-sm whitespace-pre-line break-words">{previewResource.body}</p>
             ) : (
-              <div className="p-8 bg-muted rounded-lg text-center">
-                <ExternalLink className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground mb-4">This resource links to an external website</p>
-                <Button asChild>
-                  <a
-                    href={safeExternalUrl(previewResource?.url) ?? undefined}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Visit Resource
-                  </a>
-                </Button>
+              <div className="p-4 bg-muted rounded-lg text-sm space-y-1">
+                <p className="text-alert">Link-only: not shown to students - add text</p>
+                {previewResource?.url && <p className="text-muted-foreground break-all">Old link: {previewResource.url}</p>}
               </div>
             )}
           </div>
@@ -432,64 +354,46 @@ const ManageResourcesPage = () => {
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="e.g., Complete React Course"
+                placeholder="e.g., How Python lists work"
+                maxLength={150}
                 className="rounded-lg border-border/50 focus:border-primary transition-colors"
                 required
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="category" className="text-sm font-medium text-foreground">Category</Label>
-                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                  <SelectTrigger className="rounded-lg border-border/50 focus:border-primary">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-lg">
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="platform" className="text-sm font-medium text-foreground">Platform</Label>
-                <Input
-                  id="platform"
-                  value={formData.platform}
-                  onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
-                  placeholder="e.g., YouTube, Coursera"
-                  className="rounded-lg border-border/50 focus:border-primary transition-colors"
-                  required
-                />
-              </div>
-            </div>
-
             <div className="space-y-2">
-              <Label htmlFor="url" className="text-sm font-medium text-foreground">Link</Label>
+              <Label htmlFor="description" className="text-sm font-medium text-foreground">Short summary (optional)</Label>
               <Input
-                id="url"
-                type="url"
-                value={formData.url}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                placeholder="https://example.com/course"
-                className="rounded-lg border-border/50 focus:border-primary transition-colors"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-medium text-foreground">Description</Label>
-              <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Describe what students will learn from this resource..."
-                className="rounded-lg border-border/50 focus:border-primary transition-colors min-h-[100px]"
-                rows={4}
+                placeholder="One line on what the student will learn"
+                maxLength={300}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="body" className="text-sm font-medium text-foreground">Text students read</Label>
+              <Textarea
+                id="body"
+                value={formData.body}
+                onChange={(e) => setFormData({ ...formData, body: e.target.value })}
+                placeholder="Write the resource here. Students read it inside ProofLab; links are shown as plain text."
+                className="min-h-[200px]"
+                maxLength={20000}
+                required
+              />
+              <p className="text-xs text-muted-foreground">{formData.body.length} / 20000</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category" className="text-sm font-medium text-foreground">Skill or track tag (optional)</Label>
+              <Input
+                id="category"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                placeholder="e.g., Python"
+                maxLength={60}
               />
             </div>
 

@@ -38,7 +38,18 @@ test("R2: seed words match the knockout rules", () => {
   assert.equal(seedLine({ seed: 2, bracket: "X" }, [{ seed: 1, points: 2 }, { seed: 2, points: 1 }])?.long, "Through to the final as seed 2.");
   const zero = three.map((s) => ({ ...s, points: 0 }));
   assert.match(seedLine({ seed: 1, bracket: "CSE-A" }, zero)!.long, /no final or champion/);
-  assert.equal(seedLine({ seed: null, bracket: "CSE-A" }, three), null);
+  assert.equal(seedLine({ seed: null, bracket: "CSE-A", points: 4 }, three), null);
+});
+
+test("R2 (345): 0-point squads do not qualify unless the whole section has 0", () => {
+  const sec = [{ seed: 1, points: 6 }, { seed: 2, points: 3 }, { seed: null, points: 0 }];
+  assert.equal(seedLine({ seed: null, bracket: "CSE-A", points: 0 }, sec)?.long, "Did not qualify - 0 league points.");
+  assert.equal(seedLine({ seed: 1, bracket: "CSE-A", points: 6 }, sec)?.long, "Through to the final as seed 1.");
+  const one = [{ seed: 1, points: 3 }, { seed: null, points: 0 }];
+  assert.match(seedLine({ seed: 1, bracket: "CSE-B", points: 3 }, one)!.long, /champion without a knockout match/);
+  const allZero = [{ seed: 1, points: 0 }, { seed: 2, points: 0 }, { seed: 3, points: 0 }];
+  assert.match(seedLine({ seed: 2, bracket: "CSE-A", points: 0 }, allZero)!.long, /no final or champion/);
+  assert.equal(seedLine({ seed: null, bracket: null, points: 0 }, sec), null);
 });
 
 import { whenFormatFor } from "./rankText.ts";

@@ -680,6 +680,7 @@ export type Database = {
       }
       learning_resources: {
         Row: {
+          body: string | null
           branch: string
           category: string | null
           created_at: string
@@ -691,9 +692,10 @@ export type Database = {
           status: string
           title: string
           updated_at: string
-          url: string
+          url: string | null
         }
         Insert: {
+          body?: string | null
           branch?: string
           category?: string | null
           created_at?: string
@@ -705,9 +707,10 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string
-          url: string
+          url?: string | null
         }
         Update: {
+          body?: string | null
           branch?: string
           category?: string | null
           created_at?: string
@@ -719,7 +722,7 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
-          url?: string
+          url?: string | null
         }
         Relationships: []
       }

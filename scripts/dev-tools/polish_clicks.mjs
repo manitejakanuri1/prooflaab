@@ -198,6 +198,13 @@ try {
   await go(page, "/college/dashboard?tab=students");
   await check("College: students STATUS is Lot-based, no login-style 'Active' badge (F5)", async () =>
     (await page.getByText(/^Active$/).count()) === 0);
+  await check("College: Students > Assigned tasks lists what the college assigned (assign item 5)", async () => {
+    await page.getByTestId("assigned-tasks-link").click();
+    await page.getByTestId("assigned-tasks").waitFor({ timeout: 20000 }).catch(() => {});
+    const ok = page.url().includes("tab=assigned") && /Handed in/i.test(await page.getByTestId("assigned-tasks").innerText().catch(() => ""));
+    await go(page, "/college/dashboard?tab=students");
+    return ok;
+  });
   await check("College: no 'Flagged Submissions' review button", async () => (await page.getByRole("button", { name: /Flagged Submissions/ }).count()) === 0);
   await check("College: a student row opens the drawer", async () => { await page.locator("tbody tr").first().click(); return dialogOpen(page); });
   await check("College: drawer never says '0 questions'", async () => { await page.waitForTimeout(1500); return !/\b0 questions\b/.test(await page.getByRole("dialog").innerText()); });

@@ -22,6 +22,19 @@ import {
 import { cn } from "@/lib/utils";
 import { filterStudents as applyStudentFilters, filterStudentsByColleges } from "@/lib/studentFilters";
 import { useTaskForms, type PersonalizedTask } from "@/components/dashboard/assignTasks/useTaskForms";
+import { looksLikeCoding, NOT_CODING_HINT } from "@/lib/codingText";
+import { readFunctionError } from "@/lib/functionError";
+import { toast as notify } from "sonner";
+
+// Assign test 12 Nov 2026 (item 3): say what Visibility does.
+const VISIBILITY_HELP = "Public: other students and companies can read this task. Private: only the students you pick can see it.";
+
+/** Item 1: the server's own reason (e.g. "Could not build working tests...") instead of a bare "Failed to assign tasks". */
+async function assignErrorText(error: unknown): Promise<string> {
+  const body = await readFunctionError(error);
+  const msg = (typeof body?.error === "string" && body.error) || (error instanceof Error ? error.message : "");
+  return msg && !/non-2xx/i.test(msg) ? msg : "The task was not assigned. Nothing was saved - try again.";
+}
 
 /**
  * Assign Tasks — one screen, two roles.
@@ -91,6 +104,7 @@ interface FormErrors {
   description?: string;
   xpReward?: string;
   dueDate?: string;
+  category?: string;
 }
 
 interface AssignTasksScreenProps {
@@ -528,6 +542,11 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
       }
     }
 
+    // Item 2: a Coding task must read like code, or its generated test can never be passed.
+    if (activeTab !== "personalized" && category === "Coding" && !looksLikeCoding(`${title} ${description}`)) {
+      errors.category = NOT_CODING_HINT;
+    }
+
     const xpNum = parseInt(xpReward);
     if (!xpReward || isNaN(xpNum) || xpNum <= 0) {
       errors.xpReward = "XP for badges must be more than 0";
@@ -782,10 +801,8 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
         confirmationData.selectedStudents.map(s => s.college_id).filter(Boolean)
       )].length;
 
-      toast({
-        title: "Success",
-        description: `Tasks assigned to ${confirmationData.selectedStudents.length} student(s) across ${totalColleges} college(s)`,
-      });
+      const n = confirmationData.selectedStudents.length;
+      notify.success(`Task assigned to ${n} ${n === 1 ? "student" : "students"}${totalColleges > 1 ? ` in ${totalColleges} colleges` : ""}.`);
 
       resetAllForms();
       setAudienceType("custom");
@@ -795,11 +812,8 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
       setSkillsFilter([]);
     } catch (error) {
       console.error('Error assigning tasks:', error);
-      toast({
-        title: "Error",
-        description: "Failed to assign tasks",
-        variant: "destructive",
-      });
+      // Item 1: say why; the form keeps everything that was typed.
+      notify.error(await assignErrorText(error), { duration: 10000 });
     } finally {
       setLoading(false);
     }
@@ -889,19 +903,13 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
         }
       }
 
-      toast({
-        title: "Success",
-        description: `Tasks assigned to ${selectedStudents.length} student(s)`,
-      });
+      notify.success(`Task assigned to ${selectedStudents.length} ${selectedStudents.length === 1 ? "student" : "students"}.`);
 
       resetAllForms();
     } catch (error) {
       console.error('Error assigning tasks:', error);
-      toast({
-        title: "Error",
-        description: "Failed to assign tasks",
-        variant: "destructive",
-      });
+      // Item 1: say why; the form keeps everything that was typed.
+      notify.error(await assignErrorText(error), { duration: 10000 });
     } finally {
       setLoading(false);
     }
@@ -1156,6 +1164,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                             <SelectItem value="Analysis">Analysis</SelectItem>
                           </SelectContent>
                         </Select>
+                        {formErrors.category && <p className="text-sm text-destructive" data-testid="category-error">{formErrors.category}</p>}
                       </div>
                     </div>
 
@@ -1210,6 +1219,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="visibility">Visibility</Label>
+<p className="text-xs text-muted-foreground">{VISIBILITY_HELP}</p>
                         <Select value={visibility} onValueChange={(value) => updateActiveForm({ visibility: value })}>
                           <SelectTrigger id="visibility">
                             <SelectValue />
@@ -1305,6 +1315,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                       </div>
                       <div className="space-y-2">
                         <Label>Visibility</Label>
+<p className="text-xs text-muted-foreground">{VISIBILITY_HELP}</p>
                         <Select value={visibility} onValueChange={(value) => setAiForm(prev => ({ ...prev, visibility: value }))}>
                           <SelectTrigger>
                             <SelectValue />
@@ -1494,6 +1505,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                           </div>
                           <div className="space-y-2">
                             <Label>Visibility</Label>
+<p className="text-xs text-muted-foreground">{VISIBILITY_HELP}</p>
                             <Select value={visibility} onValueChange={(value) => setTemplateForm(prev => ({ ...prev, visibility: value }))}>
                               <SelectTrigger>
                                 <SelectValue />
@@ -2092,6 +2104,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                           <SelectItem value="Analysis">Analysis</SelectItem>
                         </SelectContent>
                       </Select>
+                      {formErrors.category && <p className="text-sm text-destructive" data-testid="category-error">{formErrors.category}</p>}
                     </div>
                   </div>
 
@@ -2455,6 +2468,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                   <div className="flex items-center gap-2">
                     {visibility === "Public" ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
                     <Label>Visibility</Label>
+<p className="text-xs text-muted-foreground">{VISIBILITY_HELP}</p>
                   </div>
                   <Switch
                     checked={visibility === "Public"}

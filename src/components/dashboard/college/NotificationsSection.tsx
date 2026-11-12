@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,11 @@ const NotificationsSection = () => {
               <li key={n.id} className={`flex items-start gap-3 py-3 ${n.is_read ? "opacity-60" : ""}`}>
                 <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{n.title}</p>
+                  {/* Item 5 (12 Nov): a notice with a link opens it (e.g. the assigned-task hand-in alert). */}
+                  {n.link ? (
+                    <Link to={n.link} className="text-sm font-medium hover:text-primary hover:underline"
+                          onClick={() => { if (!n.is_read) notices.markAsRead(n.id); }}>{n.title}</Link>
+                  ) : <p className="text-sm font-medium">{n.title}</p>}
                   {n.message && <p className="text-sm text-muted-foreground whitespace-pre-line">{n.message}</p>}
                 </div>
                 {!n.is_read && (

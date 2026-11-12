@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
@@ -295,6 +296,9 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
         <Button variant="outline" onClick={() => setAssignOpen(true)}>
           <ClipboardList className="h-4 w-4 mr-2" />
           Assign Task
+        </Button>
+        <Button variant="outline" asChild>
+          <Link to="/college/dashboard?tab=assigned" data-testid="assigned-tasks-link">Assigned tasks</Link>
         </Button>
       </div>
 

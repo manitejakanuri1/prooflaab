@@ -4,6 +4,7 @@ import TpoHome from "./TpoHome";
 import TpoStudents from "./TpoStudents";
 import TpoSquads from "./TpoSquads";
 import TpoInsights from "./TpoInsights";
+import CollegeAssignedTasks from "./CollegeAssignedTasks";
 
 import NotificationsSection from "./NotificationsSection";
 import CollegeProfilePage from "./CollegeProfilePage";
@@ -108,6 +109,9 @@ const CollegeDashboardContent = ({ activeTab, onTabChange }: CollegeDashboardCon
             onNavigate={onTabChange}
           />
         );
+
+      // Item 5 (12 Nov): reached from Students > Assigned tasks and from the hand-in alert.
+      case "assigned":      return <CollegeAssignedTasks />;
 
       // Account chrome, not destinations — reachable from the sidebar footer.
       case "notifications": return <NotificationsSection />;

@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  classifyBffResponse,
+  friendlyBffResponse,
   rewriteBffUrl,
   sanitizeBffHeaders,
 } from "../integrations/google/bffTransport.ts";
@@ -105,4 +107,17 @@ test("browser credentials are stripped but application headers survive", () => {
     headers.get("x-request-id"),
     "req-123",
   );
+});
+
+test("E2E 12 Nov: expired session and Google's HTML 502 page are recognised; real answers are left alone", async () => {
+  const json = (status: number, body: unknown) =>
+    new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8" } });
+  assert.equal(await classifyBffResponse(json(401, { error: "not authenticated" })), "expired");
+  assert.equal(await classifyBffResponse(json(401, { message: "JWT expired" })), "ok");
+  assert.equal(await classifyBffResponse(new Response("<!DOCTYPE html><title>Error 502 (Server Error)!!1</title>", { status: 502, headers: { "content-type": "text/html; charset=UTF-8" } })), "edge");
+  assert.equal(await classifyBffResponse(json(502, { error: "backend unavailable" })), "ok");
+  assert.equal(await classifyBffResponse(json(200, [])), "ok");
+  const friendly = friendlyBffResponse(401, "Session expired - sign in again");
+  assert.equal(friendly.status, 401);
+  assert.deepEqual(await friendly.json(), { message: "Session expired - sign in again", error: "Session expired - sign in again" });
 });

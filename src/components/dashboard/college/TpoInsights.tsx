@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Download } from "lucide-react";
+import InfoTip from "@/components/common/InfoTip";
+import { SCORE_HELP, squadHealthy } from "@/lib/lotMarks";
 
 interface SkillGap { skill: string; students: number }
 interface SquadHealth {
@@ -125,8 +127,8 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
     lines.push("");
     lines.push("Summary");
     lines.push(`Students,${data.students}`);
-    lines.push(`Active this week (%),${data.participation_this_week}`);
-    lines.push(`Active last week (%),${data.participation_last_week}`);
+    lines.push(`Tried a Lot this week (%),${data.participation_this_week}`);
+    lines.push(`Tried a Lot last week (%),${data.participation_last_week}`);
     lines.push(`Needs attention,${data.attention_total}`);
     lines.push("");
     lines.push("Skill gaps");
@@ -134,7 +136,7 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
     data.skill_gaps.forEach((g) => lines.push(`${esc(g.skill)},${g.students}`));
     lines.push("");
     lines.push("Squad health");
-    lines.push("Squad,Members,Active members,Points,Won,Drawn,Lost");
+    lines.push("Squad,Members,Tried a Lot this week,Points,Won,Drawn,Lost");
     data.squad_health.forEach((h) =>
       lines.push([esc(h.name), h.members, h.active_members, h.points, h.wins, h.draws ?? 0, h.losses].join(",")));
     lines.push("");
@@ -161,8 +163,7 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
   const delta = data.participation_this_week - data.participation_last_week;
   // MF-062: between seasons the squad numbers are last season's leftovers, so they are not shown.
   const seasonRunning = seasons.some((s) => s.is_current);
-  const healthy = data.squad_health.filter(
-    (s) => s.members > 0 && s.active_members / s.members >= 0.7).length;
+  const healthy = data.squad_health.filter((s) => squadHealthy(s.active_members, s.members)).length;
 
   return (
     <div className="space-y-4">
@@ -182,7 +183,7 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
               onClick={() => onFilterStudents?.("active_week")}>
           <CardContent className="pt-5">
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Active this week
+              Tried a Lot this week
             </span>
             <div className="font-mono text-3xl font-bold tabular-nums mt-1">
               {data.participation_this_week}%
@@ -222,7 +223,7 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
               {seasonRunning ? `${healthy}/${data.squad_health.length}` : "—"}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {seasonRunning ? "70% of members active counts as healthy" : "between seasons"}
+              {seasonRunning ? "7 in 10 members tried a Lot this week" : "between seasons"}
             </p>
           </CardContent>
         </Card>
@@ -235,7 +236,7 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
             </span>
             <div className="font-mono text-3xl font-bold tabular-nums mt-1">{data.students}</div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {data.active_today} active today · open the list
+              {data.active_today} tried a Lot today · open the list
             </p>
           </CardContent>
         </Card>
@@ -310,7 +311,7 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
         <Card>
           <CardContent className="pt-5">
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Squad health
+              Squad health <InfoTip text={SCORE_HELP.squadHealth} />
             </span>
             {data.squad_health.length === 0 ? (
               <p className="text-sm text-muted-foreground mt-3">No squads yet.</p>
@@ -325,16 +326,16 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
                       <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="text-sm font-medium">{s.name}</span>
                         <span className="font-mono text-xs text-muted-foreground">
-                          {s.active_members}/{s.members} active
+                          {s.active_members}/{s.members} tried a Lot this week
                         </span>
                         <span className="ml-auto">
-                          {pct >= 70
+                          {squadHealthy(s.active_members, s.members)
                             ? <Badge className="bg-verified/15 text-verified hover:bg-verified/15">Healthy</Badge>
                             : <Badge className="bg-compete/15 text-compete hover:bg-compete/15">Needs attention</Badge>}
                         </span>
                       </div>
                       <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-                        <div className={`h-full ${pct >= 70 ? "bg-verified" : "bg-compete"}`}
+                        <div className={`h-full ${squadHealthy(s.active_members, s.members) ? "bg-verified" : "bg-compete"}`}
                              style={{ width: `${pct}%` }} />
                       </div>
                     </div>
@@ -363,7 +364,7 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
                       <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="text-sm font-medium">{b.branch}</span>
                         <span className="font-mono text-xs text-muted-foreground">
-                          {b.active_week}/{b.students} active this week
+                          {b.active_week}/{b.students} tried a Lot this week
                         </span>
                         <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
                           {b.in_squads} in squads

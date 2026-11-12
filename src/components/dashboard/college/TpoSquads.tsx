@@ -1,6 +1,6 @@
 import { fmtDay } from "@/lib/ist";
 import MatchDetailDialog, { type MatchLike } from "@/components/dashboard/season/MatchDetailDialog";
-import { SCORE_HELP } from "@/lib/lotMarks";
+import { SCORE_HELP, squadHealthy } from "@/lib/lotMarks";
 import InfoTip from "@/components/common/InfoTip";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUrlTab } from "@/hooks/useUrlTab";
@@ -131,10 +131,16 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
   const [themeDraft, setThemeDraft] = useState<Record<string, string>>({});
   const [savingTheme, setSavingTheme] = useState<string | null>(null);
 
+  // E2E C10: a failed or late call (server busy, session refresh) used to be read as "no squads" and the
+  // whole screen said "No squads yet" until a reload. Now a failed call keeps what is shown (the 60 s / focus
+  // refresh tries again), and only the newest load may write, so an older slow one cannot overwrite it.
+  const loadSeq = useRef(0);
   const load = useCallback(async () => {
+    const seq = ++loadSeq.current;
+    const stale = () => seq !== loadSeq.current;
     const cid = await supabase.rpc("my_college_id" as never);
     const collegeId = cid.data as unknown as string | null;
-    if (!collegeId) { setSquads([]); return; }
+    if (cid.error || !collegeId || stale()) return;
 
     // Squads first, because everything below is scoped by which squads are
     // this college's. squad_matches and squad_members are both readable by any
@@ -142,13 +148,15 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
     // fixtures and members in these tables — nothing secret, still wrong.
     // Only the season on show (MF-009): the running one, or the one that just finished - never every
     // season mixed together. One overall rank (recount_season), with the section as its own column.
-    const { data: st } = await supabase.rpc("my_season_status");
+    const { data: st, error: stErr } = await supabase.rpc("my_season_status");
+    if (stErr || stale()) return;
     const sid = shownSeasonId((st ?? null) as unknown as SeasonStatus | null);
     if (!sid) { setSquads([]); return; }
-    const { data: sqData } = await supabase
+    const { data: sqData, error: sqErr } = await supabase
       .from("squads").select("*").eq("college_id", collegeId).eq("season_id", sid)
       .order("rank", { ascending: true, nullsFirst: false })
       .order("points", { ascending: false });
+    if (sqErr || stale()) return;
 
     const list = (sqData ?? []) as unknown as Squad[];
 
@@ -177,6 +185,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
       supabase.rpc("tpo_reserves"),
       supabase.rpc("tpo_students" as never, { _limit: 5000, _offset: 0 } as never),
     ]);
+    if (stale()) return;
 
     // E2E: show the squads together with their members, never 0/12 while members are still loading.
     setSquads(list);
@@ -548,7 +557,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                   <th className="pb-2 pr-3">Section</th>
                   <th className="pb-2 pr-3">Members</th><th className="pb-2 pr-3">W-D-L</th>
                   <th className="pb-2 pr-3">Points <InfoTip text={SCORE_HELP.squad} /></th>
-                  <th className="pb-2 pr-3">Championship</th><th className="pb-2">Health</th>
+                  <th className="pb-2 pr-3">Championship</th><th className="pb-2">Health <InfoTip text={SCORE_HELP.squadHealth} /></th>
                 </tr>
               </thead>
               <tbody>
@@ -563,7 +572,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                     : -1;
                   const active = mine.filter(
                     (m) => (quietDays[m.student_id] ?? 999) < 7).length;
-                  const healthy = mine.length === 0 ? false : active / mine.length >= 0.7;
+                  const healthy = squadHealthy(active, mine.length);
                   return (
                     <tr key={s.id} className="border-t cursor-pointer hover:bg-muted/40"
                         onClick={() => { setSelected(s.id); setTab("members"); }}>

@@ -62,6 +62,8 @@ export function talkCheck(match: number | null | undefined): string {
 
 /** Polish pass B: the one plain line under each number (shown by the (i) button). */
 export const SCORE_HELP = {
+  // E2E C7: one squad health rule for Standings and Insights (migration 297: tried a Lot = handed in an answer or code).
+  squadHealth: "Healthy = at least 7 in 10 members tried a Lot (handed in an answer or code) in the last 7 days. Otherwise: Needs attention.",
   // Each Lot has its own pass line; where the screen does not know it, it says so.
   answer: (passLine?: number | null) =>
     `Your answer is checked part by part. Marks earned ÷ total marks × 10. ${passLine != null
@@ -114,3 +116,5 @@ export function voiceLine(lot: LotState): string | null {
   return null;
 }
 
+/** E2E C7: the squad health rule behind SCORE_HELP.squadHealth. */
+export const squadHealthy = (active: number, members: number) => members > 0 && active / members >= 0.7;

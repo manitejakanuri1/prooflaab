@@ -221,6 +221,17 @@ try {
     return /Lots passed/i.test(t) && !/Lots done/i.test(t);
   });
   await check("College: drawer never ranks a 0-point squad (squad 0 (#n))", async () => !/squad 0 \(#\d+\)/.test(await page.getByRole("dialog").innerText()));
+  await check("College: drawer Recent work says 'Not passed yet', never a bare 'Not passed' (E2E item 10)", async () =>
+    !/(^|\n)\s*Not passed\s*(\n|$)/i.test(await page.getByRole("dialog").innerText()));
+  await page.keyboard.press("Escape");
+  await check("College: Home 'missed this week's Lot' View lists students (E2E item 8, migration 275)", async () => {
+    await go(page, "/college/dashboard?tab=home");
+    const line = page.getByText(/missed this week.s Lot/i).first();
+    if (!(await line.count())) return true; // nobody missed one: nothing to open
+    await line.locator("xpath=ancestor::*[.//button][1]").getByRole("button", { name: /View/i }).first().click();
+    await page.locator("tbody tr").first().waitFor({ timeout: 20000 }).catch(() => {});
+    return (await page.locator("tbody tr").count()) > 0 && !/No students match/i.test(await page.locator("main").innerText());
+  });
   await ctx.close();
 
   // ---- company (assigned-work item 7)

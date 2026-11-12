@@ -418,12 +418,22 @@ const StudentSquadPage = () => {
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Squad pulse
               </span>
-              <p className="text-sm mt-2">
-                {members.filter((m) => m.contribution > 0).length} of {members.length} members have
-                contributed.
-                {/* MF-059: no nudging once the season is over. */}
-                {!ended && ` ${members.filter((m) => m.contribution === 0).length} need a nudge.`}
-              </p>
+              {/* College E2E item 9: contribution only moves when a season week is scored, so mid-week it read
+                  "0 of 10" beside a marks table full of Lots. While the week runs, count from that same table. */}
+              {weekMarks && weekMarks.members.length > 0 ? (
+                <p className="text-sm mt-2">
+                  {weekMarks.members.filter((m) => m.lots > 0).length} of {weekMarks.members.length} members did a Lot
+                  this week.
+                  {!ended && ` ${weekMarks.members.filter((m) => m.lots === 0).length} need a nudge.`}
+                </p>
+              ) : (
+                <p className="text-sm mt-2">
+                  {members.filter((m) => m.contribution > 0).length} of {members.length} members have
+                  contributed.
+                  {/* MF-059: no nudging once the season is over. */}
+                  {!ended && ` ${members.filter((m) => m.contribution === 0).length} need a nudge.`}
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -12,7 +12,7 @@ import { languageLabel } from "@/lib/codeLanguages";
  * switch is on. The server decides who receives the list and who may play.
  */
 const FinishedWork = ({ work }: { work: FinishedWorkItem[] }) => {
-  if (work.length === 0) return <p className="text-sm text-muted-foreground">Nothing finished yet.</p>;
+  if (work.length === 0) return <p className="text-sm text-muted-foreground">Nothing passed yet.</p>;
   return (
     <div className="space-y-1.5" data-testid="finished-work">
       {work.map((w) => (

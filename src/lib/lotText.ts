@@ -105,6 +105,14 @@ const PLAIN: Record<string, string> = {
 export const plainCode = (code: string | null | undefined): string =>
   !code ? "—" : PLAIN[code] ?? code.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 
+/** College E2E item 10 (migration 275): one Lot's state in the college drawer, in the student's own words
+ *  (lotStatusText) and the drawer header's ("Lots passed · finished · voice owed"). */
+export function lotRowText(status: string | null | undefined, taskStatus?: string | null): string {
+  if (status === "passed") return taskStatus === "pending_voice" ? "Passed · voice owed" : "Passed";
+  if (status === "failed") return "Not passed yet";
+  return plainCode(status);
+}
+
 /** Sweep S28 + retest 11: shown text only (stored task text is never changed) - plain quotes, and old Lots that talk
  *  about "the student" read as talking to them. */
 export const tidyShown = (t: string) => t

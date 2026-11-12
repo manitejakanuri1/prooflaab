@@ -147,7 +147,8 @@ export async function loadTalent(f: Filters = {}): Promise<Candidate[]> {
 }
 
 export async function loadFilters() {
-  const { data } = await supabase.rpc("recruiter_filters");
+  const { data, error } = await supabase.rpc("recruiter_filters");
+  if (error) throw error; // E2E 11: a failed call is not "unverified"
   return (data ?? { verified: false }) as unknown as {
     verified: boolean; branches?: string[]; roles?: string[];
     skills?: string[]; total?: number;
@@ -155,7 +156,8 @@ export async function loadFilters() {
 }
 
 export async function loadHome() {
-  const { data } = await supabase.rpc("recruiter_home");
+  const { data, error } = await supabase.rpc("recruiter_home");
+  if (error) throw error;
   return data as unknown as Record<string, unknown>;
 }
 

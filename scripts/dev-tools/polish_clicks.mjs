@@ -237,6 +237,29 @@ try {
     await page.getByRole("button", { name: /^Send a task/ }).first().click();
     return (await page.locator('[aria-pressed="true"]').count()) === 1 && /✓/.test(await page.locator('[aria-pressed="true"]').first().innerText());
   });
+  await closeDialog(page);
+  // E2E 11-13 (12 Nov 2026)
+  await go(page, "/company/dashboard?tab=talent");
+  await check("Company: Talent shows candidates or a message, never a stuck loader (E2E 11)", async () => {
+    await page.getByText(/Candidate|No candidates match|did not load/i).first().waitFor({ timeout: 20000 }).catch(() => {});
+    return (await page.getByText(/Candidate|No candidates match|did not load/i).count()) > 0;
+  });
+  await check("Company: the bell opens, Escape closes it, a second bell click closes it (E2E 13)", async () => {
+    const bell = page.getByRole("button", { name: "Notifications" }).first();
+    const shown = () => page.getByRole("heading", { name: /^Notifications$/i }).isVisible().catch(() => false);
+    await bell.click(); await page.waitForTimeout(500); const a = await shown();
+    await page.keyboard.press("Escape"); await page.waitForTimeout(500); const b = !(await shown());
+    await bell.click(); await page.waitForTimeout(500); await bell.click(); await page.waitForTimeout(500);
+    return a && b && !(await shown());
+  });
+  await go(page, "/company/dashboard?tab=hiring&view=jobs");
+  await check("Company: job post menu 'View Details' opens the post (E2E 12, if any post)", async () => {
+    const menu = page.locator("tbody tr button").first();
+    if (!(await menu.count())) return true;
+    await menu.click(); await page.getByRole("menuitem", { name: /View Details/i }).click();
+    const ok = await page.getByTestId("job-details").isVisible({ timeout: 5000 }).catch(() => false);
+    await closeDialog(page); return ok;
+  });
   await ctx.close();
 
   // ---- admin

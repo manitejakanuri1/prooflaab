@@ -62,6 +62,8 @@ export function StartupJobsPage() {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<JobOpportunity | null>(null);
+  // E2E 12: "View Details" opens the post here (it used to try a new tab on the apply link, often blocked).
+  const [viewingJob, setViewingJob] = useState<JobOpportunity | null>(null);
   const [formData, setFormData] = useState<JobFormData>(initialFormData);
   // MF-087: each field says what is wrong, under the field, instead of the browser's popup.
   const [errors, setErrors] = useState<Partial<Record<"role" | "location" | "job_type" | "apply_link" | "deadline", string>>>({});
@@ -355,7 +357,7 @@ export function StartupJobsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={() => void openExternal(job.apply_link)}>
+                          <DropdownMenuItem onClick={() => setViewingJob(job)}>
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
@@ -382,6 +384,28 @@ export function StartupJobsPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!viewingJob} onOpenChange={(o) => !o && setViewingJob(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{viewingJob?.role}</DialogTitle></DialogHeader>
+          {viewingJob && (
+            <dl className="grid grid-cols-[8rem_1fr] gap-x-3 gap-y-2 text-sm" data-testid="job-details">
+              <dt className="text-muted-foreground">Company</dt><dd>{viewingJob.company_name}</dd>
+              <dt className="text-muted-foreground">Location</dt><dd>{viewingJob.location}</dd>
+              <dt className="text-muted-foreground">Job type</dt><dd>{viewingJob.job_type}</dd>
+              <dt className="text-muted-foreground">Last day to apply</dt>
+              <dd>{viewingJob.deadline ? format(new Date(viewingJob.deadline), "d MMM yyyy") : "—"}</dd>
+              <dt className="text-muted-foreground">Status</dt><dd>{getStatusBadge(viewingJob.status || 'pending')}</dd>
+              <dt className="text-muted-foreground">Where to apply</dt>
+              <dd className="break-all">
+                <button type="button" className="underline text-primary text-left" onClick={() => void openExternal(viewingJob.apply_link)}>
+                  {viewingJob.apply_link}
+                </button>
+              </dd>
+            </dl>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

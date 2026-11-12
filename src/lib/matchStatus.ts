@@ -17,7 +17,9 @@ export const SEED_WIN = "won the tie as the higher-ranked squad";
 export function matchStatus(m: MatchResultLike, now: Date = new Date()): string {
   if (m.decided_by === "higher_seed") return "Tie: higher-ranked squad wins";
   if (m.status === "played") return "Played";
-  if (m.status === "no_activity") return "No activity";
+  if (m.status === "no_activity") {
+    return m.scheduled_at && Date.parse(m.scheduled_at) <= now.getTime() ? RESULT_COMING : "No activity";
+  }
   if (m.status === "scheduled") {
     return m.scheduled_at && Date.parse(m.scheduled_at) <= now.getTime() ? RESULT_COMING : "Scheduled";
   }

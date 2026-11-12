@@ -24,4 +24,6 @@ test("F2: a past scheduled match says its result is coming, never Scheduled", ()
   assert.equal(matchStatus(past, now), "Result coming when the week is scored");
   assert.equal(matchStatus(ahead, now), "Scheduled");
   assert.equal(matchStatus({ ...past, status: "played", home_points: 3, away_points: 1 }, now), "Played");
+  const pastNoAct = { ...past, status: "no_activity", decided_by: "no_activity", home_points: 0, away_points: 0 };
+  assert.equal(matchStatus(pastNoAct, now), "Result coming when the week is scored");
 });

@@ -357,7 +357,7 @@ const StudentSquadPage = () => {
                   </span>
                 </p>
               )}
-              {showNextMatch(next, restWeek) ? (
+              {next ? (
                 <button type="button" className="mt-2 block text-left hover:underline" onClick={() => setOpenMatch(next)}>
                   <p className="font-semibold">
                     {matchNames[next.home_squad] ?? "Squad to be set"} <span className="text-muted-foreground font-normal">vs</span>{" "}
@@ -366,14 +366,6 @@ const StudentSquadPage = () => {
                   <p className="text-sm text-muted-foreground mt-1">
                     {format(new Date(next.scheduled_at), "EEEE d MMM, h:mm a")}
                   </p>
-                </button>
-              ) : waiting && !ended ? (
-                <button type="button" className="mt-2 block text-left hover:underline" onClick={() => setOpenMatch(waiting)}>
-                  <p className="font-semibold">
-                    {matchNames[waiting.home_squad] ?? "Squad to be set"} <span className="text-muted-foreground font-normal">vs</span>{" "}
-                    {matchNames[waiting.away_squad] ?? "Squad to be set"}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">{format(new Date(waiting.scheduled_at), "EEEE d MMM, h:mm a")} · {RESULT_COMING}.</p>
                 </button>
               ) : !restWeek && !ended ? (
                 <p className="text-sm text-muted-foreground mt-2">Nothing scheduled yet.</p>

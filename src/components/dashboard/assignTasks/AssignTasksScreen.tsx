@@ -406,34 +406,37 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
       return;
     }
 
-    // Generate unique tasks for each selected student
-    const selectedStudentData = filteredStudents.filter(s => selectedStudents.includes(s.id));
-
-    const tasks: PersonalizedTask[] = selectedStudentData.map((student) => {
-      // Mock personalized task based on student interests
-      const interests = student.key_interests?.join(', ') || 'general development';
-      const skills = student.preferred_skills?.slice(0, 2).join(' and ') || 'core skills';
-
-      return {
-        id: `task-${student.id}-${Date.now()}`,
-        studentId: student.id,
-        studentName: student.full_name,
-        studentBranch: student.branch,
-        studentYear: student.year_of_study,
-        title: `Personalized ${interests.split(',')[0]} Challenge for ${student.full_name.split(' ')[0]}`,
-        description: `A customized task focusing on ${skills}, designed specifically for ${student.full_name} based on their interests in ${interests} and current skill level.`,
-        selected: true,
-        isEditing: false
-      };
-    });
-
-    setPersonalizedTasks(tasks);
-    setShowPersonalPreview(true);
-
-    toast({
-      title: "Success",
-      description: `Generated ${tasks.length} personalized tasks`,
-    });
+    // Owner 12 Nov 2026: the preview is the server's real plan - a saved task is reused first; AI writes a new one
+    // only when nothing fits (weekly limit). Nothing is written and no AI runs here.
+    setAiGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('assign_tasks', {
+        body: { mode: 'personalized', preview: true, selected_students: selectedStudents },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Could not find tasks');
+      const byId = new Map(filteredStudents.map((s) => [s.id, s]));
+      const tasks: PersonalizedTask[] = (data.plan as { studentId: string; studentName: string; kind: string; title: string | null; description: string | null }[])
+        .map((p) => ({
+          id: `task-${p.studentId}`,
+          studentId: p.studentId,
+          studentName: p.studentName,
+          studentBranch: byId.get(p.studentId)?.branch ?? null,
+          studentYear: byId.get(p.studentId)?.year_of_study ?? null,
+          title: p.kind === 'saved' ? `Saved task: ${p.title}` : p.kind === 'new' ? 'New task - AI writes it when you assign' : 'No task left for this student',
+          description: p.kind === 'saved' ? (p.description ?? '') : p.kind === 'new'
+            ? 'Nothing saved fits this student yet. The new task is saved and reused for similar students.'
+            : 'This student has done every saved task and the weekly AI limit is reached. Write one in the Manual tab.',
+          selected: p.kind !== 'none',
+          isEditing: false,
+        }));
+      setPersonalizedTasks(tasks);
+      setShowPersonalPreview(true);
+    } catch (error) {
+      notify.error(await assignErrorText(error), { duration: 10000 });
+    } finally {
+      setAiGenerating(false);
+    }
   };
 
   const clearPersonalTask = () => {
@@ -446,14 +449,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
     setPersonalizedTasks(prev =>
       prev.map(task =>
         task.id === taskId ? { ...task, selected: !task.selected } : task
-      )
-    );
-  };
-
-  const toggleTaskEditing = (taskId: string) => {
-    setPersonalizedTasks(prev =>
-      prev.map(task =>
-        task.id === taskId ? { ...task, isEditing: !task.isEditing } : task
       )
     );
   };
@@ -706,7 +701,9 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      const targetStudents = audienceType === "all"
+      const targetStudents = activeTab === "personalized"
+        ? personalizedTasks.filter(t => t.selected).map(t => t.studentId)
+        : audienceType === "all"
         ? filteredStudents.map(s => s.id)
         : selectedStudents;
 
@@ -738,6 +735,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
       if (!data || !data.success) {
         throw new Error(data?.error || 'Failed to assign tasks');
       }
+      if (data.skipped_students?.length) notify.error(`No task left for ${data.skipped_students.join(', ')} - write one in the Manual tab.`, { duration: 10000 });
 
       const totalColleges = [...new Set(
         confirmationData.selectedStudents.map(s => s.college_id).filter(Boolean)
@@ -774,7 +772,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
           body: {
             mode: 'personalized',
             due_date: confirmationData.dueDate.toISOString(),
-            selected_students: selectedStudents,
+            selected_students: personalizedTasks.filter(t => t.selected).map(t => t.studentId),
             xp_reward: confirmationData.xpReward,
             category: confirmationData.category,
             visibility: confirmationData.visibility.toLowerCase()
@@ -788,6 +786,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
         }
 
         insertedTasks = data.tasks || [];
+        if (data.skipped_students?.length) notify.error(`No task left for ${data.skipped_students.join(', ')} - write one in the Manual tab.`, { duration: 10000 });
       } else {
         const { data: { user } } = await supabase.auth.getUser();
         const { data: collegeData } = await supabase
@@ -1334,8 +1333,8 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                   <div className="space-y-4">
                     <div className="text-center py-8 text-muted-foreground">
                       <Wand2 className="h-12 w-12 mx-auto mb-4" />
-                      <p className="font-medium">AI-Powered Personalized Tasks</p>
-                      <p className="text-sm">Select students below and generate unique tasks tailored to each student's profile</p>
+                      <p className="font-medium">Personal tasks</p>
+                      <p className="text-sm">Saved tasks that fit each student are reused first. AI writes a new one only when nothing fits (up to 30 a week).</p>
                     </div>
 
                     <Button
@@ -1345,8 +1344,8 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                     >
                       <Wand2 className="mr-2 h-4 w-4" />
                       {selectedStudents.length > 0
-                        ? `Generate ${selectedStudents.length} Personalized Task${selectedStudents.length > 1 ? 's' : ''}`
-                        : 'Generate Personalized Tasks'
+                        ? `Find tasks for ${selectedStudents.length} student${selectedStudents.length > 1 ? 's' : ''}`
+                        : 'Find tasks'
                       }
                     </Button>
 
@@ -1356,7 +1355,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                         {personalizedTasks.length > 0 && (
                           <div className="space-y-4 pt-4 border-t">
                             <div className="flex items-center justify-between">
-                              <Label>Generated Tasks ({personalizedTasks.filter(t => t.selected).length}/{personalizedTasks.length})</Label>
+                              <Label>Tasks ({personalizedTasks.filter(t => t.selected).length}/{personalizedTasks.length})</Label>
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1396,13 +1395,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                                         </>
                                       )}
                                     </div>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => toggleTaskEditing(task.id)}
-                                    >
-                                      {task.isEditing ? 'Done' : 'Edit'}
-                                    </Button>
                                   </div>
                                 </div>
                               ))}
@@ -1988,9 +1980,9 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                         <div className="flex items-start gap-3">
                           <User className="h-5 w-5 text-primary mt-0.5" />
                           <div className="space-y-2">
-                            <p className="text-sm font-medium">Generate Personalized Tasks</p>
+                            <p className="text-sm font-medium">Personal tasks</p>
                             <p className="text-xs text-muted-foreground">
-                              Create unique, customized tasks for each selected student based on their interests, skills, and profile.
+                              Saved tasks that fit each student are reused first. AI writes a new one only when nothing fits (up to 30 a week).
                             </p>
                           </div>
                         </div>
@@ -1998,11 +1990,11 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
 
                       <Button
                         onClick={generatePersonalizedTasks}
-                        disabled={selectedStudents.length === 0}
+                        disabled={aiGenerating || selectedStudents.length === 0}
                         className="w-full"
                       >
                         <Wand2 className="h-4 w-4 mr-2" />
-                        Generate Personalized Tasks
+                        Find tasks
                       </Button>
                     </div>
                   ) : (
@@ -2065,14 +2057,6 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                                       )}
                                     </div>
                                   </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => toggleTaskEditing(task.id)}
-                                    className="h-7 px-2"
-                                  >
-                                    {task.isEditing ? "Done" : "Edit"}
-                                  </Button>
                                 </div>
 
                                 {task.isEditing ? (

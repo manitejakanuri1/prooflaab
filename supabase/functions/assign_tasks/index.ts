@@ -6,6 +6,7 @@ import { cors } from "../_shared/cors.ts";
 import { generateGradedConfig, type AutoConfigMode } from "../_shared/auto-config.ts";
 import { explicitCodingProblem } from '../_shared/coding-mode.ts';
 import { assignScope, clampTask, targetIds, templateAllowed } from '../_shared/assign-scope.ts';
+import { personalMatch, PERSONAL_AI_PER_WEEK } from '../_shared/personal-match.ts';
 
 interface AssignTasksRequest {
   mode: 'manual' | 'template' | 'personalized';
@@ -26,6 +27,9 @@ interface AssignTasksRequest {
   
   // Template mode
   template_id?: string;
+
+  // Personalized mode: answer the plan only, write nothing
+  preview?: boolean;
 }
 
 serve(async (req) => {
@@ -86,7 +90,7 @@ serve(async (req) => {
     // Validate required fields
     // Due date is only required when actually assigning tasks (selected_students > 0)
     // For AI generation preview, due_date can be optional
-    if (!due_date && selected_students.length > 0) {
+    if (!due_date && selected_students.length > 0 && requestData.preview !== true) {
       throw new Error('Due date is required when assigning tasks');
     }
 
@@ -98,6 +102,7 @@ serve(async (req) => {
     const source_based_on_role = scope.admin ? 'admin' : 'college';
 
     const createdTasks: any[] = [];
+    const skippedStudents: string[] = [];
     const assignments: any[] = [];
     const currentTime = new Date().toISOString();
 
@@ -203,7 +208,7 @@ serve(async (req) => {
           is_paid: false,
           required_skills: [],
           posted_at: currentTime,
-          category,
+          category: taskData.category ?? category,
           visibility,
           approved_by_admin: approvedByAdmin,
           source: finalSource,
@@ -361,23 +366,63 @@ serve(async (req) => {
       }
 
       case 'personalized': {
-        console.log('Generating personalized tasks for students');
-        
+        // Owner 12 Nov 2026: reuse a saved personal task first; AI writes a new one only when nothing fits and the
+        // creator made fewer than PERSONAL_AI_PER_WEEK this week. A student never gets the same task twice.
+        // preview: true answers the plan per student and writes nothing (no AI either).
         if (selected_students.length === 0) {
           throw new Error('At least one student must be selected for personalized mode');
         }
-        
-        // Get student profiles
         const students = await getStudentProfiles(selected_students);
-        
         if (students.length === 0) {
           throw new Error('No student profiles found. Students need to complete their profiles first.');
         }
-        
+        const preview = requestData.preview === true;
+
+        // ponytail: newest 2000 personal tasks scanned in memory; move matching into SQL past that.
+        const { data: poolRows, error: poolErr } = await supabase.from('tasks')
+          .select('id, title, description, category, grading_type, rubric_config_id, sandbox_config_id, ai_metadata, created_at, created_by_college_id, created_by_admin_id')
+          .eq('source', 'personalized').order('created_at', { ascending: false }).limit(2000);
+        if (poolErr) throw poolErr;
+        const pool: any[] = poolRows ?? [];
+        const originOf = (t: any) => (t.ai_metadata?.reused_from as string) || t.id;
+        const originals = pool.filter((t: any) => !t.ai_metadata?.reused_from);
+        const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+        let newThisWeek = originals.filter((t: any) => Date.parse(t.created_at) > weekAgo
+          && (scope.admin ? t.created_by_admin_id === user.id : t.created_by_college_id === created_by_college_id)).length;
+
+        const plan: any[] = [];
         for (const student of students) {
-          console.log('Generating personalized mini-project for:', student.full_name);
-          
-          const prompt = `Create a personalized mini-project task for this specific student based on their profile and interests.
+          const { data: mine, error: mineErr } = await supabase.from('task_assignments').select('task_id').eq('student_id', student.id);
+          if (mineErr) throw mineErr;
+          const mineIds = new Set((mine ?? []).map((r: any) => r.task_id));
+          const had = new Set(pool.filter((t: any) => mineIds.has(t.id)).map(originOf));
+          const best = originals.filter((t: any) => !had.has(t.id))
+            .map((t: any) => ({ t, score: personalMatch(student, t.ai_metadata?.student_profile) }))
+            .sort((x, y) => y.score - x.score)[0];
+          let step: any;
+          if (best && best.score >= 2) step = { kind: 'saved', task: best.t };
+          else if (newThisWeek < PERSONAL_AI_PER_WEEK) { newThisWeek++; step = { kind: 'new' }; }
+          else if (best) step = { kind: 'saved', task: best.t };
+          else step = { kind: 'none' };
+          plan.push({ studentId: student.id, studentName: student.full_name, ...step });
+          if (preview) {
+            // a preview "new" stands in for a task the next similar student would reuse
+            if (step.kind === 'new') originals.unshift({ id: `new-${student.id}`, title: `same as the new task for ${student.full_name}`, description: '', ai_metadata: { student_profile: student }, created_at: currentTime });
+            continue;
+          }
+
+          if (step.kind === 'saved') {
+            const t = step.task;
+            const task = await insertTask({
+              title: t.title, description: t.description, xp_reward, source: 'personalized', category: t.category,
+              ai_metadata: { reused_from: t.id, for_student: student.id, reused_at: currentTime },
+              rubric_config_id: t.rubric_config_id, sandbox_config_id: t.sandbox_config_id, grading_type: t.grading_type,
+            });
+            pool.unshift(task);
+            createdTasks.push(task);
+            assignments.push(...await insertAssignments(task.id, [student.id]));
+          } else if (step.kind === 'new') {
+            const prompt = `Create a personalized mini-project task for this specific student based on their profile and interests.
 
 STUDENT PROFILE:
 Name: ${student.full_name}
@@ -412,43 +457,45 @@ Description: Build a comprehensive personal portfolio website using React.js tha
 
 Now generate a personalized mini-project for ${student.full_name}:`;
 
-          try {
-            const { title, description, model } = await generateWithGemini(prompt, 'gemini-flash-latest');
-            
-            const aiMetadata = {
-              model: model,
-              student_profile: {
-                full_name: student.full_name,
-                branch: student.branch,
-                year_of_study: student.year_of_study,
-                key_interests: student.key_interests,
-                preferred_skills: student.preferred_skills,
-                career_goals: student.career_goals
-              },
-              generated_at: currentTime,
-              prompt_type: 'personalized_mini_project'
-            };
-
-            const gradingConfig = await attachGradingConfig(title, description);
+            let gen: { title: string; description: string; model: string };
+            try {
+              gen = await generateWithGemini(prompt, 'gemini-flash-latest');
+            } catch (error) {
+              console.error('personal task generation failed', error);
+              throw new Error(`AI generation failed for ${student.full_name}, please retry.`);
+            }
+            const gradingConfig = await attachGradingConfig(gen.title, gen.description);
             const task = await insertTask({
-              title: title,
-              description: description,
-              xp_reward,
-              source: 'personalized',
-              ai_metadata: aiMetadata,
-              ...gradingConfig
+              title: gen.title, description: gen.description, xp_reward, source: 'personalized',
+              ai_metadata: {
+                model: gen.model, for_student: student.id, generated_at: currentTime, prompt_type: 'personalized_mini_project',
+                student_profile: {
+                  full_name: student.full_name, branch: student.branch, year_of_study: student.year_of_study,
+                  key_interests: student.key_interests, preferred_skills: student.preferred_skills, career_goals: student.career_goals,
+                },
+              },
+              ...gradingConfig,
             });
-
+            originals.unshift(task);   // the next similar student in this same request reuses it
+            pool.unshift(task);
             createdTasks.push(task);
-            const taskAssignments = await insertAssignments(task.id, [student.id]);
-            assignments.push(...taskAssignments);
-            
-            console.log(`Successfully created personalized task for ${student.full_name}`);
-          } catch (error) {
-            console.error(`Failed to generate task for ${student.full_name}:`, error);
-            throw new Error(`AI generation failed for ${student.full_name}, please retry.`);
+            assignments.push(...await insertAssignments(task.id, [student.id]));
           }
         }
+
+        const skipped = plan.filter((p) => p.kind === 'none').map((p) => p.studentName);
+        if (preview) {
+          return new Response(JSON.stringify({
+            success: true,
+            plan: plan.map((p) => ({ studentId: p.studentId, studentName: p.studentName, kind: p.kind,
+              title: p.task?.title ?? null, description: p.task?.description ?? null })),
+            new_left_this_week: Math.max(0, PERSONAL_AI_PER_WEEK - newThisWeek),
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        if (createdTasks.length === 0) {
+          throw new Error(`No new personal task left for ${skipped.join(', ')}. Write one in the Manual tab.`);
+        }
+        skippedStudents.push(...skipped);
         break;
       }
 
@@ -463,7 +510,8 @@ Now generate a personalized mini-project for ${student.full_name}:`;
       created_tasks: createdTasks.length,
       assignments: assignments.length,
       tasks: createdTasks,
-      task_assignments: assignments
+      task_assignments: assignments,
+      skipped_students: skippedStudents
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -490,6 +538,8 @@ Now generate a personalized mini-project for ${student.full_name}:`;
       } else if (errorMessage.includes('required')) {
         statusCode = 400;
         errorMessage = 'Missing required fields: ' + errorMessage;
+      } else if (/Could not build working tests|No new personal task left/.test(errorMessage)) {
+        statusCode = 422;   // the author can act on it: reword, or write one by hand
       } else if (errorMessage.includes('AI generation failed') || errorMessage.includes('Gemini') || errorMessage.includes('blocked')) {
         statusCode = 502;
         errorMessage = 'AI service is currently unavailable. Please try manual mode or try again later.';

@@ -112,3 +112,14 @@ export const tidyShown = (t: string) => t
   .replace(/\bthe (student|candidate|learner)s? (must|should|will|needs to|has to|is asked to)\b/gi, (_m, _w, v: string) =>
     `you ${({ "needs to": "need to", "has to": "have to", "is asked to": "are asked to" } as Record<string, string>)[v.toLowerCase()] ?? v.toLowerCase()}`)
   .replace(/(^|[.!?]\s+|\n)you /g, (_m, p: string) => `${p}You `);
+
+/** Purna 12 Nov 2026 (migration 229): one copied_answer_notes() row as the college's info line. */
+export interface CopiedNote {
+  submission_id: string; created_at: string; task_title: string | null; lot_date: string | null;
+  student_name: string | null; student_squad: string | null; other_name: string | null; other_squad: string | null;
+}
+export function copiedNoteText(n: CopiedNote, fmtDate: (iso: string) => string): string {
+  const who = (name: string | null, squad: string | null) => `${name ?? "a student"}${squad ? ` (${squad})` : ""}`;
+  const pair = n.other_name ? `${who(n.student_name, n.student_squad)} and ${who(n.other_name, n.other_squad)} wrote` : `${who(n.student_name, n.student_squad)} wrote`;
+  return `Looks copied: ${pair} almost the same answer on ${n.task_title ?? "a Lot"}, ${fmtDate(n.lot_date ?? n.created_at)}.`;
+}

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { dropHelper, dropWordRange, plainCode, tidyShown, lotStatusText, oneRange, part10, squadUpdateText, triesSummary, voiceOwedText, weekDayText, weekLotsText } from "./lotText.ts";
+import { copiedNoteText, dropHelper, dropWordRange, plainCode, tidyShown, lotStatusText, oneRange, part10, squadUpdateText, triesSummary, voiceOwedText, weekDayText, weekLotsText } from "./lotText.ts";
 
 test("one word range: the checker's replaces the one in the text", () => {
   const w = { min: 150, max: 800 };
@@ -82,4 +82,12 @@ test("tidyShown: plain quotes, and text about the student reads as talking to th
   assert.equal(tidyShown('Say \\"hi\\".'), 'Say "hi".');
   assert.equal(tidyShown("The student must explain the query. Then the student has to say why."),
     "You must explain the query. Then you have to say why.");
+});
+
+test("copied-answer note names both students with their squads", () => {
+  const n = { submission_id: "s", created_at: "2026-11-12T05:00:00Z", task_title: "Craft a 60-second self introduction", lot_date: "2026-11-12",
+    student_name: "Meghana Reddy", student_squad: "CSE-A Titans", other_name: "Ravi Kumar", other_squad: null };
+  assert.equal(copiedNoteText(n, (d) => d.slice(0, 10)),
+    "Looks copied: Meghana Reddy (CSE-A Titans) and Ravi Kumar wrote almost the same answer on Craft a 60-second self introduction, 2026-11-12.");
+  assert.equal(copiedNoteText({ ...n, other_name: null }, (d) => d.slice(0, 10)).startsWith("Looks copied: Meghana Reddy (CSE-A Titans) wrote almost"), true);
 });

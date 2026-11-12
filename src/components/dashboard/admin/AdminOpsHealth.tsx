@@ -40,7 +40,7 @@ const AdminOpsHealth = () => {
     queryKey: ["admin-ops-health"],
     refetchInterval: 60_000,
     queryFn: async () => {
-      const [lotsToday, activeStudents, voicePending, voiceStuck, voiceFailed, pages7d, templates, ai24h, review] = await Promise.all([
+      const [lotsToday, activeStudents, voicePending, voiceStuck, voiceFailed, pages7d, templates, ai24h] = await Promise.all([
         count("tasks", (q) => q.eq("lot_date", today)),
         count("student_profiles", (q) => q.eq("status", "active")),
         count("voice_explanations", (q) => q.in("transcription_status", ["pending", "processing"])),
@@ -49,9 +49,8 @@ const AdminOpsHealth = () => {
         count("source_content", (q) => q.gte("fetched_at", since(24 * 7))),
         count("lot_templates"),
         count("llm_usage", (q) => q.gte("created_at", since(24))),
-        count("task_submissions", (q) => q.eq("status", "needs_review")),
       ]);
-      return { lotsToday, activeStudents, voicePending, voiceStuck, voiceFailed, pages7d, templates, ai24h, review };
+      return { lotsToday, activeStudents, voicePending, voiceStuck, voiceFailed, pages7d, templates, ai24h };
     },
   });
 
@@ -67,7 +66,6 @@ const AdminOpsHealth = () => {
     { area: "Crawler", label: "New source pages in 7 days", value: String(data.pages7d), bad: data.pages7d === 0, hint: "0 for a week means the crawler found nothing new or did not run." },
     { area: "Lot writing", label: "Lots written and stored", value: String(data.templates), bad: false, hint: "Written once, reused." },
     { area: "AI", label: "AI calls in the last 24 hours", value: String(data.ai24h), bad: false, hint: "Detail is under AI usage." },
-    { area: "Work", label: "Submissions waiting for a person", value: String(data.review), bad: false, hint: "See Work > Flags & reviews." },
   ];
 
   return (

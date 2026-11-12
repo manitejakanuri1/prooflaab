@@ -157,12 +157,17 @@ try {
   await go(page, "/college/dashboard");
   await check("College: home counts Lot attempts, not logins (item 26)", async () =>
     (await page.getByText("Tried a Lot today").count()) > 0 && (await page.getByText(/opened the app/i).count()) === 0);
+  await check("College: home shows the 'Looks copied' info note, no review button (migration 229)", async () => {
+    await page.getByTestId("copied-notes").waitFor({ timeout: 20000 }).catch(() => {});
+    return /Looks copied: .+ and .+ wrote almost the same answer on /.test(await page.getByTestId("copied-notes").innerText().catch(() => ""));
+  });
   await go(page, "/college/matches");
   await check("College: /college/matches opens Matches", async () => page.url().includes("view=matches"));
   await check("College: a match row opens the match popup", async () => { const row = page.locator("tbody tr.cursor-pointer").first(); if (!(await row.count())) return true; await row.click(); const ok = await dialogOpen(page); await page.screenshot({ path: `${out}/d-college-match-popup.png` }); await closeDialog(page); return ok; });
   await go(page, "/college/dashboard?tab=students");
   await check("College: students STATUS is Lot-based, no login-style 'Active' badge (F5)", async () =>
     (await page.getByText(/^Active$/).count()) === 0);
+  await check("College: no 'Flagged Submissions' review button", async () => (await page.getByRole("button", { name: /Flagged Submissions/ }).count()) === 0);
   await check("College: a student row opens the drawer", async () => { await page.locator("tbody tr").first().click(); return dialogOpen(page); });
   await check("College: drawer never says '0 questions'", async () => { await page.waitForTimeout(1500); return !/\b0 questions\b/.test(await page.getByRole("dialog").innerText()); });
   await check("College: drawer never ranks a 0-point squad (squad 0 (#n))", async () => !/squad 0 \(#\d+\)/.test(await page.getByRole("dialog").innerText()));
@@ -173,6 +178,10 @@ try {
   await cookieSignIn(ctx, BASE, logins["Admin"]);
   page = await ctx.newPage();
   await go(page, "/admin/dashboard?tab=submissions");
+  await check("Admin: Submissions tags 'Looks copied (like <student>)', no review tab", async () => {
+    await page.getByText(/Looks copied \(like /).first().waitFor({ timeout: 20000 }).catch(() => {});
+    return (await page.getByText(/Looks copied \(like /).count()) > 0 && (await page.getByRole("tab", { name: /Flags & reviews/ }).count()) === 0;
+  });
   await check("Admin: a submission row opens its detail", async () => { await page.locator("tbody tr.cursor-pointer").first().click(); const ok = await dialogOpen(page); await page.screenshot({ path: `${out}/d-admin-submission.png` }); return ok; });
   await ctx.close();
 } finally { await browser.close(); }

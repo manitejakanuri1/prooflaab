@@ -54,8 +54,8 @@ async function voiceRows(status: string): Promise<Row[]> {
 /**
  * Admin > Work Queue > Submissions: every graded attempt on the platform, newest
  * first, from task_submissions (the one source of student work since the proof
- * system was retired). Flagged ones are also listed in "Flagged submissions",
- * where they can be re-decided.
+ * system was retired). A "Looks copied" try keeps its mark (migration 229); the Flags column names the
+ * student it matches (copied_answer_notes).
  */
 const AdminSubmissions = () => {
   const [status, setStatus] = useState("all");
@@ -68,12 +68,24 @@ const AdminSubmissions = () => {
         .select("id, status, sandbox_score, passed_count, total_count, runner, flags, created_at, sandbox_config_id, tasks(title, source), student_profiles(full_name)")
         .order("created_at", { ascending: false }).limit(200);
       if (status !== "all") q = q.eq("status", status);
-      const [{ data, error }, voices] = await Promise.all([q, status === "needs_review" ? Promise.resolve([]) : voiceRows(status)]);
+      const [{ data, error }, voices] = await Promise.all([q, voiceRows(status)]);
       if (error) throw error;
       return [...((data as unknown as Row[]) ?? []), ...voices]
         .sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 200);
     },
   });
+
+  const { data: copied = new Map<string, string>() } = useQuery({
+    queryKey: ["copied-answer-notes", "admin"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("copied_answer_notes" as never, { _limit: 200 } as never);
+      if (error) throw error;
+      return new Map(((data ?? []) as { submission_id: string; other_name: string | null }[])
+        .map((n) => [n.submission_id, n.other_name ?? "another student"]));
+    },
+  });
+  const flagText = (r: Row) => (r.flags ?? [])
+    .map((f) => f === "copied_answer" && copied.has(r.id) ? `Looks copied (like ${copied.get(r.id)})` : plainCode(f)).join(", ");
 
   return (
     <Card>
@@ -94,7 +106,6 @@ const AdminSubmissions = () => {
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="passed">Passed</SelectItem>
             <SelectItem value="failed">Not passed</SelectItem>
-            <SelectItem value="needs_review">Needs review</SelectItem>
             <SelectItem value="voice">Voice only</SelectItem>
           </SelectContent>
         </Select>
@@ -119,7 +130,7 @@ const AdminSubmissions = () => {
                     <td className="py-2 pr-3">{r.tasks?.title ?? "—"}</td>
                     <td className="py-2 pr-3">{r.voice ? "voice" : r.sandbox_config_id ? `code (${r.passed_count ?? 0}/${r.total_count ?? 0})` : "written"}</td>
                     <td className="py-2 pr-3"><Badge variant={r.status === "passed" || (r.voice && r.status === "scored") ? "default" : "secondary"}>{plainCode(r.status)}{r.sandbox_score != null ? ` · ${of10(r.sandbox_score)}` : ""}</Badge></td>
-                    <td className="py-2 text-xs text-muted-foreground">{(r.flags ?? []).map(plainCode).join(", ") || "—"}</td>
+                    <td className="py-2 text-xs text-muted-foreground">{flagText(r) || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -140,7 +151,7 @@ const AdminSubmissions = () => {
                 {open.total_count != null && <p><span className="font-medium">Tests passed:</span> {open.passed_count ?? 0} of {open.total_count}</p>}
                 <p><span className="font-medium">Result:</span> {plainCode(open.status)}{open.sandbox_score != null ? ` · ${of10(open.sandbox_score)}` : ""}</p>
                 {open.runner && <p><span className="font-medium">Runner:</span> {open.runner}</p>}
-                <p><span className="font-medium">Flags:</span> {(open.flags ?? []).map(plainCode).join(", ") || "—"}</p>
+                <p><span className="font-medium">Flags:</span> {flagText(open) || "—"}</p>
                 <p className="font-mono text-[10px] text-muted-foreground">id {open.id}</p>
               </div>
             </>

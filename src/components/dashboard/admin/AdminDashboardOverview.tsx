@@ -45,7 +45,7 @@ const AdminDashboardOverview = ({
         // Student work = task_submissions (the only record of submitted work).
         supabase.from('task_submissions').select('id', { count: 'exact', head: true }),
         supabase.from('task_submissions').select('id', { count: 'exact', head: true })
-          .eq('status', 'needs_review'),
+          .contains('flags', ['copied_answer']),
         supabase.from('tasks').select('id', { count: 'exact', head: true }),
         supabase.from('tasks').select('id', { count: 'exact', head: true })
           // Daily Lots are stored lowercase ('pending'); older rows use capitalised words.
@@ -146,14 +146,14 @@ const AdminDashboardOverview = ({
     color: "text-compete",
     onClick: () => onNavigate?.("startups")
   }, {
-    // Sweep M11: two numbers, two cards. Flagged answers waiting for a person...
-    title: "Needs review",
-    help: "Answers the checker flagged for a person to look at. Opens the list.",
+    // Purna 12 Nov 2026 (migration 229): nothing waits for a person; a copy is only a note.
+    title: "Looks copied",
+    help: "Answers almost the same as another student's answer to the same Lot. The mark stands; nobody needs to act. Opens Submissions.",
     value: stats?.pendingProofs || 0,
-    subtitle: "flagged answers waiting for a person",
+    subtitle: "answers marked as a near copy (info only)",
     icon: ClipboardCheck,
     color: "text-compete",
-    onClick: () => onNavigate?.("reviewed-submissions")
+    onClick: () => onNavigate?.("submissions")
   }, {
     // ...and every answer or code check ever sent (Retest H3: retries included, voice not counted).
     title: "Answer/code tries",

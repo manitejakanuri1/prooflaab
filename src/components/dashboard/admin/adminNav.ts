@@ -24,7 +24,6 @@ export const ADMIN_GROUPS = [
     { id: "task-oversight", label: "Lots & tasks" },
     { id: "daily-lots", label: "Daily Lots" },
     { id: "submissions", label: "Submissions" },
-    { id: "reviewed-submissions", label: "Flags & reviews" },
     { id: "assign-tasks", label: "Assign tasks" },
     { id: "content-library", label: "Content library" },
     { id: "question-bank", label: "Question bank" },

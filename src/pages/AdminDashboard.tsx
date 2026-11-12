@@ -16,7 +16,6 @@ import SystemSettings from "@/components/dashboard/admin/SystemSettings";
 import AdminAssignTasks from "@/components/dashboard/admin/AdminAssignTasks";
 import RecruiterOversight from "@/components/dashboard/admin/RecruiterOversight";
 import AdminHeader from "@/components/dashboard/admin/AdminHeader";
-import ReviewedSubmissions from "@/components/dashboard/admin/ReviewedSubmissions";
 import AdminSubmissions from "@/components/dashboard/admin/AdminSubmissions";
 import ContentLibrary from "@/components/dashboard/admin/ContentLibrary";
 import QuestionBank from "@/components/dashboard/admin/QuestionBank";
@@ -30,7 +29,6 @@ import AdminOpsHealth from "@/components/dashboard/admin/AdminOpsHealth";
 import { useUrlTab } from "@/hooks/useUrlTab";
 import { BrandPage } from "@/components/auth/AccessShell";
 import "@/components/landing/landing.css";
-import { usePendingReviewCount } from "@/hooks/usePendingReviewCount";
 
 const AdminDashboard = () => {
   const { userType } = useParams();
@@ -41,7 +39,6 @@ const AdminDashboard = () => {
   // in the cookie the sidebar component already writes on every change.
   const [desktopOpen, setDesktopOpen] = useState(() => !document.cookie.includes("sidebar:state=false"));
   const isMobile = useIsMobile();
-  const pendingReviews = usePendingReviewCount();
 
   // The page is in the URL (?tab=), so refresh, Back/Forward and pasted links work.
   // /admin/dashboard/user-management/<type> is an older address for the People lists.
@@ -71,8 +68,6 @@ const AdminDashboard = () => {
         return <AdminDashboardOverview onNavigate={setActiveTab} />;
       case "submissions":
         return <AdminSubmissions />;
-      case "reviewed-submissions":
-        return <ReviewedSubmissions />;
       // One Students page (13 Oct): the old Students list and Student oversight showed the same people.
       case "students":
       case "student-oversight":
@@ -166,12 +161,6 @@ const AdminDashboard = () => {
                       {group.children.map((c) => (
                         <TabsTrigger key={c.id} value={c.id}>
                           {c.label}
-                          {c.id === "reviewed-submissions" && pendingReviews > 0 && (
-                            <span className="ml-1.5 rounded-full bg-alert px-1.5 text-[10px] font-semibold text-background"
-                                  aria-label={`${pendingReviews} waiting for review`}>
-                              {pendingReviews}
-                            </span>
-                          )}
                         </TabsTrigger>
                       ))}
                     </TabsList>

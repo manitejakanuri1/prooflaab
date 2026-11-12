@@ -12,6 +12,7 @@ import {
 } from "@/components/dashboard/season/SeasonPhaseBar";
 import PostSourceMaterial from "./PostSourceMaterial";
 import AnnouncementBanner from "@/components/dashboard/AnnouncementBanner";
+import CopiedAnswerNotes from "./CopiedAnswerNotes";
 
 interface AttentionLine {
   reason_code: string;
@@ -136,6 +137,8 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
           <PostJobDescription />
         </div>
       </div>
+
+      <CopiedAnswerNotes />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => {

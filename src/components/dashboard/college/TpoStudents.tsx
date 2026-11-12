@@ -22,8 +22,6 @@ import AssignTasksScreen from "@/components/dashboard/assignTasks/AssignTasksScr
 // Reused as-is: needs_review_submissions()/review_task_submission() already
 // scope to "admin OR this student's own approved college" (stage70), so the
 // same screen is correct here without a college-specific fork.
-import ReviewedSubmissions from "@/components/dashboard/admin/ReviewedSubmissions";
-import { usePendingReviewCount } from "@/hooks/usePendingReviewCount";
 
 interface Row {
   student_id: string;
@@ -108,8 +106,6 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
   const [openStudent, setOpenStudent] = useState<string | null>(null);
   const [skill, setSkill] = useState<string>("all");
   const [assignOpen, setAssignOpen] = useState(false);
-  const [reviewOpen, setReviewOpen] = useState(false);
-  const pendingReviews = usePendingReviewCount();
 
   /**
    * One page, filtered by the database.
@@ -300,18 +296,6 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
           <ClipboardList className="h-4 w-4 mr-2" />
           Assign Task
         </Button>
-        {/* stage70: written-task submissions the AI grader flagged for a
-            human - a close match to another student's answer, a
-            disagreement between the two graders, or an AI-authorship flag. */}
-        <Button variant="outline" onClick={() => setReviewOpen(true)}>
-          <FlagTriangleRight className="h-4 w-4 mr-2" />
-          Flagged Submissions
-          {pendingReviews > 0 && (
-            <Badge variant="destructive" className="ml-2" aria-label={`${pendingReviews} waiting for review`}>
-              {pendingReviews}
-            </Badge>
-          )}
-        </Button>
       </div>
 
       <Card>
@@ -482,14 +466,6 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
         </DialogContent>
       </Dialog>
 
-      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="sr-only">Flagged Submissions</DialogTitle>
-          </DialogHeader>
-          <ReviewedSubmissions />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

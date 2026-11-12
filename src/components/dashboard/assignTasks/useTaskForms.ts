@@ -28,9 +28,9 @@ export interface PersonalizedTask {
 const manualDefaults = {
   title: "",
   description: "",
-  xpReward: "",
+  xpReward: "100",
   dueDate: undefined as Date | undefined,
-  category: "Coding",
+  category: "Writing",
   visibility: "Public",
   attachmentType: "url" as "url" | "file",
   attachmentUrl: "",
@@ -44,7 +44,7 @@ const aiDefaults = {
   visibility: "Public",
   title: "",
   description: "",
-  xpReward: "",
+  xpReward: "100",
   generated: false,
 };
 
@@ -52,18 +52,18 @@ const templateDefaults = {
   selectedTemplate: "",
   title: "",
   description: "",
-  xpReward: "",
+  xpReward: "100",
   dueDate: undefined as Date | undefined,
-  category: "Coding",
+  category: "Writing",
   visibility: "Public",
 };
 
 const personalDefaults = {
   title: "",
   description: "",
-  xpReward: "",
+  xpReward: "100",
   dueDate: undefined as Date | undefined,
-  category: "Coding",
+  category: "Writing",
   visibility: "Public",
 };
 
@@ -110,10 +110,10 @@ export function useTaskForms(activeTab: string) {
   // Each clear button wipes the text but keeps due date and visibility, which
   // are the settings a user least wants to re-pick.
   const clearManualTask = () =>
-    setManualForm((prev) => ({ ...prev, title: "", description: "", xpReward: "", category: "" }));
+    setManualForm((prev) => ({ ...prev, title: "", description: "", xpReward: "100", category: "Writing" }));
 
   const clearAITask = () =>
-    setAiForm((prev) => ({ ...prev, title: "", description: "", xpReward: "", generated: false }));
+    setAiForm((prev) => ({ ...prev, title: "", description: "", xpReward: "100", generated: false }));
 
   const clearTemplate = () =>
     setTemplateForm((prev) => ({
@@ -121,11 +121,11 @@ export function useTaskForms(activeTab: string) {
       selectedTemplate: "",
       title: "",
       description: "",
-      xpReward: "",
+      xpReward: "100",
     }));
 
   const clearPersonalForm = () =>
-    setPersonalForm((prev) => ({ ...prev, title: "", description: "", xpReward: "" }));
+    setPersonalForm((prev) => ({ ...prev, title: "", description: "", xpReward: "100" }));
 
   return {
     manualForm,
@@ -146,7 +146,7 @@ export function useTaskForms(activeTab: string) {
     xpReward: currentForm.xpReward || "",
     dueDate: currentForm.dueDate,
     visibility: currentForm.visibility || "Public",
-    category: "category" in currentForm ? currentForm.category : "Coding",
+    category: "category" in currentForm ? currentForm.category : "Writing",
 
     // Fields only one tab has.
     selectedBranch: aiForm.selectedBranch,

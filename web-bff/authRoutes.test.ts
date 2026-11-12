@@ -780,6 +780,7 @@ Deno.test("authenticated password update stays server-side", async () => {
   };
 
   let sawPassword = false;
+  let checkedCurrent = false;
 
   const fetcher: typeof fetch = async (input, init) => {
     const url = String(input);
@@ -793,6 +794,12 @@ Deno.test("authenticated password update stays server-side", async () => {
         id_token: "ACTION_ID_TOKEN",
         refresh_token: "ACTION_REFRESH_TOKEN",
       });
+    }
+
+    if (url.includes("accounts:signInWithPassword")) {
+      const sent = JSON.parse(String(init?.body ?? "{}"));
+      checkedCurrent = sent.email === "student@example.test" && sent.password === "OldPassword1!";
+      return Response.json({ idToken: "CHECK_ID", refreshToken: "CHECK_REFRESH" });
     }
 
     if (
@@ -853,6 +860,7 @@ Deno.test("authenticated password update stays server-side", async () => {
       },
       body: JSON.stringify({
         password: "NewPassword123!",
+        current_password: "OldPassword1!",
       }),
     },
   );
@@ -885,6 +893,8 @@ Deno.test("authenticated password update stays server-side", async () => {
     sawPassword,
     "new password never reached Google",
   );
+
+  assert(checkedCurrent, "current password was not checked with Google");
 
   assert(
     finalState.value !== null,
@@ -1108,4 +1118,68 @@ Deno.test("own reset email links to SITE_URL, never the request Origin", async (
   ), "link not on our page");
   assert(!JSON.stringify(mail.body).includes("evil.example"), "link followed the request Origin");
   assert(!JSON.stringify(await res.json()).includes("CODE1"), "code leaked to the browser");
+});
+
+// Owner E2E 12 Nov P1: a new password needs the current one, checked by Google under the sign-in limit.
+function passwordChange(body: Record<string, unknown>, deps: Record<string, unknown>) {
+  return handleAuthRoute(
+    new Request("https://prooflab.co.in/api/auth/update", {
+      method: "POST",
+      headers: { Cookie: makeSessionCookie(SESSION_ID, 3600).split(";")[0], "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+    { env: env(), ...open, now: () => NOW, loadSession: async () => stored(), loadLoginIdentity: stillAllowed, ...deps },
+  );
+}
+
+Deno.test("password change without the current password is refused before any provider call", async () => {
+  const outbound: string[] = [];
+  for (const body of [{ password: "NewPassword123!" }, { password: "NewPassword123!", current_password: "" }]) {
+    const res = await passwordChange(body, {
+      fetcher: async (input: RequestInfo | URL) => {
+        outbound.push(String(input));
+        throw new Error("unexpected");
+      },
+      checkLoginGate: async () => { throw new Error("gate asked"); },
+    });
+    assert(res?.status === 400, `answered ${res?.status}`);
+    assert((await res.json()).reason === "current_password_required", "wrong reason");
+  }
+  assert(outbound.length === 0, `provider called: ${outbound.join(", ")}`);
+});
+
+Deno.test("a wrong current password is counted as a failed sign-in and nothing changes", async () => {
+  const events: { event_type: string; email?: string | null; detail?: Record<string, unknown> }[] = [];
+  const urls: string[] = [];
+  const res = await passwordChange({ password: "NewPassword123!", current_password: "Guess1!" }, {
+    fetcher: async (input: RequestInfo | URL) => {
+      urls.push(String(input));
+      if (String(input).includes("accounts:signInWithPassword")) {
+        return Response.json({ error: { message: "INVALID_LOGIN_CREDENTIALS" } }, { status: 400 });
+      }
+      throw new Error(`unexpected URL: ${input}`);
+    },
+    logSecurityEvent: async (e: { event_type: string }) => { events.push(e); },
+    updateSession: async () => { throw new Error("session rewritten"); },
+  });
+  assert(res?.status === 400, `answered ${res?.status}`);
+  const body = await res.json();
+  assert(body.error === "Current password is wrong." && body.reason === "wrong_current_password", JSON.stringify(body));
+  assert(events.length === 1 && events[0].event_type === "login_failed" && events[0].email === "student@example.test", "not counted");
+  assert(!JSON.stringify(events).includes("Guess1!"), "password logged");
+  assert(!urls.some((u) => u.includes("accounts:update")), "password changed anyway");
+});
+
+Deno.test("password change is refused while the sign-in limit is reached, and fails closed", async () => {
+  const google: string[] = [];
+  const fetcher = async (input: RequestInfo | URL) => { google.push(String(input)); throw new Error("unexpected"); };
+  const locked = await passwordChange({ password: "NewPassword123!", current_password: "Old1!" }, {
+    fetcher, checkLoginGate: async () => ({ allowed: false, reason: "account_locked", retry_after: 300 }),
+  });
+  assert(locked?.status === 429 && locked.headers.get("Retry-After") === "300", `locked answered ${locked?.status}`);
+  const broken = await passwordChange({ password: "NewPassword123!", current_password: "Old1!" }, {
+    fetcher, checkLoginGate: async () => { throw new Error("db down"); },
+  });
+  assert(broken?.status === 503, `broken gate answered ${broken?.status}`);
+  assert(google.length === 0, "Google asked despite the limit");
 });

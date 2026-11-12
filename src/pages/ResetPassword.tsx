@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Check, Eye, EyeOff, Loader2 } from "lucide-react";
 import { completeBffPasswordReset, verifyBffPasswordReset } from "@/integrations/google/bffSession";
+import { supabase } from "@/integrations/supabase/client";
 import { isPasswordValid } from "@/components/auth/PasswordInput";
 import { Button } from "@/components/landing/LandingButton";
 import {
@@ -88,6 +89,9 @@ export default function ResetPassword() {
     setError("");
     try {
       await completeBffPasswordReset(code, password);
+      // Owner E2E 12 Nov P2: a browser still signed in (often as another account) sent "Sign in" straight to
+      // that account's dashboard, so the reset looked like it did nothing. End that session first.
+      await supabase.auth.signOut();
       setDone(true);
     } catch (err) {
       setError(err instanceof Error && err.message ? err.message : "Your new password did not save. Try again.");

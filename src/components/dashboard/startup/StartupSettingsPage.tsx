@@ -60,6 +60,8 @@ export function StartupSettingsPage() {
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
@@ -141,6 +143,11 @@ export function StartupSettingsPage() {
   };
 
   const updatePassword = async () => {
+    setPasswordError("");
+    if (!currentPassword) {
+      setPasswordError("Enter your current password.");
+      return;
+    }
     if (password.length < 8) {
       toast({ title: "Too short", description: "Use at least 8 characters.", variant: "destructive" });
       return;
@@ -150,13 +157,15 @@ export function StartupSettingsPage() {
       return;
     }
     setSavingPassword(true);
-    const { error } = await supabase.auth.updateUser({ password });
+    const { error } = await supabase.auth.updateUser({ password, current_password: currentPassword });
     setSavingPassword(false);
 
     if (error) {
+      setPasswordError(error.message);
       toast({ title: "Password not changed", description: error.message, variant: "destructive" });
       return;
     }
+    setCurrentPassword("");
     setPassword("");
     setConfirmPassword("");
     toast({ title: "Password updated" });
@@ -311,6 +320,21 @@ export function StartupSettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="current-password">Current Password</Label>
+            <Input
+              id="current-password"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              autoComplete="current-password"
+              aria-invalid={Boolean(passwordError)}
+              aria-describedby={passwordError ? "password-error" : undefined}
+            />
+            {passwordError && (
+              <p id="password-error" role="alert" className="text-sm text-destructive">{passwordError}</p>
+            )}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="new-password">New Password</Label>

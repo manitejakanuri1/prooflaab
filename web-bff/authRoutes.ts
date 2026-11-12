@@ -869,6 +869,9 @@ async function sendOwnResetEmail(
     }),
   });
   if (!sent.ok) throw new Error(`email service ${sent.status}`);
+  // Proof the link was made and handed to the mail service (never the code or the address).
+  const receipt = await sent.json().catch(() => ({})) as { id?: unknown };
+  console.log("password reset email sent:", typeof receipt.id === "string" ? receipt.id : "no id");
 }
 
 function escapeHtml(value: string): string {
@@ -1121,6 +1124,70 @@ async function refreshGoogleForAction(
   };
 }
 
+/**
+ * Checks the signed-in user's current password with Google, the same way sign-in does, under the same
+ * sign-in limit: a wrong one is written as a failed sign-in try, so five wrong ones lock the email for
+ * 15 minutes for both sign-in and password change. Null = correct; otherwise the answer to send.
+ */
+async function checkCurrentPassword(
+  req: Request,
+  cfg: ReturnType<typeof config>,
+  user: SessionUser,
+  currentPassword: unknown,
+): Promise<Response | null> {
+  if (typeof currentPassword !== "string" || !currentPassword) {
+    return json({ error: "Enter your current password.", reason: "current_password_required" }, 400);
+  }
+  if (!cfg.googleApiKey || !user.email) {
+    return json({ error: "Could not update your account" }, 503);
+  }
+
+  const email = user.email.trim().toLowerCase();
+  const ip = clientAddress(req);
+  const record = (event: Pick<SecurityEvent, "event_type" | "severity" | "detail">) =>
+    cfg.logSecurityEvent({
+      ...event,
+      user_id: user.id,
+      email,
+      ip,
+      user_agent: req.headers.get("user-agent"),
+    }).catch((err) =>
+      console.error("security event not written:", event.event_type, err instanceof Error ? err.message : err)
+    );
+
+  let gate: LoginGate;
+  try {
+    gate = await cfg.checkLoginGate(email, ip);
+  } catch (err) {
+    console.error("sign-in limit check failed:", err instanceof Error ? err.message : err);
+    return json({ error: "Sign-in is busy right now. Please try again in a moment." }, 503);
+  }
+  if (!gate.allowed) {
+    const retryAfter = Math.max(1, gate.retry_after ?? 60);
+    await record({ event_type: "login_rate_limited", severity: "warning", detail: { reason: gate.reason ?? "too_many_tries", during: "password_change" } });
+    return json(
+      { error: "Too many tries. Wait a few minutes, then try again.", retry_after_seconds: retryAfter },
+      429,
+      { "Retry-After": String(retryAfter) },
+    );
+  }
+
+  let checked: Response;
+  try {
+    checked = await googleIdentityAction("signInWithPassword", { email: user.email, password: currentPassword, returnSecureToken: true }, cfg);
+  } catch {
+    return json({ error: "Could not update your account" }, 503);
+  }
+  if (checked.ok) return null;
+
+  const refused = await checked.json().catch(() => ({})) as { error?: { message?: unknown } };
+  const reason = failureReason(String(refused.error?.message ?? ""));
+  await record({ event_type: "login_failed", severity: "warning", detail: { reason, during: "password_change" } });
+  return reason === "wrong_email_or_password"
+    ? json({ error: "Current password is wrong.", reason: "wrong_current_password" }, 400)
+    : json({ error: "Could not check your current password. Try again in a few minutes." }, 400);
+}
+
 async function updateCurrentUser(
   req: Request,
   deps: AuthRouteDeps,
@@ -1155,6 +1222,7 @@ async function updateCurrentUser(
 
   let input: {
     password?: unknown;
+    current_password?: unknown;
     email?: unknown;
     data?: unknown;
   };
@@ -1210,6 +1278,14 @@ async function updateCurrentUser(
       },
       400,
     );
+  }
+
+  // A new password needs the current one (owner E2E 12 Nov P1): a stolen or left-open session must not be
+  // enough to take the account over. Every account gets its first password from an emailed set-password
+  // link (password-reset routes), never here, so there is no exemption.
+  if (password !== undefined) {
+    const refused = await checkCurrentPassword(req, cfg, resolved.session.user, input.current_password);
+    if (refused) return refused;
   }
 
   const safeData: Record<string, unknown> = {};

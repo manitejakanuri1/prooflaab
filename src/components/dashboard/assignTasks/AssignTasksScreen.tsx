@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { endOfDay, format, startOfToday } from "date-fns";
 import {
   CalendarIcon, Users, Wand2, Plus, FileText, User, Filter, Eye, Globe, Lock,
   Upload, X, Link, Building2, TrendingUp,
@@ -27,6 +27,9 @@ import { readFunctionError } from "@/lib/functionError";
 import { toast as notify } from "sonner";
 
 // Assign test 12 Nov 2026 (item 3): say what Visibility does.
+// E2E C9: the same limits the database keeps (migration 298, tasks_typed_text_length).
+const TITLE_MAX = 200;
+const DESC_MAX = 4000;
 const VISIBILITY_HELP = "Public: other students and companies can read this task. Private: only the students you pick can see it.";
 
 /** Item 1: the server's own reason (e.g. "Could not build working tests...") instead of a bare "Failed to assign tasks". */
@@ -480,14 +483,16 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
         errors.title = "Task title is required";
       } else if (isAdmin && trimmedTitle.length < 3) {
         errors.title = "Task title must be at least 3 characters long";
-      } else if (isAdmin && trimmedTitle.length > 200) {
-        errors.title = "Task title must not exceed 200 characters";
+      } else if (trimmedTitle.length > TITLE_MAX) {
+        errors.title = `Task title must not exceed ${TITLE_MAX} characters`;
       }
 
       if (!trimmedDescription) {
         errors.description = "Task description is required";
       } else if (isAdmin && trimmedDescription.length < 20) {
         errors.description = "Task description must be at least 20 characters long";
+      } else if (trimmedDescription.length > DESC_MAX) {
+        errors.description = `Task description must not exceed ${DESC_MAX} characters`;
       }
     }
 
@@ -1707,11 +1712,20 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
     );
   }
 
+  // E2E C9: the first thing still missing, shown next to the switched-off Preview button.
+  const previewBlock = activeTab === "personalized"
+    ? personalizedTasks.filter(t => t.selected).length === 0 ? "Pick the students' tasks first"
+      : !xpReward || parseInt(xpReward) <= 0 ? "Add the XP" : !dueDate ? "Pick a due date" : null
+    : !title.trim() ? "Add a title" : !description.trim() ? "Add a description"
+      : !xpReward || parseInt(xpReward) <= 0 ? "Add the XP" : !dueDate ? "Pick a due date"
+      : selectedStudents.length === 0 ? "Pick at least one student" : null;
+
   // College scope
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h2 className="text-2xl font-bold text-foreground">Assign Tasks</h2>
+        {previewBlock && <span className="ml-auto text-sm text-muted-foreground" data-testid="preview-block">{previewBlock}</span>}
         <Button
           variant="outline"
           onClick={handlePreviewAssignment}
@@ -1766,6 +1780,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                     <Input
                       id="title"
                       placeholder="Enter task title"
+                      maxLength={TITLE_MAX}
                       value={title}
                       onChange={(e) => {
                         updateActiveForm({ title: e.target.value });
@@ -1784,6 +1799,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                     <Textarea
                       id="description"
                       placeholder="Enter task description"
+                      maxLength={DESC_MAX}
                       value={description}
                       onChange={(e) => {
                         updateActiveForm({ description: e.target.value });
@@ -1794,6 +1810,10 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                       rows={4}
                       className={formErrors.description ? "border-destructive" : ""}
                     />
+                    <p className={`text-xs text-right ${description.length >= DESC_MAX ? "text-destructive" : "text-muted-foreground"}`}
+                       data-testid="description-count">
+                      {description.length}/{DESC_MAX}
+                    </p>
                     {formErrors.description && (
                       <p className="text-sm text-destructive">{formErrors.description}</p>
                     )}
@@ -2140,20 +2160,21 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
                         mode="single"
                         selected={dueDate}
                         onSelect={(date) => {
-                          updateActiveForm({ dueDate: date });
+                          // Due today means by the end of today, never "already late at midnight".
+                          updateActiveForm({ dueDate: date ? endOfDay(date) : undefined });
                           if (formErrors.dueDate) {
                             setFormErrors({...formErrors, dueDate: undefined});
                           }
                         }}
                         initialFocus
-                        disabled={(date) => date < new Date()}
+                        disabled={(date) => date < startOfToday()}
                         className={cn("p-3 pointer-events-auto")}
                       />
                     </PopoverContent>
                   </Popover>
-                  {formErrors.dueDate && (
+                  {formErrors.dueDate ? (
                     <p className="text-sm text-destructive">{formErrors.dueDate}</p>
-                  )}
+                  ) : <p className="text-xs text-muted-foreground">Pick today or a later date.</p>}
                 </div>
 
                 <div className="flex items-center justify-between">

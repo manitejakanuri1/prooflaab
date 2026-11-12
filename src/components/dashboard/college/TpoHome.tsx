@@ -109,7 +109,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
   // the officer has to act on by hand. The only one that stays inert is a zero
   // — there is nothing to show behind "0 need attention".
   const cards = [
-    { key: "students", label: "Students", help: "Students your college uploaded. The line below counts who handed in an answer or code this week (Mon-Sun).", value: data.students, icon: Users,
+    { key: "students", label: "Students", help: "Students your college uploaded. The line below counts who handed in an answer or code in the last 7 days (today and the 6 days before), the same count as Insights.", value: data.students, icon: Users,
       note: `${data.active_this_week} tried a Lot this week · open the list`,
       action: () => onNavigate?.("students") },
     { key: "today", label: "Tried a Lot today", help: "Students who handed in an answer or code today (India time). This is what \"active\" means on college screens.", value: data.active_today, icon: Activity,

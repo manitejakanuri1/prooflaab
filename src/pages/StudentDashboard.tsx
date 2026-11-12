@@ -96,17 +96,19 @@ const StudentDashboard = () => {
         {/* Mobile overlay */}
         {isMobile && sidebarOpen && (
           <div 
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            className="fixed inset-0 bg-black/50 z-[55] lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
         
         {/* Sidebar */}
-        <div className={`
-          ${isMobile ? 'fixed' : 'sticky top-0'} 
+        {/* Owner E2E S1 (12 Nov): on a phone the drawer is pinned to the screen's left edge and sits above the
+            sticky header (z-50). It used to be "fixed" with no top/left, so it was placed where it would sit in
+            the page flow - off screen once the page had been scrolled sideways - and the menu button looked dead. */}
+        <div data-testid="student-sidebar" data-open={isMobile ? String(sidebarOpen) : undefined} className={`
+          ${isMobile ? 'fixed inset-y-0 left-0 z-[60]' : 'sticky top-0'}
           ${isMobile && !sidebarOpen ? '-translate-x-full' : 'translate-x-0'}
-          ${isMobile ? 'z-50' : ''}
-          ${isMobile ? 'h-screen' : 'h-screen'}
+          h-screen
           transition-transform duration-300 ease-in-out
         `}>
           <StudentSidebar 

@@ -1,3 +1,4 @@
+import LoadFailed from "@/components/common/LoadFailed";
 import { fmtDay } from "@/lib/ist";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +39,7 @@ const StudentAchievements = () => {
   const [earned, setEarned] = useState<Record<string, string>>({});
   const [quests, setQuests] = useState<Quest[]>([]);
   const [progress, setProgress] = useState<Record<string, { progress: number; done: boolean }>>({});
+  const [failed, setFailed] = useState(false); // S8/Y4: say a failed read, never a blank list
 
   const load = useCallback(async () => {
     if (!profile?.id) return;
@@ -47,6 +49,8 @@ const StudentAchievements = () => {
       supabase.from("quests").select("*").eq("is_active", true).order("cadence").order("xp_reward"),
       supabase.rpc("my_achievements" as never),
     ]);
+    if (badgeRes.error || questRes.error || mine.error) { setFailed(true); setLoading(false); return; }
+    setFailed(false);
     const m = (mine.data ?? {}) as {
       earned?: { badge_slug: string; awarded_at: string }[];
       quests?: { quest_slug: string; progress: number; done: boolean }[];
@@ -62,6 +66,7 @@ const StudentAchievements = () => {
   useEffect(() => { void load(); }, [load]);
 
   if (loading) return <Skeleton className="h-64 w-full rounded-xl" />;
+  if (failed) return <LoadFailed what="your badges" onRetry={() => { setLoading(true); void load(); }} />;
 
   const daily = quests.filter((q) => q.cadence === "daily");
   const weekly = quests.filter((q) => q.cadence === "weekly");

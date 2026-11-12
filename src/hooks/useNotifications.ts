@@ -17,6 +17,7 @@ interface Notification {
   triggered_by_name?: string;
   triggered_by_avatar?: string;
   source: 'system' | 'social';
+  dedupe_key?: string;
 }
 
 export const useNotifications = () => {
@@ -74,6 +75,7 @@ export const useNotifications = () => {
           triggered_by_name: actor?.full_name || (n.actor_id ? 'Someone' : undefined),
           triggered_by_avatar: actor?.profile_photo_url || undefined,
           source: n.source as 'system' | 'social',
+          dedupe_key: (n as { dedupe_key?: string | null }).dedupe_key || undefined,
         };
       });
     },

@@ -139,7 +139,7 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
   return (
     <Card id={`build-log-${e.task_id}`}>
       <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <CardTitle className="text-base">{e.title}</CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -148,7 +148,7 @@ const Entry = ({ e, labelOf }: { e: BuildLogEntry; labelOf: (t: string, c: strin
               {e.attempts > 1 ? ` · ${e.attempts} attempts` : ""}
             </p>
           </div>
-          <Badge variant={st.variant} className="shrink-0">{st.label}</Badge>
+          <Badge variant={st.variant} className="max-w-full">{st.label}</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">

@@ -12,6 +12,7 @@ import { checkLine, fmtMark, loadLotState, submitLot, type LotState, of10 } from
 import { toast } from "sonner";
 import { savedResultLine, type SavedRow } from "@/lib/savedAnswer";
 import { loadSavedAnswer } from "@/lib/savedAnswerLoad";
+import { announceTaskScored } from "@/lib/taskEvents";
 import { lotStatusText, part10, quotes } from "@/lib/lotText";
 
 /**
@@ -72,6 +73,8 @@ interface WrittenTaskPanelProps {
   /** MF-114: the server's verdict on the recording; "Fully Completed" only when scored. */
   voiceStatus?: VoiceStatus | null;
   onFinish?: () => void;
+  /** Owner E2E S4: "Set by <name> · Due <date>" for an assigned task, under the title. */
+  meta?: ReactNode;
 }
 
 /**
@@ -92,6 +95,7 @@ export default function WrittenTaskPanel({
   voiceSaved,
   voiceStatus,
   onFinish,
+  meta,
 }: WrittenTaskPanelProps) {
   const draftKey = `written-draft:${taskId}`;
   const [view, setView] = useState<RubricView | null>(null);
@@ -101,6 +105,9 @@ export default function WrittenTaskPanel({
   // MF-020: a finished task shows the saved answer and result from the server, not an empty box.
   const [saved, setSaved] = useState<{ row: SavedRow; voice: number | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // S8: the task itself could not be read (a 502): say so with Try again instead of a spinner that never ends.
+  const [viewFailed, setViewFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   // A written Daily Lot: 2 checks, the best counts, then "Submit this score" opens the recorder (migration 165).
   const [lot, setLot] = useState<LotState | null>(null);
   const daily = !!lot?.daily;
@@ -111,8 +118,10 @@ export default function WrittenTaskPanel({
       // task_rubric_config is admin-only RLS, so a student reads it only
       // through this security-definer function (rubric_task_view), the
       // same pattern sandbox_task_view uses for hidden tests.
-      const { data } = await supabase.rpc("rubric_task_view" as never, { _task_id: taskId } as never);
+      setViewFailed(false);
+      const { data, error: viewErr } = await supabase.rpc("rubric_task_view" as never, { _task_id: taskId } as never);
       if (cancelled) return;
+      if (viewErr || !data) { setViewFailed(true); return; }
       setView(data as unknown as RubricView | null);
       let draft: string | null = null;
       try { draft = localStorage.getItem(draftKey); } catch { /* storage blocked */ }
@@ -130,7 +139,7 @@ export default function WrittenTaskPanel({
       }
     })();
     return () => { cancelled = true; };
-  }, [taskId, draftKey]);
+  }, [taskId, draftKey, reloadKey]);
 
   const saveDraft = (value: string) => {
     setAnswer(value);
@@ -143,17 +152,25 @@ export default function WrittenTaskPanel({
 
   const submit = async () => {
     setBusy(true); setError(null);
+    const sentAt = Date.now();
     const { data, error: e } = await supabase.functions.invoke("submit-written-task", {
       body: writtenSubmitBody(taskId, answer),
     });
     setBusy(false);
     if (e) {
-      setError(await errorMessage(e));
+      // S8: a slow 502 can come back after the answer was already checked and stored. Look before saying it failed.
+      const late = await loadSavedAnswer(taskId).catch(() => null);
+      const checked = late && Date.parse(late.row.created_at) >= sentAt - 5_000;
+      setError(checked
+        ? `The result came back late, but your answer was checked. ${savedResultLine(late.row, "written", late.voice)}`
+        : `${await errorMessage(e)} Your answer is still here - press Submit again.`);
       if (daily) setLot(await loadLotState(taskId));
+      if (checked) announceTaskScored();
       return;
     }
     const r = data as SubmitResult;
     setResult(r);
+    announceTaskScored();
     if (r.lot) setLot(r.lot);
     if (r.status === "passed" || r.lot?.submitted) {
       onPassedChange?.(true);
@@ -170,12 +187,21 @@ export default function WrittenTaskPanel({
     setBusy(false);
     if (!st) return setError("Could not submit. Try again.");
     setLot(st);
+    announceTaskScored();
     if (st.submitted) {
       onPassedChange?.(true);
       try { localStorage.removeItem(draftKey); } catch { /* storage blocked */ }
     }
   };
 
+  if (!view && viewFailed) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-12" role="alert">
+        <p className="text-sm text-muted-foreground">Could not load this task.</p>
+        <Button variant="outline" size="sm" onClick={() => setReloadKey((k) => k + 1)}>Try again</Button>
+      </div>
+    );
+  }
   if (!view) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -197,6 +223,7 @@ export default function WrittenTaskPanel({
     <div className="space-y-4 border-b p-5 lg:overflow-y-auto lg:border-b-0 lg:border-r">
       <div>
         <h2 className="pr-8 text-lg font-semibold lg:pr-0">{view.title}</h2>
+        {meta && <p className="mt-1 text-xs text-muted-foreground" data-testid="task-origin">{meta}</p>}
         <div className="mt-3">
           <SimpleQuestion taskId={taskId} original={view.prompt_text} words={{ min: view.min_words, max: view.max_words }}
             moreHelp={
@@ -279,14 +306,14 @@ export default function WrittenTaskPanel({
               <Button onClick={submit} disabled={busy || !!done || checksLeft < 1 || tooShort || tooLong || !answer.trim()}
                       data-testid="lot-check">
                 {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
-                Check ({checksLeft} left)
+                {busy ? "Checking..." : `Check (${checksLeft} left)`}
               </Button>
             </span>
           </>
         ) : (
           <Button onClick={submit} disabled={busy || done || tooShort || tooLong || !answer.trim()}>
             {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            Submit
+            {busy ? "Checking..." : "Submit"}
           </Button>
         )}
       </div>

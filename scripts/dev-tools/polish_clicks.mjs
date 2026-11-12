@@ -180,6 +180,41 @@ try {
     return apiErrors.length === 0;
   });
 
+  // ---- student 09 on a phone (owner E2E 12 Nov S1, S3): the menu moves between pages, nothing scrolls sideways,
+  // and a notification opens what it is about.
+  ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await cookieSignIn(ctx, BASE, logins["Student 09"]);
+  page = await ctx.newPage();
+  for (const path of ["/student/dashboard?tab=lab", "/student/dashboard?tab=log", "/student/dashboard?tab=squad", "/student/dashboard?tab=profile"]) {
+    await check(`Phone 390px: ${path} does not scroll sideways (S1)`, async () => {
+      await go(page, path);
+      return page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
+    });
+  }
+  await check("Phone 390px: the menu button opens the menu, and Squad in it opens the Squad page (S1)", async () => {
+    await go(page, "/student/dashboard?tab=lab");
+    await page.mouse.wheel(0, 1200); await page.waitForTimeout(500);   // also after scrolling down
+    await page.getByTestId("student-menu-button").click();
+    await page.waitForTimeout(600);
+    const box = await page.locator("aside").boundingBox();
+    if (!box || box.x < -1 || box.x + box.width > 391) return false;
+    await page.locator("aside button", { hasText: /^\s*Squad\s*$/i }).click();
+    await page.waitForTimeout(1500);
+    return new URL(page.url()).searchParams.get("tab") === "squad"
+      && (await page.getByTestId("student-sidebar").getAttribute("data-open")) === "false";
+  });
+  await check("Notifications: clicking one opens its page, not the page you are on (S3)", async () => {
+    await go(page, "/student/dashboard?tab=profile&view=settings");
+    await page.getByRole("button", { name: /^Notifications/i }).click();
+    const item = page.getByTestId("notification-item").first();
+    if (!(await item.waitFor({ timeout: 10000 }).then(() => true, () => false))) { console.log("  (no notifications for Student 09)"); return true; }
+    const before = page.url();
+    await item.click();
+    await page.waitForTimeout(1500);
+    return page.url() !== before && !(await page.getByTestId("notification-item").first().isVisible().catch(() => false));
+  });
+  await ctx.close();
+
   // ---- student 19: full course on the roadmap (owner 12 Nov 2026, option Y, migration 241)
   ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await cookieSignIn(ctx, BASE, logins["Student 19"]);

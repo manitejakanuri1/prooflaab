@@ -3,20 +3,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { fmtDay } from "@/lib/ist";
 
 // MF-047 (migration 198): a company shortlisted the student. The student presses Accept or Decline;
 // the company can move them to interviewing / offered / hired only after Accept.
 
-interface Invite { id: string; company: string; note: string | null; stage: string; student_response: string | null }
+interface Invite { id: string; company: string; note: string | null; stage: string; student_response: string | null; responded_at?: string | null }
 
 export default function CompanyInvites() {
   const { toast } = useToast();
   const [invites, setInvites] = useState<Invite[]>([]);
+  // CO8 (owner retest 12 Nov): an accepted invite stays listed as one line, so the student can see who has their details.
+  const [accepted, setAccepted] = useState<Invite[]>([]);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     const { data } = await supabase.rpc("my_shortlists" as never);
-    setInvites(((data as Invite[]) ?? []).filter((i) => !i.student_response));
+    const all = (data as Invite[]) ?? [];
+    setInvites(all.filter((i) => !i.student_response));
+    setAccepted(all.filter((i) => i.student_response === "accepted"));
   }, []);
   useEffect(() => { void load(); }, [load]);
 
@@ -29,11 +34,11 @@ export default function CompanyInvites() {
     await load();
   };
 
-  if (invites.length === 0) return null;
+  if (invites.length === 0 && accepted.length === 0) return null;
   return (
     <Card data-testid="company-invites">
       <CardContent className="pt-5 space-y-3">
-        <h3 className="font-semibold">Companies want to talk to you</h3>
+        {invites.length > 0 && <h3 className="font-semibold">Companies want to talk to you</h3>}
         {invites.map((i) => (
           <div key={i.id} className="rounded-md border p-3 space-y-2">
             <p className="text-sm"><b>{i.company}</b> saw your work and shortlisted you.</p>
@@ -46,6 +51,11 @@ export default function CompanyInvites() {
               <Button size="sm" variant="outline" disabled={busy} onClick={() => void answer(i.id, false)}>Decline</Button>
             </div>
           </div>
+        ))}
+        {accepted.map((i) => (
+          <p key={i.id} className="text-sm text-muted-foreground" data-testid="company-invite-accepted">
+            You accepted <b className="text-foreground">{i.company}</b>{i.responded_at ? ` · ${fmtDay(i.responded_at)}` : ""}
+          </p>
         ))}
       </CardContent>
     </Card>

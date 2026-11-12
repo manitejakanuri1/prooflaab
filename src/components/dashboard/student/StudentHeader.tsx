@@ -10,6 +10,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo, Wordmark } from "@/components/Logo";
 import { useNavigate } from "react-router-dom";
 import { getInitials } from "@/lib/utils";
+import { useState } from "react";
+import { studentNotificationLink } from "@/lib/notificationLink";
 
 interface StudentHeaderProps {
   studentName: string;
@@ -28,13 +30,15 @@ const StudentHeader = ({
   const navigate = useNavigate();
   
 
+  const [bellOpen, setBellOpen] = useState(false);
+
   const handleNotificationClick = (notification: any) => {
     if (!notification.is_read) {
       markAsRead(notification.id);
     }
-    if (notification.link) {
-      navigate(notification.link);
-    }
+    const to = studentNotificationLink(notification);
+    setBellOpen(false);
+    if (to) navigate(to);
   };
 
   return (
@@ -47,6 +51,8 @@ const StudentHeader = ({
               variant="ghost"
               size="sm"
               onClick={onMenuClick}
+              aria-label="Menu"
+              data-testid="student-menu-button"
               className="p-1.5 sm:p-2"
             >
               <Menu className="h-5 w-5" />
@@ -64,7 +70,7 @@ const StudentHeader = ({
         {/* User Profile */}
         <div className="flex items-center gap-2 sm:gap-3">
           <ThemeToggle />
-          <Popover>
+          <Popover open={bellOpen} onOpenChange={setBellOpen}>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="sm" className="relative p-1.5 sm:p-2 hover:bg-accent"
                 aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}>
@@ -106,6 +112,7 @@ const StudentHeader = ({
                     {notifications.map((notification) => (
                       <div
                         key={notification.id}
+                        data-testid="notification-item"
                         className={`p-4 hover:bg-accent/50 transition-colors cursor-pointer ${
                           !notification.is_read ? 'bg-primary/5' : ''
                         }`}

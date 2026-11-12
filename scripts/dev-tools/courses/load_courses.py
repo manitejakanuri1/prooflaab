@@ -15,15 +15,18 @@ def q(s: str | None) -> str:
     return "null" if s is None else "'" + s.replace("'", "''") + "'"
 
 
-def chapters(folder: Path) -> list[tuple[str, str]]:
+def chapters(folder: Path) -> list[tuple[str, str, str | None]]:
+    """(title, body, own credit) in reading order. Own credit = the manifest's "source" (migration 260: e.g.
+    "Written for ProofLab" for an AI-written chapter inside a course whose other chapters come from outside docs)."""
     m = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
     title = {c["mdFile"]: c["title"] for c in m}
+    own = {c["mdFile"]: c.get("source") for c in m}
     files = json.loads((folder / "order.json").read_text(encoding="utf-8")) if (folder / "order.json").exists() else [c["mdFile"] for c in m]
     out = []
     for f in files:
         text = (folder / f).read_text(encoding="utf-8", errors="replace").replace("\x00", "")
         body = re.sub(r"\A\s*#\s+[^\n]*\n", "", text, count=1).strip()  # the reader shows the title itself
-        out.append((title[f], body))
+        out.append((title[f], body, own[f]))
     return out
 
 
@@ -38,8 +41,8 @@ def main(root: Path, out: Path, track_slugs: set[str]) -> None:
         total += len(ch)
         lines.append(f"insert into public.courses (slug, title, credit, chapters) values ({q(c['slug'])}, {q(c['title'])}, {q(credit_line(c['slug']))}, {len(ch)});")
         for i in range(0, len(ch), 50):
-            rows = ",\n".join(f"({q(c['slug'])}, {i + j + 1}, {q(t)}, {q(b)})" for j, (t, b) in enumerate(ch[i:i + 50]))
-            lines.append(f"insert into public.course_chapters (course_slug, position, title, body) values\n{rows};")
+            rows = ",\n".join(f"({q(c['slug'])}, {i + j + 1}, {q(t)}, {q(b)}, {i + j + 1}, {q(cr)})" for j, (t, b, cr) in enumerate(ch[i:i + 50]))
+            lines.append(f"insert into public.course_chapters (course_slug, position, title, body, sort, credit) values\n{rows};")
         ts = tracks_for(c["slug"], track_slugs)
         unmatched += [] if ts else [c["slug"]]
         lines += [f"insert into public.course_tracks (track_slug, course_slug) values ({q(t)}, {q(c['slug'])});" for t in ts]

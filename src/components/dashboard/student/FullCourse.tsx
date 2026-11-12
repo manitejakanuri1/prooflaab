@@ -40,11 +40,11 @@ const CourseReader = ({ course, onClose }: { course: Course; onClose: () => void
   const [titles, setTitles] = useState<{ position: number; title: string }[] | null>(null);
   const [read, setRead] = useState<Set<number>>(new Set());
   const [at, setAt] = useState<number | null>(null);
-  const [body, setBody] = useState<string | null>(null);
+  const [body, setBody] = useState<{ body: string; credit: string | null } | null>(null);
 
   useEffect(() => {
     void Promise.all([
-      supabase.from("course_chapters" as never).select("position, title").eq("course_slug", course.slug).order("position"),
+      supabase.from("course_chapters" as never).select("position, title").eq("course_slug", course.slug).order("sort"),
       supabase.from("course_reads" as never).select("position").eq("course_slug", course.slug),
     ]).then(([t, r]) => {
       setTitles((t.data ?? []) as { position: number; title: string }[]);
@@ -55,8 +55,8 @@ const CourseReader = ({ course, onClose }: { course: Course; onClose: () => void
   useEffect(() => {
     if (at == null) return;
     setBody(null);
-    supabase.from("course_chapters" as never).select("body").eq("course_slug", course.slug).eq("position", at).single()
-      .then(({ data }) => setBody((data as { body: string } | null)?.body ?? ""));
+    supabase.from("course_chapters" as never).select("body, credit").eq("course_slug", course.slug).eq("position", at).single()
+      .then(({ data }) => setBody((data as { body: string; credit: string | null } | null) ?? { body: "", credit: null }));
     document.getElementById("course-reader-top")?.scrollIntoView();
   }, [at, course.slug]);
 
@@ -74,7 +74,10 @@ const CourseReader = ({ course, onClose }: { course: Course; onClose: () => void
   };
 
   const total = titles?.length ?? course.chapters;
-  const title = titles?.find((t) => t.position === at)?.title;
+  // Migration 260: reading order is the list order (sort), so numbers and "Next" follow the list, not position.
+  const idx = titles?.findIndex((t) => t.position === at) ?? -1;
+  const title = idx >= 0 ? titles![idx].title : undefined;
+  const next = idx >= 0 ? titles![idx + 1]?.position : undefined;
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="course-reader">
@@ -85,15 +88,15 @@ const CourseReader = ({ course, onClose }: { course: Course; onClose: () => void
         </DialogHeader>
         {titles == null ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : at == null ? (
           <div className="space-y-2">
-            <Button size="sm" onClick={() => setAt(nextUnread(read, total))}>
+            <Button size="sm" onClick={() => setAt(nextUnread(read, titles.map((t) => t.position)))}>
               {read.size ? "Continue reading" : "Start with chapter 1"}
             </Button>
             <ol className="divide-y rounded-lg border text-sm">
-              {titles.map((t) => (
+              {titles.map((t, i) => (
                 <li key={t.position}>
                   <button type="button" className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted/50"
                           onClick={() => setAt(t.position)} data-testid="chapter-row">
-                    <span className="w-8 shrink-0 font-mono text-xs text-muted-foreground">{t.position}</span>
+                    <span className="w-8 shrink-0 font-mono text-xs text-muted-foreground">{i + 1}</span>
                     <span className="flex-1">{t.title}</span>
                     {read.has(t.position) && <Check className="h-4 w-4 text-verified" aria-label="read" />}
                   </button>
@@ -106,15 +109,15 @@ const CourseReader = ({ course, onClose }: { course: Course; onClose: () => void
             <Button size="sm" variant="ghost" className="gap-1 px-2" onClick={() => setAt(null)}>
               <ChevronLeft className="h-4 w-4" /> All chapters
             </Button>
-            <h3 className="text-lg font-semibold" data-testid="chapter-title">{at}. {title}</h3>
-            {body == null ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : <MarkdownLite text={body} />}
-            {course.credit && <p className="text-[11px] text-muted-foreground">{course.credit}</p>}
+            <h3 className="text-lg font-semibold" data-testid="chapter-title">{idx + 1}. {title}</h3>
+            {body == null ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : <MarkdownLite text={body.body} />}
+            {(body?.credit ?? course.credit) && <p className="text-[11px] text-muted-foreground" data-testid="chapter-credit">{body?.credit ?? course.credit}</p>}
             <div className="flex items-center justify-between gap-2 border-t pt-3">
               <Button size="sm" variant={read.has(at) ? "secondary" : "default"} onClick={() => void toggleRead(at)} data-testid="mark-read">
                 <Check className="mr-1 h-4 w-4" /> {read.has(at) ? "Read" : "Mark as read"}
               </Button>
-              {at < total && (
-                <Button size="sm" variant="outline" className="gap-1" onClick={() => setAt(at + 1)}>
+              {next != null && (
+                <Button size="sm" variant="outline" className="gap-1" onClick={() => setAt(next)}>
                   Next chapter <ChevronRight className="h-4 w-4" />
                 </Button>
               )}

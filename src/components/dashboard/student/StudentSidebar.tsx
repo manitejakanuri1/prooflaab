@@ -6,6 +6,7 @@ import {
   Users,
   IdCard,
   Briefcase,
+  BookOpen,
   LogOut,
   ChevronDown,
   ChevronRight,
@@ -46,6 +47,8 @@ const menuItems: MenuItem[] = [
   { id: "profile", label: "Profile", icon: IdCard },
   // Owner 12 Nov 2026 (migration 310): own-college jobs + admin-approved company jobs.
   { id: "jobs", label: "Jobs", icon: Briefcase },
+  // Owner 12 Nov 2026 (migration 335): admin-written text resources, read in the app.
+  { id: "resources", label: "Resources", icon: BookOpen },
 ];
 
 const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {

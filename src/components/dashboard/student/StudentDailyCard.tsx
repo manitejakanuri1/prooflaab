@@ -54,7 +54,7 @@ interface Lot {
 interface DayMark {
   date: Date;
   taskId: string | null;
-  kind: "technical" | "business" | "pitch" | null;
+  kind: "technical" | "business" | "pitch" | "career" | null;
   /** The work passed (completed, or pending_voice): the dot opens its Build-log entry. */
   passed: boolean;
 }
@@ -659,6 +659,7 @@ const StudentDailyCard = () => {
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-verified" /> technical</span>
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-compete" /> business</span>
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-alert" /> pitch</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-warning" /> career</span>
             </p>
             <div className="mt-3 flex justify-between">
               {week.map(({ date, kind, passed, taskId }) => {
@@ -669,9 +670,10 @@ const StudentDailyCard = () => {
                   technical: ["bg-verified", "border-2 border-verified bg-transparent"],
                   business: ["bg-compete", "border-2 border-compete bg-transparent"],
                   pitch: ["bg-alert", "border-2 border-alert bg-transparent"],
+                  career: ["bg-warning", "border-2 border-warning bg-transparent"],
                 } as const;
                 // QA round 2 item 14: filled once the Lot is submitted (pending_voice), not only once the voice is scored.
-                const colour = kind ? DOT[kind][passed ? 0 : 1] : "bg-muted";
+                const colour = kind && DOT[kind] ? DOT[kind][passed ? 0 : 1] : "bg-muted";
                 return (
                   <Link key={date.toISOString()}
                         to={taskId && passed ? `/student/dashboard?tab=log&view=entries&task=${encodeURIComponent(taskId)}`

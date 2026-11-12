@@ -113,7 +113,7 @@ const DailyLots = () => {
                   <p><span className="font-medium">Why selected{r.rule ? ` (${r.rule})` : ""}:</span> {r.why_selected}</p>
                   <p className="text-muted-foreground">
                     Source: {r.provenance?.source_name ?? "—"}{r.provenance?.domain ? ` (${r.provenance.domain})` : ""}
-                    {r.provenance?.page_title ? ` · page "${r.provenance.page_title}"` : ""}
+                    {r.provenance?.page_title ? ` · page "${r.provenance.page_title.replace(/\{item\}/g, "<your resume item>")}"` : ""}
                     {r.provenance?.rights_flag ? ` · rights ${r.provenance.rights_flag}` : ""}
                     {r.provenance?.url && <> · <span className="break-all">{r.provenance.url}</span></>}
                   </p>

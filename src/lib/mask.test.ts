@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { maskAll, maskEmail, maskIp, plainError, shortIds } from "./mask.ts";
+import { maskAll, maskEmail, maskIp, plainError, shortIds, shortRequestId } from "./mask.ts";
 
 test("masks email, IP and UUID", () => {
   assert.equal(maskEmail("vikram.c@gmail.com"), "v***@gmail.com");
@@ -17,4 +17,12 @@ test("plain errors", () => {
   assert.equal(plainError("HTTP ?"), "HTTP ?");
   assert.equal(plainError("Cannot read properties of undefined (reading 'x')"), "Page code error");
   assert.equal(plainError("x".repeat(100)).length, 80);
+});
+
+test("F14: shortens request id to last 4-6 chars", () => {
+  assert.equal(shortRequestId("f47ac10b-58cc-4372-a567-0e02b2c3d479"), "c3d479");
+  assert.equal(shortRequestId("req_123456"), "123456");
+  assert.equal(shortRequestId("abcd"), "abcd");
+  assert.equal(shortRequestId(null), "");
+  assert.equal(shortRequestId(undefined), "");
 });

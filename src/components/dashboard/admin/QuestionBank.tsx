@@ -20,6 +20,9 @@ interface Bank {
   items: BankItem[];
 }
 
+// S2: {item} template placeholders shown as "<your resume item>"
+const cleanItem = (s: string | null | undefined): string => (s ?? "").replace(/\{item\}/g, "<your resume item>");
+
 const TABS: { id: Status; label: string }[] = [
   { id: "approved", label: "Live" },
   { id: "hidden", label: "Hidden" },
@@ -90,15 +93,15 @@ const QuestionBank = () => {
                   <Badge variant="outline">{q.kind}</Badge>
                   {q.difficulty && <Badge variant="outline">{q.difficulty}</Badge>}
                   <Badge variant={q.skill ? "secondary" : "outline"}>{q.skill ?? "no skill matched"}</Badge>
-                  {q.topic && <span className="text-xs text-muted-foreground">{q.topic}</span>}
+                  {q.topic && <span className="text-xs text-muted-foreground">{cleanItem(q.topic)}</span>}
                 </div>
-                <p className="whitespace-pre-wrap text-sm">{q.question}</p>
+                <p className="whitespace-pre-wrap text-sm">{cleanItem(q.question)}</p>
                 {q.answer_notes && (
-                  <p className="whitespace-pre-wrap text-xs text-muted-foreground border-l-2 pl-3">{q.answer_notes}</p>
+                  <p className="whitespace-pre-wrap text-xs text-muted-foreground border-l-2 pl-3">{cleanItem(q.answer_notes)}</p>
                 )}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs text-muted-foreground truncate max-w-[60%]">
-                    From: {q.page_title || q.page_url || "a crawled page"}
+                    From: {cleanItem(q.page_title || q.page_url) || "a crawled page"}
                   </span>
                   <div className="flex gap-2">
                     {q.status !== "approved" && (

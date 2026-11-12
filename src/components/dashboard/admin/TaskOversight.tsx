@@ -95,11 +95,12 @@ const TaskOversight = () => {
 
       if (creatorFilter !== 'all') {
         if (creatorFilter === 'college') {
-          query = query.not('created_by_college_id', 'is', null);
+          query = query.or('created_by_college_id.not.is.null,created_by_type.eq.college');
         } else if (creatorFilter === 'startup') {
-          query = query.not('created_by_startup_id', 'is', null);
+          // F25: company lots use created_by_type='recruiter', source='sponsored', or sponsored_by
+          query = query.or('created_by_startup_id.not.is.null,sponsored_by.not.is.null,created_by_type.eq.recruiter,source.eq.sponsored,created_by_type.eq.startup');
         } else if (creatorFilter === 'admin') {
-          query = query.not('created_by_admin_id', 'is', null);
+          query = query.or('created_by_admin_id.not.is.null,created_by_type.eq.admin,source.eq.admin');
         }
       }
 
@@ -344,6 +345,15 @@ const TaskOversight = () => {
         <Badge variant="outline" className="gap-1 border-compete text-compete">
           <Shield className="h-3 w-3" />
           Admin
+        </Badge>
+      );
+    }
+
+    if (task.source === 'sponsored' || task.created_by_type === 'recruiter') {
+      return (
+        <Badge variant="outline" className="gap-1 border-compete text-compete">
+          <Briefcase className="h-3 w-3" />
+          {systemCreatorLabel(task)}
         </Badge>
       );
     }

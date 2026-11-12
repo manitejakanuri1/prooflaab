@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { fmtIST } from "@/lib/ist";
-import { maskAll, plainError } from "@/lib/mask";
+import { maskAll, plainError, shortRequestId } from "@/lib/mask";
 
 /**
  * Admin "Student Trace": the step trail the student area records (see src/lib/tracker.ts).
@@ -107,7 +107,7 @@ const Timeline = ({ tech }: { tech: boolean }) => {
                       <TableCell className="text-xs text-muted-foreground">{tech ? e.screen ?? (e.kind === "call" ? e.target : "") : maskAll(e.screen ?? (e.kind === "call" ? e.target : ""))}</TableCell>
                       <TableCell className="text-xs">{e.status === "error" ? <span className="text-alert">{tech
                         ? <>failed{e.detail?.http ? ` (${e.detail.http})` : ""}{e.detail?.message ? `: ${e.detail.message}` : ""}</>
-                        : `failed: ${plainError(e.detail?.message ?? (e.detail?.http ? `HTTP ${e.detail.http}` : "unknown"))}`}</span> : e.status === "ok" ? "ok" : ""}{tech && e.request_id && <div className="font-mono text-[10px] text-muted-foreground" title="Search this id in Google Cloud Logs Explorer">{e.request_id}</div>}</TableCell>
+                        : `failed: ${plainError(e.detail?.message ?? (e.detail?.http ? `HTTP ${e.detail.http}` : "unknown"))}`}</span> : e.status === "ok" ? "ok" : ""}{tech && e.request_id && <div className="font-mono text-[10px] text-muted-foreground" title="Search this id in Google Cloud Logs Explorer">{shortRequestId(e.request_id)}</div>}</TableCell>
                       <TableCell className="text-right font-mono text-xs">{e.duration_ms ?? ""}</TableCell>
                     </TableRow>
                   ))}

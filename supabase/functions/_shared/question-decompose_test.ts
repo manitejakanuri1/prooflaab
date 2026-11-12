@@ -98,3 +98,15 @@ Deno.test("an unreadable reply is not ok and yields nothing; an honest empty lis
   assertEquals(empty.items.length, 0);
   assertEquals(parseQuestions(reply([null, 5, "x", {}])).items.length, 0);
 });
+
+Deno.test("340: the same call picks a skill from the list; 'none' or a missing pick is null", () => {
+  const p = buildPrompt("T", "page", ["Python", "SQL"]);
+  assert(p.includes("Python, SQL") && p.includes('"skill"'));
+  assert(!buildPrompt("T", "page").includes('"skill"'));
+  const r = parseQuestions(JSON.stringify({ questions: [
+    good("What does a SQL JOIN combine, and when is it used?", { skill: "SQL" }),
+    good("How would you answer a behaviour round question?", { skill: "none" }),
+    good("Why do people use version control at all?"),
+  ] }));
+  assertEquals(r.items.map((i) => i.skill), ["SQL", null, null]);
+});

@@ -13,6 +13,9 @@ export async function decomposePages(db: any, ids: string[], opts: { service: bo
   const results: Record<string, unknown>[] = [];
   let stored = 0;
   let skipped = 0;
+  // The fixed skill list, so the same AI call also picks a skill (used only if no free rule tags the question).
+  const { data: vocab } = await db.from("skill_vocab").select("skill").order("skill");
+  const skills = ((vocab ?? []) as { skill: string }[]).map((v) => v.skill);
   for (const id of ids) {
     const { data: page } = await db.from("source_content")
       .select("id, title, markdown, hidden_at").eq("id", id).maybeSingle();
@@ -26,7 +29,7 @@ export async function decomposePages(db: any, ids: string[], opts: { service: bo
     let model = "";
     try {
       const out = await generateText(
-        buildPrompt(page.title, page.markdown),
+        buildPrompt(page.title, page.markdown, skills),
         { temperature: 0.3, maxOutputTokens: 3000, skipRateLimit: opts.service },
         { feature: "question-decompose", userId: opts.adminId },
       );

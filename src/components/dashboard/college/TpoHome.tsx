@@ -117,7 +117,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
     { key: "today", label: "Tried a Lot today", help: "Students who handed in an answer or code today (India time). This is what \"active\" means on college screens.", value: data.active_today, icon: Activity,
       note: data.active_today > 0 ? "handed in an answer or code today" : "nobody yet today",
       tone: "good" as const, action: () => onFilterStudents?.("active_today") },
-    { key: "attention", label: "Needs attention", help: "Students flagged: not onboarded yet, tried a Lot in the last 7 days but left another of those days untried, or no Lot tried in 7 days.", value: data.needs_attention, icon: AlertTriangle,
+    { key: "attention", label: "Needs a nudge", help: "Students with no Lot tried in the last 7 days (today and the 6 before, India time). About Lots only, not the account: a student who tried a Lot today never counts here.", value: data.needs_attention, icon: AlertTriangle,
       note: data.needs_attention > 0 ? "tap to see who" : "nobody, for once",
       tone: "hot" as const, action: () => onFilterStudents?.("attention") }, // E2E-7b
     // Sweep M6: tpo_home counts squads of every past season too; show this season's squads.
@@ -181,7 +181,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
           <CardContent className="pt-5">
             <div className="flex items-baseline">
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Needs attention
+                Worth a look
               </span>
               <span className="ml-auto font-mono text-[10px] text-muted-foreground">
                 tap a line to open the filtered list

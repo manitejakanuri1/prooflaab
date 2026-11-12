@@ -94,7 +94,8 @@ serve(async (req) => {
 
     const { data, error } = await db.rpc("company_create_lot", {
       _company: companyId, _student_ids: eligible,
-      _title: String(f.title ?? title).slice(0, 90), _scenario: String(f.scenario ?? ""),
+      // CO2 (owner 12 Nov 2026): the company's own title is kept; the model only writes the task text.
+      _title: title.slice(0, 90), _scenario: String(f.scenario ?? ""),
       _code_sample: typeof f.code_sample === "string" ? f.code_sample : null,
       _criteria: criteria || null, _days: days,
       _sandbox_config_id: mode === "sandbox" ? result.configId : null,
@@ -104,7 +105,7 @@ serve(async (req) => {
       _lot_category: ["technical", "business", "pitch"].includes(String(f.lot_category)) ? String(f.lot_category) : "technical",
     });
     if (error) return json({ error: error.message }, 400);
-    return json({ ...data, grading: mode === "sandbox" ? "tests" : "rubric", title: f.title });
+    return json({ ...data, grading: mode === "sandbox" ? "tests" : "rubric", title: title.slice(0, 90) });
   } catch (err) {
     const limited = rateLimitResponse(err, corsHeaders);
     if (limited) return limited;

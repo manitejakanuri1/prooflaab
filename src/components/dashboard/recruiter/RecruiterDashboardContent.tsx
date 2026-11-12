@@ -55,7 +55,8 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
   // E2E 11: company_submissions refuses a company still awaiting approval (400), so ask only once verified.
   const { data: submissions = [] } = useStartupSubmissions(filters?.verified === true);
   const lotGrade = (l: (typeof lots)[number]) => {
-    if (l.submission_status !== "passed") return l.submission_status === "needs_review" ? "Needs review" : "Not passed";
+    if (l.submission_status !== "passed") return l.submission_status === "needs_review" ? "Needs review"
+      : l.submission_status === "returned" ? "Sent back for changes" : "Not passed";
     const sub = submissions.find((x) => x.task_id === l.task_id && x.student_id === l.student_id);
     return passedLabel(sub?.kind, sub?.voice_status === "scored" ? sub.voice_score : null);
   };
@@ -162,6 +163,14 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
     } catch (e) {
       toast({ title: "Not changed", description: (e as Error).message, variant: "destructive" });
     }
+  };
+
+  // CO11 (migration 300): cancel a sent task the student has not handed in. The server checks it is ours and unsubmitted.
+  const cancelLot = async (taskId: string, what: string) => {
+    if (!window.confirm(`Cancel "${what}"? The student will no longer see it. This cannot be undone.`)) return;
+    const { error } = await supabase.rpc("company_cancel_lot" as never, { _task_id: taskId } as never);
+    if (error) toast({ title: "Not cancelled", description: error.message, variant: "destructive" });
+    else { toast({ title: "Task cancelled", description: "The student was told." }); await refresh(); }
   };
 
   // MF-086: take someone off the shortlist (the company's own row; RLS allows only that).
@@ -458,7 +467,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                   <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                     <th className="pb-2 pr-3">Task</th><th className="pb-2 pr-3">Candidate</th>
                     <th className="pb-2 pr-3">Due</th><th className="pb-2 pr-3">Submitted</th>
-                    <th className="pb-2">Stage</th>
+                    <th className="pb-2 pr-3">Stage</th><th className="pb-2"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -487,10 +496,18 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange }: Props) => {
                           <span className="text-muted-foreground">not yet</span>
                         )}
                       </td>
-                      <td className="py-2.5">
+                      <td className="py-2.5 pr-3">
                         <Badge variant="outline" className="text-[10px] font-normal">
                           {String(l.outcome ?? "—")}
                         </Badge>
+                      </td>
+                      <td className="py-2.5 pl-3 text-right">
+                        {!l.submission_id && (
+                          <Button size="sm" variant="ghost" className="h-7 text-xs text-alert" data-testid="lot-cancel"
+                                  onClick={() => void cancelLot(String(l.task_id), String(l.title))}>
+                            Cancel
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}

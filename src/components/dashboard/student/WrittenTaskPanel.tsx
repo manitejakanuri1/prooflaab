@@ -124,6 +124,9 @@ export default function WrittenTaskPanel({
       if (!cancelled && s && (s.row.status === "passed" || st?.submitted)) {
         setSaved(s);
         if (s.row.code) setAnswer(s.row.code);
+      } else if (!cancelled && !draft && s?.row.status === "returned" && s.row.code) {
+        // CO1: the company asked for changes - start from the answer they saw.
+        setAnswer(s.row.code);
       }
     })();
     return () => { cancelled = true; };

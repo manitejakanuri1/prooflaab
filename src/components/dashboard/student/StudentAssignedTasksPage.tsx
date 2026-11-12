@@ -360,7 +360,11 @@ const StudentAssignedTasksPage = () => {
                               variant="outline" 
                               className={getStatusColor(overdue(task) ? 'Overdue' : task.status)}
                             >
-                              {overdue(task) ? 'Overdue' : task.voice_owed ? (task.not_passed ? 'Not passed · voice owed' : 'Submitted · voice owed') : task.not_passed && task.status !== 'Completed' ? 'Not passed · try again' : task.status === 'Applied' ? 'Not started' : task.status}
+                              {/* CO1/CO8 (migration 300): the company's word on the work comes first. */}
+                              {task.review?.returned ? `Changes asked${task.company ? ` by ${task.company}` : ''}`
+                                : task.review?.decision === 'accepted' ? `Accepted by ${task.company ?? 'the company'}`
+                                : task.review?.decision === 'rejected' ? `Not accepted by ${task.company ?? 'the company'}`
+                                : overdue(task) ? 'Overdue' : task.voice_owed ? (task.not_passed ? 'Not passed · voice owed' : 'Submitted · voice owed') : task.not_passed && task.status !== 'Completed' ? 'Not passed · try again' : task.status === 'Applied' ? 'Not started' : task.status}
                             </Badge>
                           </div>
                         </div>
@@ -370,17 +374,27 @@ const StudentAssignedTasksPage = () => {
                             {task.description}
                           </p>
                         )}
+                        {task.review?.returned && (
+                          <p className="rounded-md border border-compete/50 bg-compete/10 p-2 text-xs sm:text-sm" data-testid="company-changes">
+                            {task.company ?? 'The company'} asked for changes. {task.review.note ? `Their note: "${task.review.note}"` : ''} Open it, change your answer and submit again.
+                          </p>
+                        )}
+                        {!task.review?.returned && task.review?.note && (
+                          <p className="text-xs sm:text-sm text-muted-foreground" data-testid="company-note">
+                            {task.company ?? 'The company'}: "{task.review.note}"
+                          </p>
+                        )}
 
                         <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm">
                           <div className="flex items-center gap-1.5 text-muted-foreground">
                             <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-                            {task.lot_date ? (
+                            {task.source === "Company Lot" ? (
+                              // CO3: a company task can be done any day until it is due; no "Lot day".
+                              <span>Due {formatDueDate(task.deadline)}</span>
+                            ) : task.lot_date ? (
                               // E2E-22: a Lot belongs to its own day; the due date is secondary.
                               <span>
-                                {/* Item 7: a company Lot set for a later day can already be done now; say both. */}
-                                {task.source === "Company Lot" && task.lot_date > new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })
-                                  ? `On your Daily Card ${format(parseISO(task.lot_date), "EEE d MMM")} - you can do it now`
-                                  : `Lot day: ${format(parseISO(task.lot_date), "EEE d MMM")}`}
+                                {`Lot day: ${format(parseISO(task.lot_date), "EEE d MMM")}`}
                                 {task.deadline && task.deadline.slice(0, 10) !== task.lot_date && (
                                   <span className="ml-1.5 text-[11px] opacity-80">· due {formatDueDate(task.deadline)}</span>
                                 )}
@@ -437,7 +451,7 @@ const StudentAssignedTasksPage = () => {
                                 allows on this screen. Explaining the work out
                                 loud is the part that cannot be pasted. */}
                             {/* Retest R5: once the voice is scored there is nothing to record. */}
-                            {task.voice_score != null ? (
+                            {task.review?.returned ? null : task.voice_score != null ? (
                               <span className="inline-flex items-center rounded-md border border-verified/40 px-3 text-sm font-medium text-verified"
                                     data-testid="task-voice-done">
                                 <Mic className="h-4 w-4 mr-1" />

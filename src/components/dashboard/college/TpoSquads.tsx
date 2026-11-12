@@ -23,7 +23,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { format } from "date-fns";
-import { WHEN_FORMAT } from "@/lib/testClock";
+import { FAST_WEEK } from "@/lib/testClock";
 import { matchScore, matchStatus, SEED_WIN } from "@/lib/matchStatus";
 import TpoStudentProfile from "./TpoStudentProfile";
 import QualifierSetting from "./QualifierSetting";
@@ -31,6 +31,7 @@ import { ChevronRight, Lock, Unlock, Archive, ArchiveRestore, Shuffle, Swords, T
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { squadsForStudent } from "@/lib/squadSection";
+import { seedLine, whenFormatFor } from "@/lib/rankText";
 import { useConfirm } from "@/hooks/useConfirm";
 
 interface Squad {
@@ -41,6 +42,7 @@ interface Squad {
   /** Null until the league ends, then true or false for the rest of the season. */
   qualified: boolean | null;
   seed: number | null;
+  bracket?: string | null;
 }
 interface Performance {
   squad_id: string; squad_name: string; week: number; points: number;
@@ -599,7 +601,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                           ? <span className="text-xs text-muted-foreground">League stage</span>
                           : s.qualified
                             ? <Badge className="bg-verified/15 text-verified hover:bg-verified/15">
-                                Through{s.seed ? ` · seed ${s.seed}` : ""}
+                                {seedLine(s, squads.filter((o) => o.bracket && o.bracket === s.bracket))?.short
+                                  ?? `Through${s.seed ? ` · seed ${s.seed}` : ""}`}
                               </Badge>
                             : <span className="text-xs text-muted-foreground">
                                 Still learning, out of the race
@@ -751,7 +754,7 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
                         {m.round_number ?? "—"}
                       </td>
                       <td className="py-2.5 pr-3 text-muted-foreground font-mono text-xs">
-                        {format(new Date(m.scheduled_at), WHEN_FORMAT)}
+                        {format(new Date(m.scheduled_at), whenFormatFor(matches, FAST_WEEK))}
                       </td>
                       <td className="py-2.5 pr-3 text-xs">{matchStatus(m)}</td>
                       <td className="py-2.5 font-mono text-xs">

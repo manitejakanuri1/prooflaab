@@ -1,5 +1,5 @@
 import { fmtDay } from "@/lib/ist";
-import { showNextMatch } from "@/lib/rankText";
+import { pickNextMatch, seedLine, showNextMatch, whenFormatFor } from "@/lib/rankText";
 import MatchDetailDialog from "@/components/dashboard/season/MatchDetailDialog";
 import { useUrlTab } from "@/hooks/useUrlTab";
 import InfoTip from "@/components/common/InfoTip";
@@ -14,7 +14,7 @@ import SeasonLeaderboards from "@/components/dashboard/season/SeasonLeaderboards
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Trophy, Crown, Medal, Award } from "lucide-react";
 import { format, startOfWeek, addDays, addMinutes, isWithinInterval } from "date-fns";
-import { FAST_WEEK, FAST_WEEK_MINUTES, WHEN_FORMAT } from "@/lib/testClock";
+import { FAST_WEEK, FAST_WEEK_MINUTES } from "@/lib/testClock";
 import StudentSeasonReport from "./StudentSeasonReport";
 import SquadSwapCard from "./SquadSwapCard";
 import { fmtMark, SCORE_HELP } from "@/lib/lotMarks";
@@ -244,8 +244,10 @@ const StudentSquadPage = () => {
   const totalPoints = members.reduce((sum, m) => sum + m.contribution, 0);
   const myShare = totalPoints > 0 && mine ? Math.round((mine.contribution / totalPoints) * 100) : 0;
   const movement = squad.previous_rank != null && squad.rank != null ? squad.previous_rank - squad.rank : null;
-  // The list is newest first, so the soonest scheduled match is the LAST scheduled one (QA week 8 showed week 10).
-  const next = [...matches].reverse().find((m) => m.status === "scheduled");
+  // R1: the soonest scheduled match still ahead; one whose time has passed is waiting for its result.
+  const { next, waiting } = pickNextMatch(matches);
+  // R2: the seed words follow the knockout rules of the squad's own section.
+  const seedWords = seedLine(squad, standings.filter((s) => s.bracket && s.bracket === squad.bracket));
   // F2: the place among squads of the same section, worked out here from the season table (display only).
   const sectionRank = standings.filter((s) => s.cohort === squad.cohort).findIndex((s) => s.id === squad.id) + 1;
 
@@ -297,7 +299,7 @@ const StudentSquadPage = () => {
             <p className="mt-2 text-sm">
               {squad.qualified ? (
                 <span className="text-verified font-medium">
-                  Through to the {squad.bracket ? `${squad.bracket} ` : ""}championship{squad.seed ? ` as seed ${squad.seed}` : ""}.
+                  {seedWords?.long ?? `Through to the ${squad.bracket ? `${squad.bracket} ` : ""}championship${squad.seed ? ` as seed ${squad.seed}` : ""}.`}
                 </span>
               ) : (
                 <span className="text-muted-foreground">
@@ -364,6 +366,14 @@ const StudentSquadPage = () => {
                   <p className="text-sm text-muted-foreground mt-1">
                     {format(new Date(next.scheduled_at), "EEEE d MMM, h:mm a")}
                   </p>
+                </button>
+              ) : waiting && !ended ? (
+                <button type="button" className="mt-2 block text-left hover:underline" onClick={() => setOpenMatch(waiting)}>
+                  <p className="font-semibold">
+                    {matchNames[waiting.home_squad] ?? "Squad to be set"} <span className="text-muted-foreground font-normal">vs</span>{" "}
+                    {matchNames[waiting.away_squad] ?? "Squad to be set"}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">Being played now. The result comes when the week is scored.</p>
                 </button>
               ) : !restWeek && !ended ? (
                 <p className="text-sm text-muted-foreground mt-2">Nothing scheduled yet.</p>
@@ -499,7 +509,7 @@ const StudentSquadPage = () => {
                             {matchNames[squad.id]} vs {names[home ? m.away_squad : m.home_squad] ?? "Squad to be set"}
                           </td>
                           <td className="py-2.5 pr-3 text-muted-foreground">
-                            {m.round_number ? `Week ${m.round_number} · ` : ""}{format(new Date(m.scheduled_at), WHEN_FORMAT)}
+                            {m.round_number ? `Week ${m.round_number} · ` : ""}{format(new Date(m.scheduled_at), whenFormatFor(matches, FAST_WEEK))}
                           </td>
                           <td className="py-2.5 pr-3 text-xs">{matchStatus(m)}</td>
                           <td className="py-2.5 font-mono text-xs">

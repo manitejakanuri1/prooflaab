@@ -30,6 +30,15 @@ const closeDialog = async (page) => { await page.keyboard.press("Escape"); await
 setTimeout(() => { console.log("STOPPED: the whole run took over 8 minutes"); process.exit(2); }, 8 * 60000).unref();
 const browser = await chromium.launch();
 try {
+  // ---- signed out (owner E2E 12 Nov R6): every role address goes to sign-in, never a 404 page
+  {
+    const c0 = await browser.newContext();
+    const p0 = await c0.newPage();
+    for (const path of ["/dashboard", "/admin", "/company", "/college", "/student"]) {
+      await check(`Signed out: ${path} opens sign-in (R6)`, async () => { await go(p0, path); return new URL(p0.url()).pathname === "/auth"; });
+    }
+    await c0.close();
+  }
   // ---- student 08
   let ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await cookieSignIn(ctx, BASE, logins["Student 08"]);
@@ -207,6 +216,13 @@ try {
   await cookieSignIn(ctx, BASE, logins["College"]);
   page = await ctx.newPage();
   await go(page, "/college/dashboard");
+  await check("College: Home counts add up - tried a Lot this week + not tried for over a week = students (R5, migration 325)", async () => {
+    const text = await page.locator("main").innerText();
+    // The Students card reads "<students>" then "<n> tried a Lot this week"; the attention list has the rest.
+    const card = text.match(/(\d+)\s+(\d+) tried a Lot this week/i);
+    const quiet = Number(text.match(/(\d+) students? have not tried a Lot for over a week/i)?.[1] ?? 0);
+    return !!card && Number(card[2]) + quiet === Number(card[1]);
+  });
   await check("College: home counts Lot attempts, not logins (item 26)", async () =>
     (await page.getByText("Tried a Lot today").count()) > 0 && (await page.getByText(/opened the app/i).count()) === 0);
   await check("College: home shows the 'Looks copied' info note, no review button (migration 229)", async () => {
@@ -245,9 +261,9 @@ try {
   await check("College: drawer Recent work says 'Not passed yet', never a bare 'Not passed' (E2E item 10)", async () =>
     !/(^|\n)\s*Not passed\s*(\n|$)/i.test(await page.getByRole("dialog").innerText()));
   await page.keyboard.press("Escape");
-  await check("College: Home 'missed this week's Lot' View lists students (E2E item 8, migration 275)", async () => {
+  await check("College: Home 'tried a Lot this week but missed another' View lists students (E2E item 8, migrations 275/325)", async () => {
     await go(page, "/college/dashboard?tab=home");
-    const line = page.getByText(/missed this week.s Lot/i).first();
+    const line = page.getByText(/tried a Lot this week but missed another/i).first();
     if (!(await line.count())) return true; // nobody missed one: nothing to open
     await line.locator("xpath=ancestor::*[.//button][1]").getByRole("button", { name: /View/i }).first().click();
     await page.locator("tbody tr").first().waitFor({ timeout: 20000 }).catch(() => {});

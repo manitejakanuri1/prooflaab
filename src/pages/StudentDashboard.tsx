@@ -11,6 +11,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useUrlTab } from "@/hooks/useUrlTab";
 import { Button } from "@/components/ui/button";
 import { BrandPage as Brand } from "@/components/auth/AccessShell";
+import LoadingScreen from "@/components/LoadingScreen";
 
 /**
  * Four destinations: Floor, Build-log, Squad, Profile.
@@ -61,9 +62,7 @@ const StudentDashboard = () => {
   if (loading) {
     return (
       <Brand>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#51A6FB]"></div>
-        </div>
+        <LoadingScreen />
       </Brand>
     );
   }

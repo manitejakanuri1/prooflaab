@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import TrackerBridge from "@/components/TrackerBridge";
 import AppGuideChatbot from "@/components/AppGuideChatbot";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import LoadingScreen from "@/components/LoadingScreen";
 
 // Critical path - load immediately
 import Index from "./pages/Index";
@@ -38,12 +39,8 @@ const PrivacyPolicy = lazy(() => import("./pages/Legal").then((m) => ({ default:
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
 const RoleBasedProtectedRoute = lazy(() => import("./components/RoleBasedProtectedRoute"));
 
-// MF-069: a spinner while a page loads, so a slow load never looks like a blank page.
-const PageLoader = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center" aria-busy="true" aria-live="polite">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#51A6FB]"></div>
-  </div>
-);
+// MF-069: a spinner while a page loads, so a slow load never looks like a blank page (R7: with words + auto retry).
+const PageLoader = () => <LoadingScreen className="min-h-screen bg-background" />;
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -133,6 +130,11 @@ const App = () => (
                 <Route path="/student/settings" element={<Navigate to="/student/dashboard?tab=profile&view=settings" replace />} />
                 <Route path="/student/squad" element={<Navigate to="/student/dashboard?tab=squad" replace />} />
                 <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
+                {/* Owner E2E 12 Nov R6: these were 404s. Each goes to its dashboard, whose guard sends a
+                    signed-out visitor to sign-in; /auth sends a signed-in one to their own dashboard. */}
+                <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="/company" element={<Navigate to="/company/dashboard" replace />} />
+                <Route path="/dashboard" element={<Navigate to="/auth" replace />} />
                 <Route path="/portfolio/:slug" element={<Portfolio />} />
                 
                 {/* Student Routes */}

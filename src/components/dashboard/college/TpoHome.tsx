@@ -117,7 +117,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
     { key: "today", label: "Tried a Lot today", help: "Students who handed in an answer or code today (India time). This is what \"active\" means on college screens.", value: data.active_today, icon: Activity,
       note: data.active_today > 0 ? "handed in an answer or code today" : "nobody yet today",
       tone: "good" as const, action: () => onFilterStudents?.("active_today") },
-    { key: "attention", label: "Needs attention", help: "Students flagged: not onboarded yet, missed an earlier Lot this week, or no Lot tried in 7 days.", value: data.needs_attention, icon: AlertTriangle,
+    { key: "attention", label: "Needs attention", help: "Students flagged: not onboarded yet, tried a Lot in the last 7 days but left another of those days untried, or no Lot tried in 7 days.", value: data.needs_attention, icon: AlertTriangle,
       note: data.needs_attention > 0 ? "tap to see who" : "nobody, for once",
       tone: "hot" as const, action: () => onFilterStudents?.("attention") }, // E2E-7b
     // Sweep M6: tpo_home counts squads of every past season too; show this season's squads.

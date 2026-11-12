@@ -159,7 +159,10 @@ async function bootstrap():
         return current;
       })
       .catch(() => {
+        // R8: the session could not be read (not "there is none"). Answer signed-out for now but do not
+        // remember it, so the next check (the sign-in page's) asks the server again and finds the session.
         current = null;
+        bootstrapPromise = null;
         return null;
       });
 

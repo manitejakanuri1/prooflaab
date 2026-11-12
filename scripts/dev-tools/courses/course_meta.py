@@ -44,8 +44,10 @@ CREDIT = {
     "typescript": ("the TypeScript Handbook", "CC BY 4.0"),
     "ui-ux-design": ("MDN Web Docs", "CC BY-SA 2.5"),
     "verbal-ability": None,
+    # 12 Nov 2026: written for ProofLab with AI (owner approved, write_chapters.py), no outside source.
+    "aws": None,
 }
-SKIP = {"aws"}  # NOT READY (S3 guide only); rebuild is a paid job
+SKIP: set[str] = set()  # aws was skipped until its rebuild (12 Nov 2026)
 
 # course slug -> roadmap tracks (levels.track_slug). Same name where it exists.
 EXTRA_TRACKS = {

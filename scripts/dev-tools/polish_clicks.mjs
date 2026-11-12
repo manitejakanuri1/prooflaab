@@ -343,7 +343,8 @@ try {
     return (await page.getByText("Send a Lot").count()) > 0 && names.length > 0 && names.every((n) => !/^Send a task$/.test(n.trim()) && !/this candidate/.test(n));
   });
   await check("Company: Written/Code choice shows which one is picked (item 7)", async () => {
-    await page.getByRole("button", { name: /^Send a task/ }).first().click();
+    // F21: Send a task is locked until the student accepts, so open the first unlocked one.
+    await page.locator("button:enabled", { hasText: /^Send a task/ }).first().click();
     return (await page.locator('[aria-pressed="true"]').count()) === 1 && /✓/.test(await page.locator('[aria-pressed="true"]').first().innerText());
   });
   await closeDialog(page);

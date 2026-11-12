@@ -143,6 +143,27 @@ try {
   await check("Progress: This week opens its list with the formula", async () => { await page.getByTestId("tile-week").click(); const ok = await dialogOpen(page) && /Answer or Code/.test(await page.getByRole("dialog").innerText()); await page.screenshot({ path: `${out}/r2-week-popup.png` }); await closeDialog(page); return ok; });
   await check("Progress: 'See Profile → Badges' link shown", async () => (await page.getByRole("link", { name: /Profile → Badges/ }).count()) > 0);
   await check("Progress: badges link goes to Profile -> Badges", async () => { const l = page.getByRole("link", { name: /Profile → Badges/ }); if (!(await l.count())) return true; await l.click(); await page.waitForTimeout(1500); return page.url().includes("view=achievements"); });
+  // Owner 12 Nov 2026 (migration 310): student Jobs page. It lists jobs or says there are none, and the only way out
+  // of the app is the Apply button's confirm (never clicked through here, so no Apply click row is written).
+  await go(page, "/student/dashboard?tab=jobs");
+  await check("Jobs: the student Jobs page opens and lists jobs or says there are none", async () => {
+    await page.locator('[data-testid="job-card"], [data-testid="jobs-empty"]').first().waitFor({ timeout: 30000 });
+    return (await page.getByRole("heading", { name: /^Jobs$/i }).count()) > 0;
+  });
+  await check("Jobs: no outside links on the page; Apply asks first and opens only https in a new tab", async () => {
+    const outside = await page.locator("main a[href]").evaluateAll((as) => as.filter((a) => new URL(a.href, location.href).origin !== location.origin).length);
+    if (outside > 0) return false;
+    const apply = page.getByRole("button", { name: /^Apply$/i }).first();
+    if (!(await apply.count())) return true;
+    await apply.click();
+    const dlg = page.getByRole("dialog");
+    const said = /You're leaving ProofLab to apply on \S+/i.test(await dlg.innerText());
+    const a = dlg.getByTestId("apply-out");
+    const ok = said && (await a.getAttribute("target")) === "_blank" && (await a.getAttribute("rel")) === "noopener noreferrer"
+      && /^https:\/\//.test((await a.getAttribute("href")) ?? "");
+    await closeDialog(page);
+    return ok;
+  });
   await ctx.close();
 
   await check("No 404/401 from the API on the student pages (item 30)", async () => {

@@ -152,7 +152,7 @@ const ManageJobsPage = () => {
     const { error } = await supabase.from("job_opportunities").update({ status }).eq("id", id);
     if (error) return toast({ title: "Not changed", description: error.message, variant: "destructive" });
     toast({ title: status === "approved" ? "Job post approved" : "Job post rejected",
-      description: status === "approved" ? "Students do not see a job list; its text can now be used in daily tasks." : "Its text will not be used." });
+      description: status === "approved" ? "Students see it on their Jobs page until the last date (a college's post: its own students only)." : "Students do not see it and its text will not be used." });
     void fetchJobs();
   };
 

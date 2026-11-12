@@ -20,6 +20,7 @@ import StudentCertifications from "./StudentCertifications";
 import StudentPrivacy from "./StudentPrivacy";
 import StudentRolePreference from "./StudentRolePreference";
 import MockInterview from "./MockInterview";
+import StudentJobsPage from "./StudentJobsPage";
 
 interface StudentDashboardContentProps {
   activeTab: string;
@@ -59,12 +60,11 @@ const LEGACY: Record<string, string> = {
   "resume-jobmatch": "profile",
   "resume-certs": "profile",
   "tasks-opportunities": "lab",
-  jobs: "lab",
   learning: "profile",
 };
 
 const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboardContentProps) => {
-  const destination = ["lab", "log", "squad", "profile"].includes(activeTab)
+  const destination = ["lab", "log", "squad", "profile", "jobs"].includes(activeTab)
     ? activeTab
     : LEGACY[activeTab] ?? "lab";
 
@@ -126,6 +126,8 @@ const StudentDashboardContent = ({ activeTab, refreshProfile }: StudentDashboard
       )}
 
       {destination === "squad" && <StudentSquadPage />}
+
+      {destination === "jobs" && <StudentJobsPage />}
 
       {destination === "profile" && (
         <Tabs value={profileTab} onValueChange={setProfileTab}>

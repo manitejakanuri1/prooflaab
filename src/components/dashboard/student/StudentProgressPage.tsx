@@ -72,8 +72,15 @@ const StudentProgressPage = () => {
       const [{ data: weekly, error: e1 }, { data: earned, error: e2 }, { data: proofs, error: e3 }, week] = await Promise.all([
         supabase.from("student_weekly_scores").select("season_id, week, points, computed_at")
           .eq("student_id", profile.id).order("computed_at", { ascending: false }).limit(200),
-        supabase.from("student_badges").select("awarded_at, badges(name, emoji)")
-          .eq("student_id", profile.id).order("awarded_at", { ascending: false }).limit(3),
+        // F18 (migration 351): the badges my_achievements says are earned (done = passing answer + accepted voice).
+        supabase.from("student_badges").select("awarded_at, badge_slug, badges(name, emoji)")
+          .eq("student_id", profile.id).order("awarded_at", { ascending: false })
+          .then(async (r) => {
+            if (r.error) return r;
+            const { data: m, error } = await supabase.rpc("my_achievements" as never);
+            const ok = new Set((((m ?? {}) as { earned?: { badge_slug: string }[] }).earned ?? []).map((b) => b.badge_slug));
+            return { data: error ? null : (r.data ?? []).filter((b: any) => ok.has(b.badge_slug)).slice(0, 3), error };
+          }),
         supabase.from("task_submissions").select("status, task_id, tasks(title, lot_date)").eq("student_id", profile.id),
         // Item 2 (12 Nov): a failed call showed "0 Lots" next to the dashboard's real week; try twice, then say so.
         loadWeekMarks().catch(() => null).then((w) => w ?? loadWeekMarks().catch(() => null)),

@@ -305,7 +305,9 @@ const StudentDailyCard = () => {
   const weekOwed = (marks?.days ?? []).filter((d) => d.voice_state === "open").reduce((n, d) => n + Number(d.coding_mark ?? 0), 0);
   const recency = lastActive && isSameDay(istWall(new Date(lastActive)), now) ? "active"
     : lot?.status === "pending_voice" ? "voice"
-    : lastActive ? "idle" : "new";
+    // F5 (12 Nov 2026): today's Lot reads the same as Your Tasks - opened = "In Progress", not opened = "Not started".
+    : lot?.status === "In Progress" ? "started"
+    : lastActive && !lot ? "idle" : "new";
 
   if (loading) {
     return (
@@ -407,7 +409,7 @@ const StudentDailyCard = () => {
               recency === "active" ? "bg-verified" : recency === "new" ? "bg-muted-foreground" : "bg-compete"
             }`}
           />
-          {recency === "active" ? "Done today" : recency === "voice" ? "Voice owed today" : recency === "idle" ? "Not done today" : "Not started"}
+          {recency === "active" ? "Done today" : recency === "voice" ? "Voice owed today" : recency === "started" ? "In Progress" : recency === "idle" ? "Not done today" : "Not started"}
         </span>
       </div>
 

@@ -78,6 +78,10 @@ const StudentAssignedTasksPage = () => {
   }, [allTasks]);
 
 
+  // Sweep S25: a task past its due time and not handed in says so.
+  const overdue = (t: { deadline: string; status: string; voice_owed?: boolean }) =>
+    !!t.deadline && new Date(t.deadline).getTime() < Date.now() && t.status !== 'Completed' && t.status !== 'Under Review' && !t.voice_owed;
+
   const firstOrder = useRef(new Map<string, number>());
   // Enhanced sorting and filtering logic
   const filteredAndSortedTasks = useMemo(() => {
@@ -93,7 +97,9 @@ const StudentAssignedTasksPage = () => {
 
     // Apply status filter
     if (statusFilter !== "All") {
-      filtered = filtered.filter(task => task.status === statusFilter);
+      // F6 (12 Nov 2026): "In Progress" means what the card says - not a passed (voice owed) or overdue task.
+      filtered = filtered.filter(task => task.status === statusFilter
+        && (statusFilter !== 'In Progress' || (!task.work_passed && !overdue(task))));
     }
 
     // MF-093: remember the order each task was first shown in. Starting a task re-fetches the list and the
@@ -132,13 +138,16 @@ const StudentAssignedTasksPage = () => {
   // "Start" on the Roadmap sends the student here with ?open=<task id>: start that task and open
   // its writing (or coding) box straight away, instead of leaving them in the list to find it.
   const [params, setParams] = useSearchParams();
+  const openFailed = useRef<string | null>(null);
   useEffect(() => {
     const id = params.get("open");
     if (!id || loading) return;
-    setParams({}, { replace: true });              // only once
     const task = allTasks.find((t) => t.id === id);
     // S2: never silent - a task that could not be found (list failed to load) says so.
-    if (!task) { toast.error("Could not open that task. Refresh the page and try again."); return; }
+    // F15 (12 Nov 2026): the link stays in the address bar until the task opens, so the refresh this asks for
+    // opens the same task (it used to be removed first, and a refresh landed on the plain list).
+    if (!task) { if (openFailed.current !== id) toast.error("Could not open that task. Refresh the page and try again."); openFailed.current = id; return; }
+    setParams({}, { replace: true });              // only once
     if (task.status !== "Applied" && task.status !== "In Progress") { setSelectedTaskForDetails(id); return; }
     void (async () => {
       try {
@@ -229,10 +238,6 @@ const StudentAssignedTasksPage = () => {
         return 'bg-muted text-muted-foreground border-border';
     }
   };
-
-  // Sweep S25: a task past its due time and not handed in says so.
-  const overdue = (t: { deadline: string; status: string; voice_owed?: boolean }) =>
-    !!t.deadline && new Date(t.deadline).getTime() < Date.now() && t.status !== 'Completed' && t.status !== 'Under Review' && !t.voice_owed;
 
   const formatDueDate = (deadline: string) => {
     if (!deadline) return "Not Set";
@@ -375,7 +380,7 @@ const StudentAssignedTasksPage = () => {
                               {task.review?.returned ? `Changes asked${task.company ? ` by ${task.company}` : ''}`
                                 : task.review?.decision === 'accepted' ? `Accepted by ${task.company ?? 'the company'}`
                                 : task.review?.decision === 'rejected' ? `Not accepted by ${task.company ?? 'the company'}`
-                                : overdue(task) ? 'Overdue' : task.voice_owed ? (task.not_passed ? 'Not passed · voice not done' : 'Passed · voice not done') : task.not_passed && task.status !== 'Completed' ? 'Not passed · try again' : task.status === 'Applied' ? 'Not started' : task.status}
+                                : overdue(task) ? 'Overdue' : task.voice_owed ? task.line ?? 'Passed · voice not done' : task.not_passed && task.status !== 'Completed' ? 'Not passed · try again' : task.status === 'Applied' ? 'Not started' : task.status}
                             </Badge>
                           </div>
                         </div>

@@ -1,4 +1,4 @@
-import { oneRange } from "@/lib/lotText";
+import { lotLine, oneRange, pickVoice } from "@/lib/lotText";
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { onTaskScored } from "@/lib/taskEvents";
@@ -35,6 +35,8 @@ interface StudentTask {
   review?: { decision: 'accepted' | 'needs_work' | 'rejected'; note: string | null; at: string; returned: boolean } | null;
   /** Owner E2E S4 (migration 317): who set the task - the company, the college's name, ProofLab admin, ... */
   assigned_by?: string | null;
+  /** F1 (12 Nov 2026): the one status line (lotLine) - answer, mark, voice - as on the Build-log, college and admin. */
+  line?: string;
 }
 
 export const useAllStudentTasks = () => {
@@ -122,13 +124,14 @@ export const useAllStudentTasks = () => {
       const codingIds = [...(directTasks || []), ...((assignments || []).map((a) => a.tasks))]
         .filter((t) => t?.sandbox_config_id).map((t) => t!.id);
       const sponsoredIds = (directTasks || []).filter((t) => t.sponsored_by).map((t) => t.id);
-      const [{ data: scoredVoices }, ranges, { data: lastTries }, { data: langRows }, { data: sponsorRows }] = await Promise.all([
-        supabase.from('voice_explanations').select('task_id, communication_score')
-          .eq('student_id', profile.id).eq('status', 'scored').is('withdrawn_at' as never, null),
+      const [{ data: voiceRows }, ranges, { data: lastTries }, { data: langRows }, { data: sponsorRows }] = await Promise.all([
+        // F1: every live recording, so the status line names a rejected voice too (pickVoice, as admin/college).
+        supabase.from('voice_explanations').select('task_id, status, evaluation, communication_score, created_at')
+          .eq('student_id', profile.id).is('withdrawn_at' as never, null),
         Promise.all(writtenLots.map((id) => supabase.rpc('rubric_task_view' as never, { _task_id: id } as never)
           .then(({ data }) => [id, data as unknown as { min_words: number; max_words: number } | null] as const, () => [id, null] as const))),
         // Retest 8: the latest try per task, so a handed-in answer that did not pass never reads "Submitted".
-        supabase.from('task_submissions').select('task_id, status').eq('student_id', profile.id).order('created_at', { ascending: false }),
+        supabase.from('task_submissions').select('task_id, status, sandbox_score').eq('student_id', profile.id).order('created_at', { ascending: false }),
         codingIds.length ? supabase.from('tasks').select('id, any_language' as string).in('id', codingIds) : Promise.resolve({ data: [] }),
         // Assigned-work test item 7: the card names the company (sponsor_company, migration 257).
         sponsoredIds.length ? supabase.from('tasks').select('id, sponsor_company, company_review' as string).in('id', sponsoredIds) : Promise.resolve({ data: [] }),
@@ -138,11 +141,23 @@ export const useAllStudentTasks = () => {
       const reviewOf = new Map(sponsorList.map((r) => [r.id, r.company_review]));
       const anyLang = new Set(((langRows ?? []) as unknown as { id: string; any_language: boolean }[]).filter((r) => r.any_language).map((r) => r.id));
       const lang = (id: string, text: string) => (anyLang.has(id) ? anyLanguageText(text) : text);
-      const lastStatusOf = new Map<string, string>();
-      for (const t of (lastTries ?? []) as { task_id: string; status: string }[]) if (!lastStatusOf.has(t.task_id)) lastStatusOf.set(t.task_id, t.status);
+      const lastTryOf = new Map<string, { status: string; sandbox_score: number | null }>();
+      for (const t of (lastTries ?? []) as { task_id: string; status: string; sandbox_score: number | null }[]) if (!lastTryOf.has(t.task_id)) lastTryOf.set(t.task_id, t);
+      const lastStatusOf = new Map([...lastTryOf].map(([id, t]) => [id, t.status]));
+      type V = { task_id: string | null; status: string; evaluation: { attempt_fail?: string } | null; communication_score: number | null; created_at: string };
+      const voicesOf = new Map<string, V[]>();
+      for (const v of (voiceRows ?? []) as unknown as V[]) if (v.task_id) voicesOf.set(v.task_id, [...(voicesOf.get(v.task_id) ?? []), v]);
       const voiceScoreOf = new Map<string, number>();
-      for (const v of (scoredVoices ?? []) as { task_id: string | null; communication_score: number | null }[]) {
-        if (v.task_id && v.communication_score != null && !voiceScoreOf.has(v.task_id)) voiceScoreOf.set(v.task_id, v.communication_score);
+      const lineOf = (id: string) => {
+        const t = lastTryOf.get(id);
+        if (!t) return undefined;
+        const v = pickVoice(voicesOf.get(id) ?? []);
+        return lotLine({ answer: t.status, mark10: t.sandbox_score != null ? t.sandbox_score / 10 : null, voice: v?.status ?? null,
+                         reason: v?.evaluation?.attempt_fail, voiceScore: v?.status === 'scored' ? v.communication_score : null });
+      };
+      for (const [id, vs] of voicesOf) {
+        const v = pickVoice(vs);
+        if (v?.status === 'scored' && v.communication_score != null) voiceScoreOf.set(id, v.communication_score);
       }
       const rangeOf = new Map(ranges.filter(([, r]) => r).map(([id, r]) => [id, { min: r!.min_words, max: r!.max_words }]));
 
@@ -186,6 +201,7 @@ export const useAllStudentTasks = () => {
           voice_score: task.status === 'pending_voice' ? null : voiceScoreOf.get(task.id) ?? null,
           voice_owed: task.status === 'pending_voice',
           not_passed: lastStatusOf.get(task.id) === 'failed',
+          line: lineOf(task.id),
           company: companyOf.get(task.id) ?? null,
           review: reviewOf.get(task.id) ?? null,
           deadline: task.due_date,
@@ -239,6 +255,7 @@ export const useAllStudentTasks = () => {
           voice_score: assignment.status === 'pending_voice' ? null : voiceScoreOf.get(task.id) ?? null,
           voice_owed: assignment.status === 'pending_voice',
           not_passed: lastStatusOf.get(task.id) === 'failed',
+          line: lineOf(task.id),
           work_passed: assignment.status === 'completed' || assignment.status === 'pending_voice',
           deadline: task.due_date,
           lot_date: task.lot_date,

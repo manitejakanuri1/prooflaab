@@ -279,6 +279,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
             <SelectItem value="attention">Needs attention</SelectItem>
             <SelectItem value="inactive">No Lot tried for 7+ days</SelectItem>
             <SelectItem value="onboarding">Onboarding unfinished</SelectItem>
+            <SelectItem value="missed_lots">Missed this week's Lot</SelectItem>
             <SelectItem value="active_today">Tried a Lot today</SelectItem>
             <SelectItem value="active_week">Tried a Lot this week</SelectItem>
           </SelectContent>

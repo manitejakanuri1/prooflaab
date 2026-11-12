@@ -1,5 +1,5 @@
 import InfoTip from "@/components/common/InfoTip";
-import { plainCode } from "@/lib/lotText";
+import { lotRowText } from "@/lib/lotText";
 import { fmtDay, fmtDayTime } from "@/lib/ist";
 import { of10, scoreText10 } from "@/lib/lotMarks";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -53,7 +53,7 @@ interface Profile {
   mock_interviews?: { count: number; completed: number; last_score: number | null; last_at: string | null };
   recent_work: {
     id: string; file_name: string | null; task_title: string | null;
-    status: string; ai_score: number | null; submitted_at: string | null; attempts?: number;
+    status: string; task_status?: string | null; ai_score: number | null; submitted_at: string | null; attempts?: number;
   }[];
   interventions: { type: string; reason: string; created_at: string }[];
   error?: string;
@@ -363,7 +363,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                           <span className="font-mono text-xs tabular-nums">{of10(w.ai_score)}</span>
                         )}
                         <Badge variant={w.status === "passed" ? "default" : "outline"}>
-                          {plainCode(w.status)}
+                          {lotRowText(w.status, w.task_status)}
                         </Badge>
                       </div>
                     </div>

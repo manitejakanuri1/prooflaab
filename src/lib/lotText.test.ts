@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { copiedNoteText, dropHelper, dropWordRange, plainCode, tidyShown, lotStatusText, oneRange, part10, squadUpdateText, triesSummary, voiceOwedText, weekDayText, weekLotsText } from "./lotText.ts";
+import { lotRowText, copiedNoteText, dropHelper, dropWordRange, plainCode, tidyShown, lotStatusText, oneRange, part10, squadUpdateText, triesSummary, voiceOwedText, weekDayText, weekLotsText } from "./lotText.ts";
 
 test("one word range: the checker's replaces the one in the text", () => {
   const w = { min: 150, max: 800 };
@@ -95,4 +95,11 @@ test("copied-answer note names both students with their squads", () => {
 test("done-when: 'and your answer is N to M words' goes with its range (overnight TEST item 9)", () => {
   assert.equal(dropWordRange("You have written 4 to 6 questions with a short reason for each, grouped by topic, and your answer is 150 to 300 words without asking about salary or leave."),
     "You have written 4 to 6 questions with a short reason for each, grouped by topic without asking about salary or leave.");
+});
+
+test("college drawer: a Lot's state uses the same words as the header and the student", () => {
+  assert.equal(lotRowText("passed", "completed"), "Passed");
+  assert.equal(lotRowText("passed", "pending_voice"), "Passed · voice owed");
+  assert.equal(lotRowText("failed", "pending"), "Not passed yet");
+  assert.equal(lotRowText("needs_review"), "Waiting for a person");
 });

@@ -47,8 +47,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     }
   };
 
-  // Four plain destinations. Clicking one opens its first page; the pages
-  // inside are the tab row on the dashboard (ADMIN_GROUPS in adminNav.ts).
+  // Opens one admin page (ADMIN_GROUPS in adminNav.ts); the dashboard also shows its section's pages as tabs.
   const openGroup = (tabId: string) => {
     if (location.pathname.startsWith('/admin/dashboard')) onTabChange(tabId);
     else navigate(`/admin/dashboard?tab=${tabId}`);
@@ -71,8 +70,30 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+        {/* Polish j: Home / People / Work / Operations are plain section labels (not buttons that look like menus);
+            the pages under each are the links. When the panel is shrunk to icons, one icon per section opens its
+            first page, as before. */}
+        {ADMIN_GROUPS.map((group) => (
+          <SidebarGroup key={group.id} className="py-1 group-data-[collapsible=icon]:hidden">
+            <SidebarGroupLabel className="gap-2 uppercase tracking-wider">
+              <group.icon className="h-3.5 w-3.5" />
+              {group.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.children.map((c) => (
+                  <SidebarMenuItem key={c.id}>
+                    <SidebarMenuButton size="sm" isActive={(activeTab === "recruiter-oversight" ? "startups" : activeTab) === c.id}
+                      onClick={() => openGroup(c.id)}>
+                      <span>{c.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
+        <SidebarGroup className="hidden group-data-[collapsible=icon]:flex">
           <SidebarGroupContent>
             <SidebarMenu>
               {ADMIN_GROUPS.map((group) => {

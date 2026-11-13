@@ -99,10 +99,7 @@ export const Terms = () => (
 
 export const PrivacyPolicy = () => (
   <LegalPage title="Privacy Policy">
-    <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
-      <p className="text-sm font-semibold">Draft - to be reviewed by the owner</p>
-      <p className="text-xs mt-1">This policy describes what data ProofLabAI collects, how it is used, how long it is kept, and who can access it.</p>
-    </div>
+    <p className="text-sm text-muted-foreground">This policy describes what data ProofLabAI collects, how it is used, how long it is kept, and who can access it.</p>
     <Section heading="1. What we collect">
       <ul className="list-disc pl-6 space-y-1">
         <li>Account details from your college or administrator: name, email, college, branch, section and roll number.</li>

@@ -194,8 +194,8 @@ function ProofProfile({ candidate }: { candidate: Candidate }) {
           <CardContent className='space-y-3'>
             {candidate.sponsoredTasks.length ? candidate.sponsoredTasks.map(task => (
               <div key={task.id} className='rounded-lg border border-border bg-secondary/30 p-3'>
-                <div className='flex items-center justify-between gap-2'><div className='text-sm font-medium'>{task.title}</div><Badge variant={task.status === 'reviewed' ? 'default' : 'secondary'}>{task.status}</Badge></div>
-                <p className='mt-1 text-xs text-muted-foreground'>{task.description}</p>
+                <div className='flex items-center justify-between gap-2'><div className='text-sm font-medium'>{task.title}</div><Badge variant={task.status === 'reviewed' ? 'default' : task.status === 'missed' ? 'outline' : 'secondary'}>{task.status}</Badge></div>
+                {task.description ? <p className='mt-1 text-xs text-muted-foreground'>{task.description}</p> : null}
                 <div className='mt-2 text-[11px] text-muted-foreground'>Created {task.createdDate} · deadline {task.deadline}</div>
                 {task.outcome ? <div className='mt-2'><Badge variant='outline'>{task.outcome.replace('_', ' ')}</Badge></div> : null}
                 {task.reviewNotes ? <p className='mt-2 text-xs text-muted-foreground'>{task.reviewNotes}</p> : null}

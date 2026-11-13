@@ -377,8 +377,11 @@ export function StartupSettingsPage() {
             <div className="font-medium">Delete Account</div>
             <div className="text-sm text-muted-foreground mb-4">
               Deleting a company account removes its jobs and sponsored work as well, so it is
-              handled by an administrator rather than from this screen. Email support and the
-              account will be closed.
+              handled by an administrator rather than from this screen. Email us at{" "}
+              <a className="underline text-foreground" href="mailto:hello@prooflab.co.in">
+                hello@prooflab.co.in
+              </a>{" "}
+              and the account will be closed.
             </div>
             <Button variant="destructive" disabled>
               Delete Account

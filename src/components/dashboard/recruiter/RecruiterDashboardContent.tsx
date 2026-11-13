@@ -1,5 +1,6 @@
 import { fmtDay, pastDueIST } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarks";
+import { plural } from "@/lib/plural";
 import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -255,13 +256,13 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Pro
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { k: "Candidates", v: home.candidates_available, go: "talent" },
-              { k: "New this week", v: home.new_this_week, go: "talent" },
+              { k: "New this week", v: home.new_this_week },
               { k: "Shortlisted", v: home.shortlisted, go: "shortlist" },
               { k: "Awaiting reply", v: home.awaiting_response, go: "awaiting" },
             ].map((c) => (
               <Card key={c.k}
-                    className={Number(c.v) > 0 ? "cursor-pointer transition-colors hover:border-primary" : ""}
-                    onClick={() => Number(c.v) > 0 && onTabChange?.(c.go)}>
+                    className={c.go && Number(c.v) > 0 ? "cursor-pointer transition-colors hover:border-primary" : ""}
+                    onClick={() => c.go && Number(c.v) > 0 && onTabChange?.(c.go)}>
                 <CardContent className="pt-5">
                   <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                     {c.k}
@@ -294,7 +295,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Pro
                         </p>
                       </div>
                       <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                        {c.skills_proven} passed starting test · {c.proofs_verified} verified work
+                        Passed {plural(c.skills_proven, "starting test")} · {c.proofs_verified === 1 ? "1 verified work" : `${c.proofs_verified} verified work`}
                       </span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </button>
@@ -304,7 +305,10 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Pro
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className={onTabChange ? "cursor-pointer transition-colors hover:border-primary" : ""}
+            onClick={() => onTabChange?.("lots")}
+          >
             <CardContent className="pt-5">
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Sponsored work
@@ -542,7 +546,9 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Pro
                       </td>
                       <td className="py-2.5 pr-3">
                         <Badge variant="outline" className="text-[10px] font-normal">
-                          {String(l.outcome ?? "—")}
+                          {pastDueIST(l.due_date as string | null) && !l.submission_id && (l.outcome === "pending" || !l.outcome)
+                            ? "—"
+                            : String(l.outcome ?? "—")}
                         </Badge>
                       </td>
                       <td className="py-2.5 pl-3 text-right">

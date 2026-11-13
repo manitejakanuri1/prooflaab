@@ -100,6 +100,7 @@ export default function WrittenTaskPanel({
   const draftKey = `written-draft:${taskId}`;
   const [view, setView] = useState<RubricView | null>(null);
   const [answer, setAnswer] = useState("");
+  const [loadingAnswer, setLoadingAnswer] = useState(true);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<SubmitResult | null>(null);
   // MF-020: a finished task shows the saved answer and result from the server, not an empty box.
@@ -114,6 +115,7 @@ export default function WrittenTaskPanel({
 
   useEffect(() => {
     let cancelled = false;
+    setLoadingAnswer(true);
     void (async () => {
       // task_rubric_config is admin-only RLS, so a student reads it only
       // through this security-definer function (rubric_task_view), the
@@ -121,7 +123,7 @@ export default function WrittenTaskPanel({
       setViewFailed(false);
       const { data, error: viewErr } = await supabase.rpc("rubric_task_view" as never, { _task_id: taskId } as never);
       if (cancelled) return;
-      if (viewErr || !data) { setViewFailed(true); return; }
+      if (viewErr || !data) { setViewFailed(true); setLoadingAnswer(false); return; }
       setView(data as unknown as RubricView | null);
       let draft: string | null = null;
       try { draft = localStorage.getItem(draftKey); } catch { /* storage blocked */ }
@@ -137,6 +139,7 @@ export default function WrittenTaskPanel({
         // CO1: the company asked for changes - start from the answer they saw.
         setAnswer(s.row.code);
       }
+      if (!cancelled) setLoadingAnswer(false);
     })();
     return () => { cancelled = true; };
   }, [taskId, draftKey, reloadKey]);
@@ -267,17 +270,21 @@ export default function WrittenTaskPanel({
         id="written-answer"
         value={answer}
         onChange={(e) => saveDraft(e.target.value)}
-        readOnly={done}
+        readOnly={done || loadingAnswer}
         rows={12}
-        placeholder="Write your answer here."
+        placeholder={loadingAnswer ? "Loading your answer…" : "Write your answer here."}
         className="min-h-[240px] font-normal lg:flex-1"
       />
-      <p className={`text-xs ${tooShort || tooLong ? "text-compete" : "text-muted-foreground"}`}>
-        {wordCount} words {tooShort ? `(need ${view.min_words - wordCount} more)` : tooLong ? "(too long)" : ""}
-      </p>
+      {loadingAnswer ? (
+        <p className="text-xs text-muted-foreground" data-testid="answer-loading">Loading your answer…</p>
+      ) : (
+        <p className={`text-xs ${tooShort || tooLong ? "text-compete" : "text-muted-foreground"}`}>
+          {wordCount} words {tooShort ? `(need ${view.min_words - wordCount} more)` : tooLong ? "(too long)" : ""}
+        </p>
+      )}
 
       {/* QA week 8: say why Check is greyed out, next to the button. */}
-      {!done && (tooShort || tooLong) && answer.trim() && (
+      {!done && !loadingAnswer && (tooShort || tooLong) && answer.trim() && (
         <p className="text-right text-xs text-compete" data-testid="check-disabled-why">
           {tooShort
             ? `Check opens at ${view.min_words} words. Write ${view.min_words - wordCount} more.`
@@ -287,7 +294,7 @@ export default function WrittenTaskPanel({
       {/* Overnight TEST 12 Nov items 6-7: the pass mark next to Check; a click on a greyed-out Check says why. */}
       <div className="flex items-center justify-end gap-2"
            onClickCapture={(e) => {
-             if (!done && (tooShort || tooLong) && (e.target as HTMLElement).closest("[data-testid=lot-check-wrap]")) {
+             if (!done && !loadingAnswer && (tooShort || tooLong) && (e.target as HTMLElement).closest("[data-testid=lot-check-wrap]")) {
                toast.info(tooShort ? `Write ${view.min_words - wordCount} more words, then press Check.` : `Shorten your answer to ${view.max_words} words, then press Check.`);
                document.getElementById("written-answer")?.focus();
              }
@@ -296,14 +303,14 @@ export default function WrittenTaskPanel({
         {daily ? (
           <>
             {!strict && (
-              <Button variant="outline" onClick={submitBest} disabled={busy || !!done || !(lot?.checks_used ?? 0)}
+              <Button variant="outline" onClick={submitBest} disabled={busy || loadingAnswer || !!done || !(lot?.checks_used ?? 0)}
                       data-testid="lot-submit-best">
                 <Send className="mr-2 h-4 w-4" />
                 Submit this score
               </Button>
             )}
             <span data-testid="lot-check-wrap">
-              <Button onClick={submit} disabled={busy || !!done || checksLeft < 1 || tooShort || tooLong || !answer.trim()}
+              <Button onClick={submit} disabled={busy || loadingAnswer || !!done || checksLeft < 1 || tooShort || tooLong || !answer.trim()}
                       data-testid="lot-check">
                 {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
                 {busy ? "Checking..." : `Check (${checksLeft} left)`}
@@ -311,7 +318,7 @@ export default function WrittenTaskPanel({
             </span>
           </>
         ) : (
-          <Button onClick={submit} disabled={busy || done || tooShort || tooLong || !answer.trim()}>
+          <Button onClick={submit} disabled={busy || loadingAnswer || done || tooShort || tooLong || !answer.trim()}>
             {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             {busy ? "Checking..." : "Submit"}
           </Button>

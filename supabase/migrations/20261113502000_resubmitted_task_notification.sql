@@ -21,7 +21,8 @@ create or replace function public.on_task_resubmission_update_notification()
 returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   uid uuid;
-  st text := case when NEW.status = 'passed' then 'Passed' else initcap(NEW.status) end;
+  st text := case NEW.status when 'passed' then 'Passed' when 'needs_review' then 'waiting for the company'
+                         when 'failed' then 'Not passed' else 'sent' end;
 begin
   select user_id into uid from public.student_profiles where id = NEW.student_id;
   if uid is not null then
@@ -32,7 +33,7 @@ begin
            message = 'You sent it again: ' || st
      where user_id = uid
        and title like '%asked for changes%'
-       and (link like '%' || NEW.task_id || '%' or dedupe_key like 'company_review:%:needs_work');
+       and link like '%' || NEW.task_id || '%';
   end if;
   return NEW;
 end;
@@ -43,4 +44,9 @@ create trigger tr_task_resubmission_notification
   after insert on public.task_submissions
   for each row execute function public.on_task_resubmission_update_notification();
 
+do $$ begin
+  if not exists (select 1 from pg_trigger where tgname = 'tr_task_resubmission_notification') then
+    raise exception '502 self-check: trigger missing'; end if;
+  raise notice '502 self-check: true';
+end $$;
 commit;

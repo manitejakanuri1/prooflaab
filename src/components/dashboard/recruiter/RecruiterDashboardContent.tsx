@@ -1,5 +1,6 @@
 import { fmtDay, pastDueIST } from "@/lib/ist";
 import { of10 } from "@/lib/lotMarks";
+import { plural } from "@/lib/plural";
 import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,8 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Pro
   const { toast } = useToast();
   const [home, setHome] = useState<Record<string, any> | null>(null);
   const [talent, setTalent] = useState<Candidate[] | null>(null);
-  const [sortBy, setSortBy] = useState<"skills" | "work" | "speaking" | null>(null);
+  const [sortCol, setSortCol] = useState<"skills" | "work" | "speaking" | null>(null);
+  const [sortDir, setSortDir] = useState<"desc" | "asc" | null>(null);
   const [saved, setSaved] = useState<Record<string, any>[]>([]);
   const [lots, setLots] = useState<Record<string, any>[]>([]);
   // Owner rule B: a Lot reads "Passed" only with a voice of 50+. recruiter_lots() has no voice score; the
@@ -216,15 +218,32 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Pro
   const visible = (talent ?? []).filter((c) =>
     !search || c.name.toLowerCase().includes(search.toLowerCase())
     || c.roleFit.join(" ").toLowerCase().includes(search.toLowerCase()));
-  // MF-085: click a number column to sort by it, highest first.
-  const sortValue = (c: Candidate) =>
-    sortBy === "skills" ? c.skillsProven ?? 0 : sortBy === "work" ? c.proofsVerified ?? 0 : c.communicationScore ?? -1;
-  if (sortBy) visible.sort((a, b) => sortValue(b) - sortValue(a));
+  // N8: 3-state sorting: 1st click high to low, 2nd click low to high, 3rd click reset.
+  const sortValue = (c: Candidate, key: "skills" | "work" | "speaking") =>
+    key === "skills" ? c.skillsProven ?? 0 : key === "work" ? c.proofsVerified ?? 0 : c.communicationScore ?? -1;
+  if (sortCol && sortDir) {
+    visible.sort((a, b) => {
+      const va = sortValue(a, sortCol);
+      const vb = sortValue(b, sortCol);
+      return sortDir === "asc" ? va - vb : vb - va;
+    });
+  }
+  const handleSortClick = (key: "skills" | "work" | "speaking") => {
+    if (sortCol !== key) {
+      setSortCol(key);
+      setSortDir("desc");
+    } else if (sortDir === "desc") {
+      setSortDir("asc");
+    } else {
+      setSortCol(null);
+      setSortDir(null);
+    }
+  };
   const sortHead = (key: "skills" | "work" | "speaking", label: string, title?: string) => (
     <th className="pb-2 pr-3" title={title}>
-      <button type="button" className={`uppercase tracking-widest hover:text-foreground ${sortBy === key ? "text-foreground" : ""}`}
-        onClick={(e) => { e.stopPropagation(); setSortBy(sortBy === key ? null : key); }}>
-        {label}{sortBy === key ? " ↓" : ""}
+      <button type="button" className={`uppercase tracking-widest hover:text-foreground ${sortCol === key ? "text-foreground font-semibold" : ""}`}
+        onClick={(e) => { e.stopPropagation(); handleSortClick(key); }}>
+        {label}{sortCol === key ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
       </button>
     </th>
   );
@@ -237,13 +256,13 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Pro
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { k: "Candidates", v: home.candidates_available, go: "talent" },
-              { k: "New this week", v: home.new_this_week, go: "talent" },
+              { k: "New this week", v: home.new_this_week },
               { k: "Shortlisted", v: home.shortlisted, go: "shortlist" },
               { k: "Awaiting reply", v: home.awaiting_response, go: "awaiting" },
             ].map((c) => (
               <Card key={c.k}
-                    className={Number(c.v) > 0 ? "cursor-pointer transition-colors hover:border-primary" : ""}
-                    onClick={() => Number(c.v) > 0 && onTabChange?.(c.go)}>
+                    className={c.go && Number(c.v) > 0 ? "cursor-pointer transition-colors hover:border-primary" : ""}
+                    onClick={() => c.go && Number(c.v) > 0 && onTabChange?.(c.go)}>
                 <CardContent className="pt-5">
                   <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                     {c.k}
@@ -276,7 +295,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Pro
                         </p>
                       </div>
                       <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                        {c.skills_proven} passed starting test · {c.proofs_verified} verified work
+                        Passed {plural(c.skills_proven, "starting test")} · {c.proofs_verified === 1 ? "1 verified work" : `${c.proofs_verified} verified work`}
                       </span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </button>
@@ -286,7 +305,10 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Pro
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className={onTabChange ? "cursor-pointer transition-colors hover:border-primary" : ""}
+            onClick={() => onTabChange?.("lots")}
+          >
             <CardContent className="pt-5">
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Sponsored work
@@ -354,7 +376,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Pro
                       <th className="pb-2 pr-3">Candidate</th>
                       <th className="pb-2 pr-3">Role</th>
                       {sortHead("skills", "Starting test passed")}
-                      {sortHead("work", "Verified work")}
+                      {sortHead("work", "Answers passed", "Lots where the student's answer passed")}
                       {sortHead("speaking", "Voice (of 10)", "Average score of their spoken explanations, out of 10")}
                       <th className="pb-2">Last active</th>
                     </tr>
@@ -524,7 +546,9 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Pro
                       </td>
                       <td className="py-2.5 pr-3">
                         <Badge variant="outline" className="text-[10px] font-normal">
-                          {String(l.outcome ?? "—")}
+                          {pastDueIST(l.due_date as string | null) && !l.submission_id && (l.outcome === "pending" || !l.outcome)
+                            ? "—"
+                            : String(l.outcome ?? "—")}
                         </Badge>
                       </td>
                       <td className="py-2.5 pl-3 text-right">

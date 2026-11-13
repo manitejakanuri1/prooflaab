@@ -26,6 +26,6 @@ test("only the low one is mentioned", () => {
 test("green Passed only with voice 50+; missing voice is not 50+ (owner 1 Nov 2026)", () => {
   assert.equal(passedLabel("code", 50), "Passed");
   assert.equal(passedLabel("code", 49), "Code passed · low voice score");
-  assert.equal(passedLabel("written", null), "Answer passed · no voice score");
-  assert.equal(passedLabel("code", undefined), "Code passed · no voice score");
+  assert.equal(passedLabel("written", null), "Answer passed · no voice yet");
+  assert.equal(passedLabel("code", undefined), "Code passed · no voice yet");
 });

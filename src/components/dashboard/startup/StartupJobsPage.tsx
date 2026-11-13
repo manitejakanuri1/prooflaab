@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useStartupProfile } from "@/hooks/useStartupProfile";
 import { useStartupVerification } from "@/hooks/useStartupVerification";
 import { format, parseISO } from "date-fns";
+import { fmtDay } from "@/lib/ist";
 import { cn } from "@/lib/utils";
 import { openExternal } from "@/lib/safeNavigation";
 
@@ -350,7 +351,7 @@ export function StartupJobsPage() {
                     <TableCell>{job.location}</TableCell>
                     <TableCell>{getStatusBadge(job.status || 'pending')}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {new Date(job.created_at).toLocaleDateString("en-GB")}
+                      {fmtDay(job.created_at)}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>

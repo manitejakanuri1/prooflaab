@@ -220,10 +220,12 @@ export async function loadProfile(studentId: string): Promise<Candidate | null> 
       title: String(l.title ?? "Lot"),
       description: l.score != null
         ? `Score ${of10(l.score as number)} · ${grade(l)}`
-        : !l.submitted_at && pastDueIST(l.due_date as string | null) ? "Missed"
+        : !l.submitted_at && pastDueIST(l.due_date as string | null) ? ""
         : l.task_status === "pending" ? "Not started yet" : "In progress",
       status: l.submission_status === "passed" || l.submission_status === "failed" ? "reviewed"
-        : l.submitted_at ? "submitted" : "pending",
+        : l.submitted_at ? "submitted"
+        : !l.submitted_at && pastDueIST(l.due_date as string | null) ? "missed"
+        : "pending",
       createdDate: day(l.created_at),
       deadline: day(l.due_date),
       submittedDate: l.submitted_at ? day(l.submitted_at) : undefined,

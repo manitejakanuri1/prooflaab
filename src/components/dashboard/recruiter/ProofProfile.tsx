@@ -1,4 +1,5 @@
 import { rankText } from '@/lib/rankText';
+import { companyVoiceText } from '@/lib/companyVoiceStatus';
 import { of10 } from "@/lib/lotMarks";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,15 +25,21 @@ function Avatar({ initials, color }: { initials: string; color: string }) {
 
 function ScorePill({ label, score, proof, verified }: { label: string; score: number | null; proof: ProofItem[]; verified?: boolean }) {
   const [open, setOpen] = useState(false)
+  const isVoice = label.toLowerCase() === 'voice';
   const tone = score == null ? 'text-muted-foreground' : score >= 85 ? 'text-verified' : score >= 75 ? 'text-compete' : 'text-muted-foreground'
   return (
     <div>
       <button onClick={() => setOpen(v => !v)} className='rounded-lg border border-border bg-secondary/70 px-2.5 py-1 text-left text-xs font-mono hover:border-primary/50'>
-        <span className='text-muted-foreground'>{label} </span><span className={tone}>{score == null ? 'not tested' : of10(score)}</span>{verified ? <span className='ml-1 text-primary'>•</span> : null}
+        {isVoice ? (
+          <span className={tone}>{companyVoiceText(score, proof.length)}</span>
+        ) : (
+          <><span className='text-muted-foreground'>{label} </span><span className={tone}>{score == null ? 'not tested' : of10(score)}</span></>
+        )}
+        {verified ? <span className='ml-1 text-primary'>•</span> : null}
       </button>
       {open && (
         <div className='mt-2 rounded-lg border border-border bg-secondary/40 p-3 animate-slide-down'>
-          <div className='mb-2 flex items-center justify-between'><span className='section-label'>proof · {label}</span><span className='text-xs font-mono tabular text-primary'>{of10(score)}</span></div>
+          <div className='mb-2 flex items-center justify-between'><span className='section-label'>proof · {label}</span><span className='text-xs font-mono tabular text-primary'>{isVoice ? companyVoiceText(score, proof.length) : of10(score)}</span></div>
           <div className='space-y-2'>
             {proof.map((item, i) => (
               <div key={i} className='rounded-lg border border-border bg-card/80 p-3'>
@@ -175,8 +182,8 @@ function ProofProfile({ candidate }: { candidate: Candidate }) {
             <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>consistency</div><div className='mt-2 flex items-center justify-between'><div className='text-2xl font-semibold tabular'>{candidate.consistency}</div><div className='text-xs text-muted-foreground'>{candidate.lastActive}</div></div><div className='mt-2'><Progress value={candidate.consistency} /></div></div>
             <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>voice score</div><div className='mt-2'><ScorePill label='Voice' score={candidate.communicationScore} proof={candidate.assessmentScores.find(a => a.category === 'Communication')?.proof ?? []} /></div></div>
             <div className='grid grid-cols-2 gap-3'>
-              <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>squad rank</div><div className='mt-2 text-xl font-semibold tabular'>{rankText(candidate.squad.rank, candidate.squad.totalMembers)}</div><div className='mt-1 text-xs text-muted-foreground'>{candidate.squad.squadName}</div></div>
-              <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>season rank</div><div className='mt-2 text-xl font-semibold tabular'>{rankText(candidate.seasonRank)}</div><div className='mt-1 text-xs text-muted-foreground'>{candidate.squad.seasonPoints} pts</div></div>
+              <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>squad rank</div><div className='mt-2 text-xl font-semibold tabular'>{rankText(candidate.squad.rank, candidate.squad.totalMembers, candidate.squad.seasonPoints)}</div><div className='mt-1 text-xs text-muted-foreground'>{candidate.squad.squadName}</div></div>
+              <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>season rank</div><div className='mt-2 text-xl font-semibold tabular'>{rankText(candidate.seasonRank, undefined, candidate.squad.seasonPoints)}</div><div className='mt-1 text-xs text-muted-foreground'>{candidate.squad.seasonPoints} pts</div></div>
             </div>
             <div className='rounded-lg border border-border bg-secondary/30 p-3'><div className='section-label'>squad record</div><div className='mt-2 flex items-center justify-between text-sm'><span>Wins</span><span className='font-mono tabular'>{candidate.squad.wins}</span></div><div className='mt-1 flex items-center justify-between text-sm'><span>Losses</span><span className='font-mono tabular'>{candidate.squad.losses}</span></div></div>
           </CardContent>
@@ -187,8 +194,8 @@ function ProofProfile({ candidate }: { candidate: Candidate }) {
           <CardContent className='space-y-3'>
             {candidate.sponsoredTasks.length ? candidate.sponsoredTasks.map(task => (
               <div key={task.id} className='rounded-lg border border-border bg-secondary/30 p-3'>
-                <div className='flex items-center justify-between gap-2'><div className='text-sm font-medium'>{task.title}</div><Badge variant={task.status === 'reviewed' ? 'default' : 'secondary'}>{task.status}</Badge></div>
-                <p className='mt-1 text-xs text-muted-foreground'>{task.description}</p>
+                <div className='flex items-center justify-between gap-2'><div className='text-sm font-medium'>{task.title}</div><Badge variant={task.status === 'reviewed' ? 'default' : task.status === 'missed' ? 'outline' : 'secondary'}>{task.status}</Badge></div>
+                {task.description ? <p className='mt-1 text-xs text-muted-foreground'>{task.description}</p> : null}
                 <div className='mt-2 text-[11px] text-muted-foreground'>Created {task.createdDate} · deadline {task.deadline}</div>
                 {task.outcome ? <div className='mt-2'><Badge variant='outline'>{task.outcome.replace('_', ' ')}</Badge></div> : null}
                 {task.reviewNotes ? <p className='mt-2 text-xs text-muted-foreground'>{task.reviewNotes}</p> : null}

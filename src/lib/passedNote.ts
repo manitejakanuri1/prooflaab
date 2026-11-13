@@ -10,7 +10,7 @@ export const LOW_SCORE = 50;
 // Polish pass C1: there is no voice redo, so the label says what it is: a low voice score (under 5/10).
 export function passedLabel(kind: string | null | undefined, voice: number | null | undefined): string {
   if (voice != null && voice >= LOW_SCORE) return "Passed";
-  return `${kind === "written" ? "Answer" : "Code"} passed · ${voice == null ? "no voice score" : "low voice score"}`;
+  return `${kind === "written" ? "Answer" : "Code"} passed · ${voice == null ? "no voice yet" : "low voice score"}`;
 }
 
 export function passedNote(voice: number | null | undefined, match: number | null | undefined): string | null {

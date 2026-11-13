@@ -42,7 +42,7 @@ export interface Candidate {
   communicationScore: number | null
   squad: { squadName: string; rank: number; totalMembers: number; seasonPoints: number; wins: number; losses: number }
   seasonRank: number
-  sponsoredTasks: { id: string; title: string; description: string; status: 'pending' | 'in_progress' | 'submitted' | 'reviewed'; createdDate: string; deadline: string; outcome?: 'continue' | 'reject' | 'another_round' | 'interested'; reviewNotes?: string; submittedDate?: string }[]
+  sponsoredTasks: { id: string; title: string; description: string; status: 'pending' | 'in_progress' | 'submitted' | 'reviewed' | 'missed'; createdDate: string; deadline: string; outcome?: 'continue' | 'reject' | 'another_round' | 'interested'; reviewNotes?: string; submittedDate?: string }[]
   recommended: boolean
   shortlisted: boolean
   notes?: string

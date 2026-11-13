@@ -419,7 +419,10 @@ const StudentDailyCard = () => {
 
       <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr] items-start">
         {/* The Lot itself: a paper work order on a dark bench. */}
-        {lot ? (
+        {lot ? (() => {
+          // N5: one true deadline. If due today, it closes tonight; otherwise it shows its real future due date.
+          const isDueToday = lot.due_date ? isSameDay(istWall(new Date(lot.due_date)), now) : true;
+          return (
           <div id="todays-lot" className="rounded-xl bg-[#f2ede1] p-5 text-[#191b1f] shadow-sm">
             <div className="flex items-center gap-3 border-b border-dashed border-[#cbc4b4] pb-3">
               <span className="font-mono text-xs font-bold tracking-widest">
@@ -428,7 +431,7 @@ const StudentDailyCard = () => {
               {lot.due_date && (
                 <span className="ml-auto inline-flex items-center gap-1 font-mono text-[11px] text-[#6b6559]">
                   <Clock className="h-3 w-3" />
-                  due {fmtDay(lot.due_date)}
+                  {isDueToday ? "closes today at 11:59 PM" : `due ${fmtDay(lot.due_date)}`}
                 </span>
               )}
             </div>
@@ -481,13 +484,14 @@ const StudentDailyCard = () => {
                 {lotState?.voice_closed
                   ? `${lot.sandbox_config_id ? "Code" : "Answer"} handed in · Spoken part closed (2 recordings could not be used). Your work mark is saved.`
                   : voiceOwedText({ coding: Boolean(lot.sandbox_config_id), passed: !lotState?.daily || doneScore != null,
-                                    mark10: lotState?.best_mark, dueToday: true })}
+                                    mark10: lotState?.best_mark, dueToday: isDueToday })}
               </p>
             )}
             {lot.status !== "completed" && !lotState?.voice_closed && (
               <p className="mt-2 rounded-md border border-compete/40 bg-compete/10 px-3 py-2 text-xs font-medium text-[#191b1f]"
                  data-testid="lot-closes-tonight">
-                <Clock className="mr-1 inline h-3.5 w-3.5" />{CLOSES_TONIGHT}
+                <Clock className="mr-1 inline h-3.5 w-3.5" />
+                {isDueToday ? CLOSES_TONIGHT : `Due ${fmtDay(lot.due_date)}. Do it to keep your streak.`}
               </p>
             )}
             {/* Why it was chosen is written when the Lot is made, so it is only true until the first try. */}
@@ -565,7 +569,8 @@ const StudentDailyCard = () => {
               </p>
             )}
           </div>
-        ) : (
+          );
+        })() : (
           <div className="rounded-xl border border-dashed p-8 text-center">
             {preparing ? (
               <>

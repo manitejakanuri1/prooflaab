@@ -54,7 +54,7 @@ const CollegeAssignedTasks = () => {
       title: `Cancel "${open.title}"?`,
       points: [
         open.students === 0 ? "No student has it; the task is removed."
-          : `It is removed for the ${waiting} ${waiting === 1 ? "student" : "students"} who have not handed it in.`,
+          : `It is removed for the ${waiting} ${waiting === 1 ? "student who has not" : "students who have not"} handed it in.`,
         ...(open.handed_in > 0 ? [`Work already handed in (${open.handed_in}) is kept.`] : []),
       ],
       action: "Cancel task",

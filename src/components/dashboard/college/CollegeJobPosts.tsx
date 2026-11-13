@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { fmtDay } from "@/lib/ist";
@@ -8,10 +9,25 @@ import { fmtDay } from "@/lib/ist";
 interface Post { job_id: string; title: string; company: string; last_date: string | null; status: string; students_opened_apply: number }
 
 export default function CollegeJobPosts({ refresh = 0 }: { refresh?: number }) {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const qc = useQueryClient();
+  const { data: posts = [] } = useQuery({
+    queryKey: ["college-job-posts"],
+    queryFn: async (): Promise<Post[]> => {
+      const { data, error } = await supabase.rpc("college_job_posts" as never);
+      if (error) {
+        console.error("college_job_posts error:", error);
+        throw error;
+      }
+      return (data ?? []) as Post[];
+    },
+    staleTime: 60_000,
+  });
+
   useEffect(() => {
-    supabase.rpc("college_job_posts" as never).then(({ data }) => setPosts((data as Post[]) ?? []));
-  }, [refresh]);
+    if (refresh > 0) {
+      void qc.invalidateQueries({ queryKey: ["college-job-posts"] });
+    }
+  }, [refresh, qc]);
 
   if (posts.length === 0) return null;
   return (

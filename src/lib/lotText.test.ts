@@ -95,8 +95,8 @@ test("copied-answer note names both students with their squads", () => {
   const n = { submission_id: "s", created_at: "2026-11-12T05:00:00Z", task_title: "Craft a 60-second self introduction", lot_date: "2026-11-12",
     student_name: "Meghana Reddy", student_squad: "CSE-A Titans", other_name: "Ravi Kumar", other_squad: null };
   assert.equal(copiedNoteText(n, (d) => d.slice(0, 10)),
-    "Looks copied: Meghana Reddy (CSE-A Titans) and Ravi Kumar wrote almost the same answer on Craft a 60-second self introduction, 2026-11-12.");
-  assert.equal(copiedNoteText({ ...n, other_name: null }, (d) => d.slice(0, 10)).startsWith("Looks copied: Meghana Reddy (CSE-A Titans) wrote almost"), true);
+    "Very similar to another answer, please check: Meghana Reddy (CSE-A Titans) and Ravi Kumar wrote almost the same answer on Craft a 60-second self introduction, 2026-11-12.");
+  assert.equal(copiedNoteText({ ...n, other_name: null }, (d) => d.slice(0, 10)).startsWith("Very similar to another answer, please check: Meghana Reddy (CSE-A Titans) wrote almost"), true);
   // P5: the submission day, not the Lot's day (they can differ).
   assert.equal(copiedNoteText({ ...n, lot_date: "2026-11-02", created_at: "2026-11-01T08:08:28Z" }, (d) => d.slice(0, 10)).endsWith(", 2026-11-01."), true);
 });

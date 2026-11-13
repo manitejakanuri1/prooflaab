@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Home,
   NotebookPen,
@@ -186,6 +186,13 @@ const StudentSidebar = ({ activeTab, onTabChange }: StudentSidebarProps) => {
               <LogOut className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
               <span className="truncate text-xs sm:text-sm">Sign Out</span>
             </Button>
+          </div>
+
+          {/* Legal and help links */}
+          <div className="pt-2 mt-1 border-t border-sidebar-border/60 flex flex-wrap gap-x-3 gap-y-1 px-2 text-xs text-muted-foreground">
+            <Link to="/privacy" className="hover:text-foreground hover:underline">Privacy</Link>
+            <Link to="/terms" className="hover:text-foreground hover:underline">Terms</Link>
+            <Link to="/help" className="hover:text-foreground hover:underline">Help</Link>
           </div>
         </div>
       </nav>

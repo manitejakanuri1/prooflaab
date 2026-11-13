@@ -111,6 +111,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
   const [skill, setSkill] = useState<string>("all");
   const [assignOpen, setAssignOpen] = useState(false);
   const [openTaskStudents, setOpenTaskStudents] = useState<Set<string>>(new Set());
+  const [reminded, setReminded] = useState<Set<string>>(new Set());
 
   /**
    * One page, filtered by the database.
@@ -237,7 +238,8 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
       toast({ title: "Reminder not sent", description: err.message, variant: "destructive" });
       return;
     }
-    toast({ title: `Reminder sent to ${r.full_name}`, description: reason });
+    setReminded((prev) => new Set(prev).add(r.student_id));
+    toast({ title: `Reminder sent to ${r.full_name || "student"}`, description: reason });
   };
 
   if (error) {
@@ -423,7 +425,7 @@ const TpoStudents = ({ filter, skill: skillIntent, intentKey, onOpenSquad }: Pro
                           onClick={(e) => { e.stopPropagation(); void remind(r); }}
                         >
                           <Bell className="h-3 w-3 mr-1" />
-                          {sending === r.student_id ? "Sending…" : "Remind"}
+                          {sending === r.student_id ? "Sending…" : reminded.has(r.student_id) ? "Sent" : "Remind"}
                         </Button>
                       )}
                       {/* MF-111: Remove sits apart from Remind, behind a divider, and asks first. */}

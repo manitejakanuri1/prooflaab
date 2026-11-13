@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { fmtIST } from "@/lib/ist";
+import { fmtIST, istYmd } from "@/lib/ist";
 
 const since = (hours: number) => new Date(Date.now() - hours * 3600_000).toISOString();
 const count = async (table: string, build: (q: any) => any = (q) => q) => {
@@ -35,7 +35,7 @@ const AdminOpsHealth = () => {
       return (data ?? []) as unknown as JobRow[];
     },
   });
-  const today = new Date().toISOString().slice(0, 10);
+  const today = istYmd();
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-ops-health"],
     refetchInterval: 60_000,

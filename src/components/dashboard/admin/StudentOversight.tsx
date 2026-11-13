@@ -1,5 +1,5 @@
 import { plural } from "@/lib/plural";
-import { fmtDay, fmtIST } from "@/lib/ist";
+import { fmtDay, fmtIST, istYmd } from "@/lib/ist";
 import { of10, scoreText10 } from "@/lib/lotMarks";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
@@ -307,7 +307,7 @@ const StudentOversight = () => {
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = `students-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `students-${istYmd()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

@@ -10,6 +10,7 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "lucide-react";
+import { istDayEnd, istYmd } from "@/lib/ist";
 import { SCRATCH_LANGUAGES, scratchLabel, scratchLanguage } from "@/lib/scratchpad";
 
 interface EditTaskModalProps {
@@ -53,7 +54,7 @@ export function EditTaskModal({ task, open, onClose, onSuccess }: EditTaskModalP
         title: task.title || "",
         description: task.description || "",
         category: task.category || "General",
-        due_date: task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : "",
+        due_date: task.due_date ? istYmd(task.due_date) : "",
         xp_reward: task.xp_reward || task.xp || 0,
         status: task.status || "Pending"
       });
@@ -64,7 +65,9 @@ export function EditTaskModal({ task, open, onClose, onSuccess }: EditTaskModalP
     mutationFn: async (data: typeof formData) => {
       const { error } = await supabase
         .from('tasks')
-        .update(data)
+        // N2: a changed day is due 11:59:59 PM India time that day; an unchanged one keeps its exact time.
+        .update({ ...data, due_date: !data.due_date ? null
+          : task.due_date && data.due_date === istYmd(task.due_date) ? task.due_date : istDayEnd(data.due_date) })
         .eq('id', task.id);
       
       if (error) throw error;

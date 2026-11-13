@@ -36,3 +36,19 @@ const IST_YMD = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" });
 export function pastDueIST(due: string | number | Date | null | undefined, now: Date = new Date()): boolean {
   return due != null && due !== "" && IST_YMD.format(new Date(due)) < IST_YMD.format(now);
 }
+
+/** N2 (13 Nov 2026): the India calendar day of an instant, "YYYY-MM-DD". Never `toISOString().slice(0, 10)` (that is the UTC day). */
+export function istYmd(d: string | number | Date = new Date()): string {
+  return IST_YMD.format(new Date(d));
+}
+
+/**
+ * N2: a picked due day -> 11:59:59 PM India time that day (the same deadline a daily Lot has), as an ISO string.
+ * A Date (from a calendar picker) gives its LOCAL day, the one the user clicked; a string is "YYYY-MM-DD".
+ */
+export function istDayEnd(day: string | Date): string {
+  const ymd = typeof day === "string" ? day.slice(0, 10)
+    : `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+  return new Date(`${ymd}T23:59:59+05:30`).toISOString();
+}
+

@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { endOfDay, format, startOfToday } from "date-fns";
+import { istDayEnd } from "@/lib/ist";
 import {
   CalendarIcon, Users, Wand2, Plus, FileText, User, Filter, Eye, Globe, Lock,
   Upload, X, Link, Building2, TrendingUp,
@@ -708,7 +709,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
 
       const requestBody: any = {
         mode: activeTab,
-        due_date: confirmationData.dueDate.toISOString(),
+        due_date: istDayEnd(confirmationData.dueDate),
         selected_students: targetStudents,
         xp_reward: confirmationData.xpReward,
         category: confirmationData.category,
@@ -770,7 +771,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
         const { data, error: functionError } = await supabase.functions.invoke('assign_tasks', {
           body: {
             mode: 'personalized',
-            due_date: confirmationData.dueDate.toISOString(),
+            due_date: istDayEnd(confirmationData.dueDate),
             selected_students: personalizedTasks.filter(t => t.selected).map(t => t.studentId),
             xp_reward: confirmationData.xpReward,
             category: confirmationData.category,
@@ -798,7 +799,7 @@ const AssignTasksScreen = ({ scope }: AssignTasksScreenProps) => {
           student_id: studentId,
           title: confirmationData.title,
           description: confirmationData.description,
-          due_date: confirmationData.dueDate.toISOString(),
+          due_date: istDayEnd(confirmationData.dueDate),
           xp_reward: confirmationData.xpReward,
           category: confirmationData.category,
           visibility: confirmationData.visibility.toLowerCase(),

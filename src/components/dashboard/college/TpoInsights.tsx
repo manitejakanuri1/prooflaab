@@ -1,4 +1,4 @@
-import { fmtDay } from "@/lib/ist";
+import { fmtDay, istYmd } from "@/lib/ist";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
@@ -152,7 +152,7 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
     const url = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = `prooflab-weekly-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `prooflab-weekly-${istYmd()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

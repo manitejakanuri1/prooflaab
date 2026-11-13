@@ -1,4 +1,4 @@
-import { fmtDay } from "@/lib/ist";
+import { fmtDay, istWall, istYmd } from "@/lib/ist";
 import MatchDetailDialog, { type MatchLike } from "@/components/dashboard/season/MatchDetailDialog";
 import { SCORE_HELP, squadHealthy } from "@/lib/lotMarks";
 import InfoTip from "@/components/common/InfoTip";
@@ -1216,9 +1216,8 @@ const TpoSquads = ({ focusSquad, focusKey }: Props) => {
 };
 
 function nextMonday(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7));
-  return d.toISOString().slice(0, 10);
+  const days = (8 - istWall().getDay()) % 7 || 7; // N2: India weekday and India day, not the UTC day
+  return istYmd(Date.now() + days * 86_400_000);
 }
 
 export default TpoSquads;

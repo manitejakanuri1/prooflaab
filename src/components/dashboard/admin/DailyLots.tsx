@@ -1,4 +1,5 @@
 import { plural } from "@/lib/plural";
+import { istYmd } from "@/lib/ist";
 import { lotLine, voiceWord } from "@/lib/lotText";
 import { of10, talkCheck } from "@/lib/lotMarks";
 import { useEffect, useState } from "react";
@@ -28,7 +29,7 @@ interface Row {
 }
 
 const PAGE = 50;
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => istYmd(); // N2: the India day (UTC said 12 Nov at 2 AM IST on 13 Nov)
 
 const DailyLots = () => {
   const [date, setDate] = useState(today());

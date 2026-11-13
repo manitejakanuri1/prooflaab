@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,7 @@ const PostJobDescription = ({ onPosted }: { onPosted?: () => void }) => {
   const [description, setDescription] = useState("");
   const [deadline, setDeadline] = useState("");
   const { toast } = useToast();
+  const qc = useQueryClient();
 
   const reset = () => {
     setRole(""); setCompanyName(""); setLocation("Remote");
@@ -72,6 +74,7 @@ const PostJobDescription = ({ onPosted }: { onPosted?: () => void }) => {
 
     toast({ title: "Job posted", description: "Your students see it on their Jobs page until the last date." });
     reset();
+    await qc.invalidateQueries({ queryKey: ["college-job-posts"] });
     onPosted?.();
     setOpen(false);
   };

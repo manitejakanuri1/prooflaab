@@ -147,7 +147,12 @@ const StudentAssignedTasksPage = () => {
     // F15 (12 Nov 2026): the link stays in the address bar until the task opens, so the refresh this asks for
     // opens the same task (it used to be removed first, and a refresh landed on the plain list).
     if (!task) { if (openFailed.current !== id) toast.error("Could not open that task. Refresh the page and try again."); openFailed.current = id; return; }
+    const wantVoice = params.get("voice") === "1";
     setParams({}, { replace: true });              // only once
+    if (wantVoice || (task.work_passed && task.voice_score == null)) {
+      setExplainTask({ id: task.id, title: task.title });
+      return;
+    }
     if (task.status !== "Applied" && task.status !== "In Progress") { setSelectedTaskForDetails(id); return; }
     void (async () => {
       try {

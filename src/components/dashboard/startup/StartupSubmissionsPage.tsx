@@ -54,6 +54,13 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
   });
 
   const closeDialog = () => { setOpen(null); setDecision(null); setNote(""); };
+  const promptReview = (sub: CompanySubmission, dec: ReviewDecision) => {
+    if (sub.review_decision === "accepted") {
+      if (!window.confirm("Change your decision? The student will be told.")) return;
+    }
+    setOpen(sub);
+    setDecision(dec);
+  };
   const save = async () => {
     if (!open || !decision) return;
     await review.mutateAsync({ submissionId: open.submission_id, decision, note: note || undefined });
@@ -176,19 +183,18 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
                     Submitted {fmtDay(s.submitted_at)}
                     {s.attempts > 1 ? ` · attempt ${s.attempts}` : ""}
                   </span>
-                  {/* P6: an accepted submission is final (company_review_submission refuses another decision, migration 410). */}
-                  {s.review_decision !== "accepted" && <div className="flex gap-2">
+                  <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="text-alert"
-                            onClick={() => { setOpen(s); setDecision("rejected"); }}>
+                            onClick={() => promptReview(s, "rejected")}>
                       <X className="mr-1 h-4 w-4" />Reject
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => { setOpen(s); setDecision("needs_work"); }}>
+                    <Button variant="outline" size="sm" onClick={() => promptReview(s, "needs_work")}>
                       <RotateCcw className="mr-1 h-4 w-4" />Ask for changes
                     </Button>
-                    <Button size="sm" onClick={() => { setOpen(s); setDecision("accepted"); }}>
+                    <Button size="sm" onClick={() => promptReview(s, "accepted")}>
                       <CheckCircle className="mr-1 h-4 w-4" />Accept
                     </Button>
-                  </div>}
+                  </div>
                 </div>
                 {s.review_note && <p className="text-sm text-muted-foreground">Your note: {s.review_note}</p>}
               </CardContent>

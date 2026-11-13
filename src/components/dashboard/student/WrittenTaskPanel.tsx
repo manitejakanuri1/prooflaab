@@ -14,6 +14,8 @@ import { savedResultLine, type SavedRow } from "@/lib/savedAnswer";
 import { loadSavedAnswer } from "@/lib/savedAnswerLoad";
 import { announceTaskScored } from "@/lib/taskEvents";
 import { lotStatusText, part10, quotes } from "@/lib/lotText";
+import { useAuth } from "@/contexts/AuthContext";
+import { syncResubmittedNotification } from "@/lib/taskNotifications";
 
 /**
  * Retest R2 (11 Nov 2026): the box used to show made-up headings ("Overview & Steps", "What is Tested") that did not
@@ -97,6 +99,7 @@ export default function WrittenTaskPanel({
   onFinish,
   meta,
 }: WrittenTaskPanelProps) {
+  const { user } = useAuth();
   const draftKey = `written-draft:${taskId}`;
   const [view, setView] = useState<RubricView | null>(null);
   const [answer, setAnswer] = useState("");
@@ -135,6 +138,7 @@ export default function WrittenTaskPanel({
       if (!cancelled && s && (s.row.status === "passed" || st?.submitted)) {
         setSaved(s);
         if (s.row.code) setAnswer(s.row.code);
+        void syncResubmittedNotification(user?.id, taskId, "passed");
       } else if (!cancelled && !draft && s?.row.status === "returned" && s.row.code) {
         // CO1: the company asked for changes - start from the answer they saw.
         setAnswer(s.row.code);
@@ -142,7 +146,7 @@ export default function WrittenTaskPanel({
       if (!cancelled) setLoadingAnswer(false);
     })();
     return () => { cancelled = true; };
-  }, [taskId, draftKey, reloadKey]);
+  }, [taskId, draftKey, reloadKey, user?.id]);
 
   const saveDraft = (value: string) => {
     setAnswer(value);
@@ -174,6 +178,7 @@ export default function WrittenTaskPanel({
     const r = data as SubmitResult;
     setResult(r);
     announceTaskScored();
+    void syncResubmittedNotification(user?.id, taskId, r.status);
     if (r.lot) setLot(r.lot);
     if (r.status === "passed" || r.lot?.submitted) {
       onPassedChange?.(true);

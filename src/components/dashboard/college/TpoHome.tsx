@@ -118,7 +118,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
       note: data.active_today > 0 ? "handed in an answer or code today" : "nobody yet today",
       tone: "good" as const, action: () => onFilterStudents?.("active_today") },
     { key: "attention", label: "Needs a nudge", help: "Students with no Lot tried in the last 7 days (today and the 6 before, India time). About Lots only, not the account: a student who tried a Lot today never counts here.", value: data.needs_attention, icon: AlertTriangle,
-      note: data.needs_attention > 0 ? "tap to see who" : "nobody, for once",
+      note: data.needs_attention > 0 ? "click to see who" : "nobody, for once",
       tone: "hot" as const, action: () => onFilterStudents?.("attention") }, // E2E-7b
     // Sweep M6: tpo_home counts squads of every past season too; show this season's squads.
     { key: "squads", label: "Squads", help: "Squads in this season only. Students in reserve wait for a free place.", value: standings.length, icon: Shield,
@@ -184,7 +184,7 @@ const TpoHome = ({ onNavigate, onFilterStudents, onOpenSquad }: Props) => {
                 Worth a look
               </span>
               <span className="ml-auto font-mono text-[10px] text-muted-foreground">
-                tap a line to open the filtered list
+                click a line to open the filtered list
               </span>
             </div>
 

@@ -111,6 +111,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
   const [work, setWork] = useState<FinishedWorkItem[] | "error" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [reminded, setReminded] = useState(false);
 
   // M4: answers for a student opened earlier can arrive after the next student's drawer opened.
   // Each load gets a number; an answer whose number is no longer current is thrown away.
@@ -119,7 +120,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
     if (!studentId) return;
     const seq = ++loadSeq.current;
     const current = () => seq === loadSeq.current;
-    setData(null); setError(null); setPaths([]); setWork(null); setCompanies([]);
+    setData(null); setError(null); setPaths([]); setWork(null); setCompanies([]); setReminded(false);
     const { data: res, error: err } = await supabase.rpc(
       "tpo_student_profile" as never, { _student_id: studentId } as never);
     if (!current()) return;
@@ -164,7 +165,8 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
       toast({ title: "Reminder not sent", description: err.message, variant: "destructive" });
       return;
     }
-    toast({ title: `Reminder sent to ${data.full_name}`, description: reason });
+    setReminded(true);
+    toast({ title: `Reminder sent to ${data.full_name || "student"}`, description: reason });
     void load();
     onChanged?.();
   };
@@ -439,7 +441,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
               {behind && (
                 <Button size="sm" disabled={sending} onClick={() => void remind()}>
                   <Bell className="h-3.5 w-3.5 mr-1.5" />
-                  {sending ? "Sending…" : "Send reminder"}
+                  {sending ? "Sending…" : reminded ? "Reminder sent" : "Send reminder"}
                 </Button>
               )}
               <Button size="sm" variant="outline" onClick={onClose}>Close</Button>

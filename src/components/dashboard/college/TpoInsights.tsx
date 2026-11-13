@@ -208,7 +208,7 @@ const TpoInsights = ({ onFilterStudents, onFilterSkill, onOpenSquad, onNavigate 
               {data.attention_total}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {data.attention_total > 0 ? "tap to see who" : "nobody is behind"}
+              {data.attention_total > 0 ? "click to see who" : "nobody is behind"}
             </p>
           </CardContent>
         </Card>

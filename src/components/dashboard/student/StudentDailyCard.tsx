@@ -642,7 +642,7 @@ const StudentDailyCard = () => {
                 <Link to="/student/dashboard?tab=log&view=progress" className="hover:underline">
                   This week: <span className="font-mono font-bold">{fmtMark(marks?.week_total)}</span>
                   {/* Sweep S1: answer marks waiting on their voice are shown, not hidden in a 0. */}
-                  {weekOwed > 0 && <span className="font-mono" data-testid="week-owed"> + {fmtMark(weekOwed)} (voice owed)</span>}
+                  {weekOwed > 0 && <span className="font-mono" data-testid="week-owed"> + {fmtMark(weekOwed)} (voice owed this week)</span>}
                 </Link>
                 <span className="text-muted-foreground" data-testid="week-lots"> · {weekLotsText(marks?.days ?? [])}</span>
                 {" "}<InfoTip text={SCORE_HELP.thisWeek} />

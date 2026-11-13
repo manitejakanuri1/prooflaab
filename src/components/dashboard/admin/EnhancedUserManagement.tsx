@@ -663,7 +663,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                               Last Active <ArrowUpDown className="h-3.5 w-3.5" />
                             </button>
                           </TableHead>
-                          <TableHead className="hidden md:table-cell">Students Count</TableHead>
+                          <TableHead className="hidden md:table-cell">Students</TableHead>
                           <TableHead className="hidden lg:table-cell">Tasks Assigned</TableHead>
                         </>
                       )}

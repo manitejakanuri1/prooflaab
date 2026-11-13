@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo, Wordmark } from "@/components/Logo";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getInitials } from "@/lib/utils";
 import { useState } from "react";
 import { studentNotificationLink } from "@/lib/notificationLink";
@@ -18,16 +18,30 @@ interface StudentHeaderProps {
   profilePhoto?: string | null;
   onMenuClick: () => void;
   showMenuButton: boolean;
+  title?: string;
 }
+
+const TAB_TITLES: Record<string, string> = {
+  lab: "Home",
+  log: "Build-log",
+  squad: "Squad",
+  profile: "Profile",
+  jobs: "Jobs",
+  resources: "Resources",
+};
 
 const StudentHeader = ({ 
   studentName, 
   profilePhoto, 
   onMenuClick, 
-  showMenuButton 
+  showMenuButton,
+  title
 }: StudentHeaderProps) => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchTab = new URLSearchParams(location.search).get("tab");
+  const tabName = title ?? (searchTab ? (TAB_TITLES[searchTab] ?? searchTab.charAt(0).toUpperCase() + searchTab.slice(1)) : "Home");
   
 
   const [bellOpen, setBellOpen] = useState(false);
@@ -64,7 +78,7 @@ const StudentHeader = ({
             <Wordmark className="hidden sm:inline-flex" imgClassName="h-3.5 md:h-4" />
           </div>
           
-          <h1 className="font-display text-lg font-semibold hidden sm:block lg:ml-52">Students Dashboard</h1>
+          <h1 className="font-display text-lg font-semibold hidden sm:block lg:ml-52">{tabName}</h1>
         </div>
         
         {/* User Profile */}

@@ -17,6 +17,7 @@ export default function Auth() {
   // MF-069: a signed-in visitor sees a loader, not the sign-in form, while their session is checked.
   const [checking, setChecking] = useState(true);
   const [signedIn, setSignedIn] = useState<{ role: UserRole; go: () => void } | null>(null);
+  const [signingIn, setSigningIn] = useState(false);
   const navigate = useNavigate();
   // The set-password page sends people here with a "password set" note.
   const stateMessage = (useLocation().state as { message?: string } | null)?.message;
@@ -120,6 +121,8 @@ export default function Auth() {
   };
 
   const handleAuthSuccess = async (role: UserRole) => {
+    setSigningIn(true);
+    setSignedIn(null);
     try {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
@@ -160,7 +163,7 @@ export default function Auth() {
     );
   }
 
-  if (signedIn) {
+  if (signedIn && !signingIn) {
     return (
       <AccessShell>
         <AccessHeading title="Already signed in" description={`You're already signed in as ${ROLE_WORDS[signedIn.role] ?? "another account"}. Sign out?`} />
@@ -175,7 +178,11 @@ export default function Auth() {
 
   return (
     <AccessShell>
-      <SignIn onSuccess={handleAuthSuccess} notice={errorMessage ?? stateMessage ?? ""} />
+      <SignIn
+        onSuccess={handleAuthSuccess}
+        onSigningIn={() => { setSigningIn(true); setSignedIn(null); }}
+        notice={errorMessage ?? stateMessage ?? ""}
+      />
     </AccessShell>
   );
 }

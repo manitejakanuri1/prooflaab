@@ -90,6 +90,7 @@ const StudentDashboard = () => {
         profilePhoto={profile?.profile_photo_url}
         onMenuClick={() => setSidebarOpen(!sidebarOpen)}
         showMenuButton={isMobile}
+        title={activeTab === "lab" ? "Home" : activeTab === "log" ? "Build-log" : activeTab === "squad" ? "Squad" : activeTab === "profile" ? "Profile" : activeTab === "jobs" ? "Jobs" : activeTab === "resources" ? "Resources" : "Home"}
       />
       
       <div className="flex relative">

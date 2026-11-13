@@ -48,7 +48,8 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Pro
   const { toast } = useToast();
   const [home, setHome] = useState<Record<string, any> | null>(null);
   const [talent, setTalent] = useState<Candidate[] | null>(null);
-  const [sortBy, setSortBy] = useState<"skills" | "work" | "speaking" | null>(null);
+  const [sortCol, setSortCol] = useState<"skills" | "work" | "speaking" | null>(null);
+  const [sortDir, setSortDir] = useState<"desc" | "asc" | null>(null);
   const [saved, setSaved] = useState<Record<string, any>[]>([]);
   const [lots, setLots] = useState<Record<string, any>[]>([]);
   // Owner rule B: a Lot reads "Passed" only with a voice of 50+. recruiter_lots() has no voice score; the
@@ -216,15 +217,32 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Pro
   const visible = (talent ?? []).filter((c) =>
     !search || c.name.toLowerCase().includes(search.toLowerCase())
     || c.roleFit.join(" ").toLowerCase().includes(search.toLowerCase()));
-  // MF-085: click a number column to sort by it, highest first.
-  const sortValue = (c: Candidate) =>
-    sortBy === "skills" ? c.skillsProven ?? 0 : sortBy === "work" ? c.proofsVerified ?? 0 : c.communicationScore ?? -1;
-  if (sortBy) visible.sort((a, b) => sortValue(b) - sortValue(a));
+  // N8: 3-state sorting: 1st click high to low, 2nd click low to high, 3rd click reset.
+  const sortValue = (c: Candidate, key: "skills" | "work" | "speaking") =>
+    key === "skills" ? c.skillsProven ?? 0 : key === "work" ? c.proofsVerified ?? 0 : c.communicationScore ?? -1;
+  if (sortCol && sortDir) {
+    visible.sort((a, b) => {
+      const va = sortValue(a, sortCol);
+      const vb = sortValue(b, sortCol);
+      return sortDir === "asc" ? va - vb : vb - va;
+    });
+  }
+  const handleSortClick = (key: "skills" | "work" | "speaking") => {
+    if (sortCol !== key) {
+      setSortCol(key);
+      setSortDir("desc");
+    } else if (sortDir === "desc") {
+      setSortDir("asc");
+    } else {
+      setSortCol(null);
+      setSortDir(null);
+    }
+  };
   const sortHead = (key: "skills" | "work" | "speaking", label: string, title?: string) => (
     <th className="pb-2 pr-3" title={title}>
-      <button type="button" className={`uppercase tracking-widest hover:text-foreground ${sortBy === key ? "text-foreground" : ""}`}
-        onClick={(e) => { e.stopPropagation(); setSortBy(sortBy === key ? null : key); }}>
-        {label}{sortBy === key ? " ↓" : ""}
+      <button type="button" className={`uppercase tracking-widest hover:text-foreground ${sortCol === key ? "text-foreground font-semibold" : ""}`}
+        onClick={(e) => { e.stopPropagation(); handleSortClick(key); }}>
+        {label}{sortCol === key ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
       </button>
     </th>
   );

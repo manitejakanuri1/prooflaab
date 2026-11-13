@@ -1,6 +1,6 @@
-/** Retest 11 Nov 2026: a rank of 0 or none is "Not ranked yet", never "#0" or "0/11". */
-export function rankText(rank: number | null | undefined, outOf?: number | null): string {
-  if (!rank) return "Not ranked yet";
+/** Retest 11 Nov 2026 / N9 13 Nov: a rank of 0 or none, or a candidate with 0 points, is "Not ranked yet", never "#0" or "0/11". */
+export function rankText(rank: number | null | undefined, outOf?: number | null, points?: number | null): string {
+  if (!rank || (points != null && points <= 0)) return "Not ranked yet";
   return outOf ? `${rank}/${outOf}` : `#${rank}`;
 }
 

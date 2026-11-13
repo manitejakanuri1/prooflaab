@@ -8,6 +8,11 @@ test("company candidate: rank 0 or missing reads Not ranked yet", () => {
   assert.equal(rankText(0, 11), "Not ranked yet");
   assert.equal(rankText(3), "#3");
   assert.equal(rankText(3, 11), "3/11");
+  // N9 13 Nov: candidate with points <= 0 is Not ranked yet even if a rank number exists
+  assert.equal(rankText(2, 11, 0), "Not ranked yet");
+  assert.equal(rankText(2, undefined, 0), "Not ranked yet");
+  assert.equal(rankText(2, 11, 5), "2/11");
+  assert.equal(rankText(2, undefined, 5), "#2");
 });
 
 test("squad: a rest week never shows a next match, so never '? vs ?'", () => {

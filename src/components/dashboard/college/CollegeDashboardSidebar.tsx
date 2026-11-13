@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import {
   Home,
   Users,
@@ -88,6 +89,12 @@ const CollegeDashboardSidebar = ({ activeTab, onTabChange }: CollegeDashboardSid
               <LogOut className="h-4 w-4 flex-shrink-0" />
               <span className="truncate">Sign Out</span>
             </Button>
+          </div>
+
+          <div className="pt-2 mt-1 border-t border-border/60 flex flex-wrap gap-x-3 gap-y-1 px-1 text-xs text-muted-foreground">
+            <Link to="/privacy" className="hover:text-foreground hover:underline">Privacy</Link>
+            <Link to="/terms" className="hover:text-foreground hover:underline">Terms</Link>
+            <Link to="/help" className="hover:text-foreground hover:underline">Help</Link>
           </div>
         </div>
       </nav>

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Bell, User, Settings, LogOut, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -116,6 +117,16 @@ const CollegeDashboardHeader = ({ collegeName, profilePhoto, onMenuClick, showMe
               <DropdownMenuItem onClick={() => onNavigate?.("settings")}>
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/privacy" className="w-full cursor-pointer">Privacy</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/terms" className="w-full cursor-pointer">Terms</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/help" className="w-full cursor-pointer">Help</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>

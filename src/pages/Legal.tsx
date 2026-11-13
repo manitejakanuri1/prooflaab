@@ -99,6 +99,10 @@ export const Terms = () => (
 
 export const PrivacyPolicy = () => (
   <LegalPage title="Privacy Policy">
+    <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+      <p className="text-sm font-semibold">Draft - to be reviewed by the owner</p>
+      <p className="text-xs mt-1">This policy describes what data ProofLabAI collects, how it is used, how long it is kept, and who can access it.</p>
+    </div>
     <Section heading="1. What we collect">
       <ul className="list-disc pl-6 space-y-1">
         <li>Account details from your college or administrator: name, email, college, branch, section and roll number.</li>
@@ -163,3 +167,30 @@ export const PrivacyPolicy = () => (
     </Section>
   </LegalPage>
 );
+
+export const Help = () => (
+  <LegalPage title="Help & Support">
+    <Section heading="1. Getting help">
+      <p>
+        If you run into any issues, have questions about your tasks, or need assistance with your account, we are here to help.
+      </p>
+    </Section>
+    <Section heading="2. Contact us">
+      <p>
+        Send an email to{" "}
+        <a className="underline font-medium text-foreground" href={`mailto:${CONTACT}`}>
+          {CONTACT}
+        </a>
+        . We review every message and usually respond within one business day.
+      </p>
+    </Section>
+    <Section heading="3. Support for each role">
+      <ul className="list-disc pl-6 space-y-1">
+        <li><b>Students:</b> For questions about your task marks, streaks, or audio recording, talk to your college placement officer or email <a className="underline" href={`mailto:${CONTACT}`}>{CONTACT}</a>.</li>
+        <li><b>Colleges:</b> For help with student rosters, onboarding, section management, or placement analytics, contact support at <a className="underline" href={`mailto:${CONTACT}`}>{CONTACT}</a>.</li>
+        <li><b>Companies:</b> For assistance with hiring, candidate shortlists, or talent search, write directly to <a className="underline" href={`mailto:${CONTACT}`}>{CONTACT}</a>.</li>
+      </ul>
+    </Section>
+  </LegalPage>
+);
+

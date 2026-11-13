@@ -34,6 +34,7 @@ const OnboardingStudent = lazy(() => import("./pages/OnboardingStudent"));
 const OnboardingWizard = lazy(() => import("./pages/OnboardingWizard"));
 const Terms = lazy(() => import("./pages/Legal").then((m) => ({ default: m.Terms })));
 const PrivacyPolicy = lazy(() => import("./pages/Legal").then((m) => ({ default: m.PrivacyPolicy })));
+const Help = lazy(() => import("./pages/Legal").then((m) => ({ default: m.Help })));
 
 // Lazy load route guards
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
@@ -252,7 +253,9 @@ const App = () => (
                 
                 <Route path="/college/:tab" element={<CollegeTabRedirect />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/help" element={<Help />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>

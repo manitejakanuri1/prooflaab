@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Home, Users, ClipboardList, LogOut, Briefcase } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
@@ -111,6 +112,12 @@ export function StartupSidebar({ activeTab, onTabChange, isVerified }: StartupSi
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <div className="mt-auto p-4 border-t border-sidebar-border/60 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <Link to="/privacy" className="hover:text-foreground hover:underline">Privacy</Link>
+          <Link to="/terms" className="hover:text-foreground hover:underline">Terms</Link>
+          <Link to="/help" className="hover:text-foreground hover:underline">Help</Link>
+        </div>
       </SidebarContent>
     </Sidebar>
   );

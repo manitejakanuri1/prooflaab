@@ -307,7 +307,7 @@ function Footer() {
         <div><BrandLogo /><p className="mt-3 text-sm text-muted-foreground">Build proof. Show readiness.</p></div>
         <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">{navLinks.map((link) => <a key={link.href} href={link.href} className="hover:text-foreground">{link.label}</a>)}<Link to="/auth" className="hover:text-foreground">Sign In</Link></div>
       </div>
-      <div className="mx-auto mt-7 flex max-w-7xl justify-between border-t border-border pt-5 text-xs text-muted-foreground"><span>© 2026 PROOFLAB</span><div className="flex gap-5"><a href="#top">Privacy</a><a href="#top">Terms</a></div></div>
+      <div className="mx-auto mt-7 flex max-w-7xl justify-between border-t border-border pt-5 text-xs text-muted-foreground"><span>© 2026 PROOFLAB</span><div className="flex gap-5"><Link to="/privacy" className="hover:text-foreground">Privacy</Link><Link to="/terms" className="hover:text-foreground">Terms</Link><Link to="/help" className="hover:text-foreground">Help</Link></div></div>
     </footer>
   );
 }

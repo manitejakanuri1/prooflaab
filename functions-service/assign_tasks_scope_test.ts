@@ -160,8 +160,12 @@ Deno.test("control: college A, its own two students, personalized -> passes scop
   reachedAi(r, "own students");
   assert(r.profileReads.length > 0, "own-student profiles were not read");
 });
-Deno.test("control: college A, AI preview with no students -> reaches AI", async () => {
-  reachedAi(await call(TPO_A, { mode: "ai", keywords: "react", selected_students: [] }), "preview");
+// The "ai" mode was retired (owner 12 Nov 2026, ed13c54e): it must fail without calling AI or writing anything.
+Deno.test("retired: college A, AI mode -> refused, no AI call, no write", async () => {
+  const r = await call(TPO_A, { mode: "ai", keywords: "react", selected_students: [] });
+  assert(r.status >= 400, `retired ai mode answered ${r.status}`);
+  assert(r.ai.length === 0, "retired ai mode called an AI provider");
+  assert(r.writes.length === 0, "retired ai mode wrote something");
 });
 Deno.test("control: college A may use an admin template and its own template", async () => {
   reachedAi(await call(TPO_A, { mode: "template", template_id: TPL_ADMIN, selected_students: [STU_A1] }), "admin template");

@@ -2,7 +2,7 @@ import { fmtDay } from "@/lib/ist";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Star, Tag, Clock, Shield, Building2, Briefcase, User } from "lucide-react";
-import { systemCreatorLabel } from "./systemCreatorLabel";
+import { categoryLabel, systemCreatorLabel } from "./systemCreatorLabel";
 
 interface TaskDetailsModalProps {
   task: any;
@@ -90,7 +90,7 @@ export function TaskDetailsModal({ task, open, onClose }: TaskDetailsModalProps)
                 <Tag className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">Category</span>
               </div>
-              <p className="text-sm text-muted-foreground">{task.category || 'General'}</p>
+              <p className="text-sm text-muted-foreground">{categoryLabel(task.category)}</p>
             </div>
 
             <div className="border rounded-lg p-4">

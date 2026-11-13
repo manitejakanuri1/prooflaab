@@ -27,7 +27,7 @@ import { ViewAssignedStudentsModal } from "./ViewAssignedStudentsModal";
 import { EditTaskModal } from "./EditTaskModal";
 import { ReassignTaskModal } from "./ReassignTaskModal";
 import { TaskDetailsModal } from "./TaskDetailsModal";
-import { systemCreatorLabel } from "./systemCreatorLabel";
+import { categoryLabel, systemCreatorLabel } from "./systemCreatorLabel";
 import { ADMIN_LIST_CAP } from "@/lib/listCaps";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -514,7 +514,7 @@ const TaskOversight = () => {
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
                 {/* F25: the categories tasks really have, not a fixed guess. */}
-                {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                {categories.map((c) => <SelectItem key={c} value={c}>{categoryLabel(c)}</SelectItem>)}
               </SelectContent>
             </Select>
 
@@ -587,7 +587,7 @@ const TaskOversight = () => {
                     </TableCell>
                     <TableCell>{getCreatorBadge(task)}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{task.category || 'General'}</Badge>
+                      <Badge variant="outline">{categoryLabel(task.category)}</Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {fmtDay(task.due_date)}
@@ -713,7 +713,7 @@ const TaskOversight = () => {
                     {/* Creator & Category */}
                     <div className="flex flex-wrap gap-2 text-xs">
                       {getCreatorBadge(task)}
-                      <Badge variant="outline" className="text-xs">{task.category || 'General'}</Badge>
+                      <Badge variant="outline" className="text-xs">{categoryLabel(task.category)}</Badge>
                     </div>
 
                     {/* Due Date & XP */}

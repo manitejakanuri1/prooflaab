@@ -5,3 +5,6 @@ export const systemCreatorLabel = (task: { source?: string | null; created_by_ty
   if (task.source === "daily_lot" || task.created_by_type === "system" || task.lot_date) return "Daily Lot (system)";
   return task.is_ai_generated ? "ProofLab (AI)" : "ProofLab";
 };
+
+/** S12: a task category as shown ("technical" -> "Technical"; empty -> "General"). The stored value is not changed. */
+export const categoryLabel = (c: string | null | undefined) => (c ? c.charAt(0).toUpperCase() + c.slice(1) : "General");

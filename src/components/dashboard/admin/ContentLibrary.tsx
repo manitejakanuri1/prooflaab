@@ -97,7 +97,7 @@ const ContentLibrary = () => {
             </Badge>
           ))}
           <p className="w-full text-xs text-muted-foreground mt-1">
-            The crawler visits these exact pages every Sunday 08:10 and saves a page only when its content changed.
+            The crawler visits these exact pages every Sunday 08:10 and saves a page only when its content changes.
           </p>
         </CardContent>
       </Card>

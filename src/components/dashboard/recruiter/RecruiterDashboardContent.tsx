@@ -354,7 +354,7 @@ const RecruiterDashboardContent = ({ activeTab, onTabChange, awaitingOnly }: Pro
                       <th className="pb-2 pr-3">Candidate</th>
                       <th className="pb-2 pr-3">Role</th>
                       {sortHead("skills", "Starting test passed")}
-                      {sortHead("work", "Verified work")}
+                      {sortHead("work", "Answers passed", "Lots where the student's answer passed")}
                       {sortHead("speaking", "Voice (of 10)", "Average score of their spoken explanations, out of 10")}
                       <th className="pb-2">Last active</th>
                     </tr>

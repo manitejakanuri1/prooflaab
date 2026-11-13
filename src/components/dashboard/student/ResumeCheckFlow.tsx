@@ -996,16 +996,27 @@ export default ResumeCheckFlow;
 /** "1730000000000-My_Resume.pdf" -> "My_Resume.pdf" (the upload adds a time stamp in front). */
 const resumeFileName = (path: string) => path.split("/").pop()!.replace(/^\d+-/, "");
 
-/** Opens the student's own uploaded resume in a new tab (MF-072, F3). */
+/** Opens the student's own uploaded resume in a new tab (MF-072, F3, N7). */
 async function viewResume(path: string) {
-  // F3: get signed URL / check the file BEFORE opening a window to stay on the page if missing.
-  const { data, error } = await supabase.storage.from("resumes").createSignedUrl(path, 300);
-  if (error || !data?.signedUrl) {
+  // N7: download checks if the object actually exists in the bucket before opening any tab.
+  const { data, error } = await supabase.storage.from("resumes").download(path);
+  if (error || !data) {
     showToast({
       title: "Resume file not found, please upload it again",
       variant: "destructive",
     });
     return;
   }
-  window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  const url = URL.createObjectURL(data as Blob);
+  const win = window.open(url, "_blank", "noopener,noreferrer");
+  if (!win) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }

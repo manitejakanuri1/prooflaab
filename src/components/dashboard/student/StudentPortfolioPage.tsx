@@ -7,6 +7,7 @@ import { usePortfolio } from "@/hooks/usePortfolio";
 import { Award, Share, CheckCircle, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ProvenWork, { useProvenWork } from "@/components/portfolio/ProvenWork";
+import { useVoicePendingTasks } from "@/hooks/useVoicePendingTasks";
 import { getInitials } from "@/lib/utils";
 import { useUrlTab } from "@/hooks/useUrlTab";
 import { useQuery } from "@tanstack/react-query";
@@ -16,6 +17,7 @@ const StudentPortfolioPage = () => {
   const { profile, loading: profileLoading } = useStudentProfile();
   // What this student has passed (task_submissions) - the retired proof uploads are not read.
   const { data: provenWork = [] } = useProvenWork(profile?.id);
+  const { data: pendingVoice = [] } = useVoicePendingTasks(profile?.id);
   const { portfolio, loading: portfolioLoading } = usePortfolio();
   const { toast } = useToast();
   const [, setView] = useUrlTab("view", "");
@@ -114,6 +116,11 @@ const StudentPortfolioPage = () => {
                       <CheckCircle className="h-5 w-5 text-verified" />
                     </div>
                     <div className="text-3xl font-bold text-foreground">{provenWork.length}</div>
+                    {pendingVoice.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {pendingVoice.length} waiting for voice
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -133,7 +140,11 @@ const StudentPortfolioPage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ProvenWork studentId={profile?.id} emptyText="Pass a Lot and it appears here, with your explanation score." />
+          <ProvenWork
+            studentId={profile?.id}
+            pendingVoice={pendingVoice}
+            emptyText="Pass a Lot and it appears here, with your explanation score."
+          />
         </CardContent>
       </Card>
 

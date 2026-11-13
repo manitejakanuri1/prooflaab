@@ -3,20 +3,39 @@ import { Megaphone } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-// MF-033 (migration 199): the live announcements meant for this person's role (newest 3), on their dashboard.
+// MF-033 (migration 199), N3 (13 Nov 2026): the live announcements meant for this person's role (newest 3), on their dashboard.
+// If an announcement notification opens ?announcement=<id>, that announcement is fetched even if older than the newest 3,
+// displayed at the top, and scrolled into view.
 interface Announcement { id: string; title: string; description: string | null }
 
 export default function AnnouncementBanner() {
   const [items, setItems] = useState<Announcement[]>([]);
-  // Owner E2E S3: a notification about an announcement opens ?announcement=<id>; that one is scrolled to and marked.
   const [params] = useSearchParams();
   const wanted = params.get("announcement");
+
   useEffect(() => {
-    supabase.rpc("my_announcements" as never).then(({ data }) => setItems((data as Announcement[]) ?? []), () => {});
-  }, []);
+    supabase.rpc("my_announcements" as never).then(async ({ data }) => {
+      let list = (data as Announcement[]) ?? [];
+      if (wanted && !list.some((a) => a.id === wanted)) {
+        const { data: single } = await supabase
+          .from("announcements")
+          .select("id, title, description")
+          .eq("id", wanted)
+          .maybeSingle();
+        if (single) {
+          list = [single as Announcement, ...list];
+        }
+      }
+      setItems(list);
+    }, () => {});
+  }, [wanted]);
+
   useEffect(() => {
-    if (wanted && items.length) document.getElementById(`announcement-${wanted}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (wanted && items.length) {
+      document.getElementById(`announcement-${wanted}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
   }, [wanted, items]);
+
   if (items.length === 0) return null;
   return (
     <div className="space-y-2" data-testid="announcements">

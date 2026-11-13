@@ -8,6 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
+import { Link } from "react-router-dom";
+import { useStudentProfile } from "@/hooks/useStudentProfile";
+import { useVoicePendingTasks, taskMatchesSkill } from "@/hooks/useVoicePendingTasks";
+import { tidyTitle } from "@/lib/utils";
 
 interface Skill {
   skill: string;
@@ -151,6 +155,8 @@ const TopicStrengths = () => {
  * the ladder, lots submitted, explanations recorded.
  */
 const StudentSkillsProved = () => {
+  const { profile } = useStudentProfile();
+  const { data: pendingVoice = [] } = useVoicePendingTasks(profile?.id);
   const [skills, setSkills] = useState<Skill[] | null>(null);
   const [openSkill, setOpenSkill] = useState<Skill | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -272,6 +278,30 @@ const StudentSkillsProved = () => {
                   ))}
                 </div>
 
+                {(() => {
+                  const skillPending = pendingVoice.filter((t) => taskMatchesSkill(t, s.skill));
+                  if (skillPending.length === 0) return null;
+                  return (
+                    <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-2 text-xs">
+                      <p className="font-medium text-foreground">
+                        {skillPending.length} {skillPending.length === 1 ? "Lot" : "Lots"} passed, waiting for your 60-second voice. Record it to add {skillPending.length === 1 ? "it" : "them"} here.
+                      </p>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        {skillPending.map((p) => (
+                          <Link
+                            key={p.id}
+                            to={`/student/tasks/assigned?open=${encodeURIComponent(p.id)}&voice=1`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="font-medium text-primary hover:underline"
+                          >
+                            Record voice for {tidyTitle(p.title)} →
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {s.last_evidence_at && (
                   <p className="text-xs text-muted-foreground mt-3">
                     Last evidence {fmtDay(s.last_evidence_at)}
@@ -299,6 +329,28 @@ const StudentSkillsProved = () => {
                 <p><span className="font-medium">Where it came from:</span> {openSkill.claimed_from ? `added from ${openSkill.claimed_from.replace(/_/g, " ")}` : "your resume"}
                   {`; Lots on it: ${openSkill.proven_lots}; explained out loud: ${openSkill.proven_voice}`}
                   {openSkill.topics_total > 0 ? `; syllabus levels cleared: ${openSkill.topics_cleared} of ${openSkill.topics_total}` : ""}.</p>
+                {(() => {
+                  const modalPending = pendingVoice.filter((t) => taskMatchesSkill(t, openSkill.skill));
+                  if (modalPending.length === 0) return null;
+                  return (
+                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5 text-xs space-y-1">
+                      <p className="font-medium text-foreground">
+                        {modalPending.length} {modalPending.length === 1 ? "Lot" : "Lots"} passed, waiting for your 60-second voice. Record it to add {modalPending.length === 1 ? "it" : "them"} here.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {modalPending.map((p) => (
+                          <Link
+                            key={p.id}
+                            to={`/student/tasks/assigned?open=${encodeURIComponent(p.id)}&voice=1`}
+                            className="font-medium text-primary hover:underline"
+                          >
+                            Record voice for {tidyTitle(p.title)} →
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
                 <p><span className="font-medium">How to improve:</span> do the Lots that use this skill, explain each one out loud,
                   and clear its syllabus levels on your roadmap.</p>
               </div>

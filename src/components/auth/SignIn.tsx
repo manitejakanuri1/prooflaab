@@ -26,7 +26,7 @@ function cleanupAuthState() {
   });
 }
 
-export default function SignIn({ onSuccess, notice = "" }: { onSuccess: (role: UserRole) => void; notice?: string }) {
+export default function SignIn({ onSuccess, onSigningIn, notice = "" }: { onSuccess: (role: UserRole) => void; onSigningIn?: () => void; notice?: string }) {
   const [view, setView] = useState<View>("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -73,6 +73,7 @@ export default function SignIn({ onSuccess, notice = "" }: { onSuccess: (role: U
         return setError("Your college or the Prooflab team manages access to this account.");
       }
       setView("success");
+      onSigningIn?.();
       // A short beat so the "ACCESS VERIFIED" tick is seen before the dashboard opens.
       const role = userRole.role;
       setTimeout(() => onSuccess(role), 800);

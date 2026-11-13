@@ -58,6 +58,7 @@ const StudentAssignedTasksPage = () => {
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [sourceFilter, setSourceFilter] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState("Due Date (ASC)");
 
   // Filter only assigned tasks (from admin/college, not student-created or startup applications)
@@ -95,11 +96,23 @@ const StudentAssignedTasksPage = () => {
       );
     }
 
+    // Apply source filter (from clickable chips)
+    if (sourceFilter) {
+      filtered = filtered.filter(task => sourceLabel(task.source || '').toLowerCase() === sourceFilter.toLowerCase());
+    }
+
     // Apply status filter
+    // N6: Add "Voice to record" and "Overdue" filters
     if (statusFilter !== "All") {
-      // F6 (12 Nov 2026): "In Progress" means what the card says - not a passed (voice owed) or overdue task.
-      filtered = filtered.filter(task => task.status === statusFilter
-        && (statusFilter !== 'In Progress' || (!task.work_passed && !overdue(task))));
+      if (statusFilter === "Voice to record") {
+        filtered = filtered.filter(task => Boolean(task.voice_owed || (task.work_passed && task.voice_score == null && task.status !== 'Completed')));
+      } else if (statusFilter === "Overdue") {
+        filtered = filtered.filter(task => overdue(task));
+      } else {
+        // F6 (12 Nov 2026): "In Progress" means what the card says - not a passed (voice owed) or overdue task.
+        filtered = filtered.filter(task => task.status === statusFilter
+          && (statusFilter !== 'In Progress' || (!task.work_passed && !overdue(task))));
+      }
     }
 
     // MF-093: remember the order each task was first shown in. Starting a task re-fetches the list and the
@@ -147,7 +160,12 @@ const StudentAssignedTasksPage = () => {
     // F15 (12 Nov 2026): the link stays in the address bar until the task opens, so the refresh this asks for
     // opens the same task (it used to be removed first, and a refresh landed on the plain list).
     if (!task) { if (openFailed.current !== id) toast.error("Could not open that task. Refresh the page and try again."); openFailed.current = id; return; }
+    const wantVoice = params.get("voice") === "1";
     setParams({}, { replace: true });              // only once
+    if (wantVoice || (task.work_passed && task.voice_score == null)) {
+      setExplainTask({ id: task.id, title: task.title });
+      return;
+    }
     if (task.status !== "Applied" && task.status !== "In Progress") { setSelectedTaskForDetails(id); return; }
     void (async () => {
       try {
@@ -297,10 +315,32 @@ const StudentAssignedTasksPage = () => {
             </div>
           )}
           {sourceCounts.length > 0 && (
-            <div className="flex flex-wrap gap-2" data-testid="task-sources">
-              {sourceCounts.map(([label, n]) => (
-                <Badge key={label} variant="outline" className="font-normal">{label}: {n}</Badge>
-              ))}
+            <div className="flex flex-wrap items-center gap-2" data-testid="task-sources">
+              {sourceFilter && (
+                <Badge
+                  variant="secondary"
+                  className="cursor-pointer"
+                  onClick={() => setSourceFilter(null)}
+                >
+                  All sources ✕
+                </Badge>
+              )}
+              {sourceCounts.map(([label, n]) => {
+                const active = sourceFilter?.toLowerCase() === label.toLowerCase();
+                return (
+                  <Badge
+                    key={label}
+                    variant={active ? "default" : "outline"}
+                    className={`cursor-pointer font-normal hover:bg-accent ${active ? "ring-2 ring-primary" : ""}`}
+                    onClick={() => setSourceFilter(active ? null : label)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === "Enter" && setSourceFilter(active ? null : label)}
+                  >
+                    {label}: {n}
+                  </Badge>
+                );
+              })}
             </div>
           )}
           {/* Filter Bar */}
@@ -317,12 +357,14 @@ const StudentAssignedTasksPage = () => {
             
             <div className="flex flex-wrap items-center gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[140px]">
+                <SelectTrigger className="w-full sm:w-[160px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent className="bg-background border border-border z-50">
                   <SelectItem value="All">All Status</SelectItem>
                   <SelectItem value="In Progress">In Progress</SelectItem>
+                  <SelectItem value="Voice to record">Voice to record</SelectItem>
+                  <SelectItem value="Overdue">Overdue</SelectItem>
                   <SelectItem value="Under Review">Under Review</SelectItem>
                   <SelectItem value="Completed">Completed</SelectItem>
                 </SelectContent>

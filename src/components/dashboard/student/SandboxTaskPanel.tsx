@@ -18,6 +18,8 @@ import { savedResultLine, type SavedRow } from "@/lib/savedAnswer";
 import { loadSavedAnswer } from "@/lib/savedAnswerLoad";
 import { announceTaskScored } from "@/lib/taskEvents";
 import { languageLabel, STARTERS } from "@/lib/codeLanguages";
+import { useAuth } from "@/contexts/AuthContext";
+import { syncResubmittedNotification } from "@/lib/taskNotifications";
 
 interface SandboxView {
   task_id: string;
@@ -133,6 +135,7 @@ export default function SandboxTaskPanel({
   onFinish,
   meta,
 }: SandboxTaskPanelProps) {
+  const { user } = useAuth();
   const [view, setView] = useState<SandboxView | null>(null);
   // MF-020: a finished task shows the saved answer and result from the server, not an empty draft.
   const [saved, setSaved] = useState<{ row: SavedRow; voice: number | null } | null>(null);
@@ -176,11 +179,12 @@ export default function SandboxTaskPanel({
           setSaved(s); setTab("result");
           if (s.row.code) loadCode(s.row.code);
           if (s.row.language) setLang(s.row.language);
+          if (s.row.status === "passed") void syncResubmittedNotification(user?.id, taskId, "passed");
         }
       }
     })();
     return () => { cancelled = true; };
-  }, [taskId]);
+  }, [taskId, user?.id]);
 
   const saveDraft = (value: string) => {
     setCode(value);
@@ -235,6 +239,7 @@ export default function SandboxTaskPanel({
     const r = data as SubmitResult;
     setResult(r);
     announceTaskScored();
+    void syncResubmittedNotification(user?.id, taskId, r.passed ? "passed" : "failed");
     if (r.lot) setLot(r.lot);
     if (r.passed || r.lot?.submitted) {
       onPassedChange?.(true);

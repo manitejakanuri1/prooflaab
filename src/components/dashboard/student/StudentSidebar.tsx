@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  FlaskConical,
+  Home,
   NotebookPen,
   Users,
   IdCard,
@@ -41,7 +41,7 @@ interface MenuItem {
 // Openings, Startup Tasks, Opportunities and Applications all read tables that
 // do not exist. They come back as menu entries when their features are built.
 const menuItems: MenuItem[] = [
-  { id: "lab", label: "ProofLab", icon: FlaskConical },
+  { id: "lab", label: "Home", icon: Home },
   { id: "log", label: "Build-log", icon: NotebookPen },
   { id: "squad", label: "Squad", icon: Users },
   { id: "profile", label: "Profile", icon: IdCard },

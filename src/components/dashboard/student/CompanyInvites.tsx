@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { fmtDay } from "@/lib/ist";
 
-// MF-047 (migration 198): a company shortlisted the student. The student presses Accept or Decline;
+// MF-047 (migration 198), N3 (13 Nov 2026): a company shortlisted the student. The student presses Accept or Decline;
 // the company can move them to interviewing / offered / hired only after Accept.
+// Navigating from a shortlist notification targets #company-invites, which scrolls this section into view.
 
 interface Invite { id: string; company: string; note: string | null; stage: string; student_response: string | null; responded_at?: string | null }
 
@@ -25,6 +26,12 @@ export default function CompanyInvites() {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
+  useEffect(() => {
+    if (window.location.hash === "#company-invites") {
+      document.getElementById("company-invites")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [invites, accepted]);
+
   const answer = async (id: string, accept: boolean) => {
     setBusy(true);
     const { error } = await supabase.rpc("respond_to_shortlist" as never, { _shortlist_id: id, _accept: accept } as never);
@@ -34,9 +41,22 @@ export default function CompanyInvites() {
     await load();
   };
 
-  if (invites.length === 0 && accepted.length === 0) return null;
+  const isTargeted = typeof window !== "undefined" && window.location.hash === "#company-invites";
+
+  if (invites.length === 0 && accepted.length === 0) {
+    if (!isTargeted) return null;
+    return (
+      <Card data-testid="company-invites" id="company-invites">
+        <CardContent className="pt-5 space-y-2">
+          <h3 className="font-semibold">Companies want to talk to you</h3>
+          <p className="text-sm text-muted-foreground">You have no pending invites right now.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card data-testid="company-invites">
+    <Card data-testid="company-invites" id="company-invites">
       <CardContent className="pt-5 space-y-3">
         {invites.length > 0 && <h3 className="font-semibold">Companies want to talk to you</h3>}
         {invites.map((i) => (

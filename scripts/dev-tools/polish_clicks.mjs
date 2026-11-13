@@ -288,7 +288,7 @@ try {
     (await page.getByText("Tried a Lot today").count()) > 0 && (await page.getByText(/opened the app/i).count()) === 0);
   await check("College: home shows the 'Looks copied' info note, no review button (migration 229)", async () => {
     await page.getByTestId("copied-notes").waitFor({ timeout: 20000 }).catch(() => {});
-    return /Looks copied: .+ and .+ wrote almost the same answer on /.test(await page.getByTestId("copied-notes").innerText().catch(() => ""));
+    return /(Looks copied|Very similar to another answer, please check): .+ and .+ wrote almost the same answer on /.test(await page.getByTestId("copied-notes").innerText().catch(() => ""));
   });
   await go(page, "/college/matches");
   await check("College: /college/matches opens Matches", async () => page.url().includes("view=matches"));

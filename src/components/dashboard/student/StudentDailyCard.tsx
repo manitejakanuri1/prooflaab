@@ -529,7 +529,11 @@ const StudentDailyCard = () => {
                     onClick={openLot}
                     className="flex-1 min-w-36 border-[#c6bfae] bg-transparent text-[#191b1f] hover:bg-[#e7e1d2]"
                   >
-                    <Code2 className="mr-2 h-4 w-4" /> View my code
+                    {lot.sandbox_config_id ? (
+                      <><Code2 className="mr-2 h-4 w-4" /> View my code</>
+                    ) : (
+                      <><CheckCircle2 className="mr-2 h-4 w-4" /> View my answer</>
+                    )}
                   </Button>
                 </>
               ) : (

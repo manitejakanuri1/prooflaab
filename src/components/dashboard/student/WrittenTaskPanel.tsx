@@ -283,19 +283,19 @@ export default function WrittenTaskPanel({
         </p>
       )}
 
-      {/* QA week 8: say why Check is greyed out, next to the button. */}
+      {/* QA week 8: say why Check/Submit is greyed out, next to the button. */}
       {!done && !loadingAnswer && (tooShort || tooLong) && answer.trim() && (
         <p className="text-right text-xs text-compete" data-testid="check-disabled-why">
           {tooShort
-            ? `Check opens at ${view.min_words} words. Write ${view.min_words - wordCount} more.`
-            : `Your answer is over ${view.max_words} words. Shorten it to check.`}
+            ? `Submit opens at ${view.min_words} words. Write ${view.min_words - wordCount} more.`
+            : `Your answer is over ${view.max_words} words. Shorten it to submit.`}
         </p>
       )}
       {/* Overnight TEST 12 Nov items 6-7: the pass mark next to Check; a click on a greyed-out Check says why. */}
       <div className="flex items-center justify-end gap-2"
            onClickCapture={(e) => {
              if (!done && !loadingAnswer && (tooShort || tooLong) && (e.target as HTMLElement).closest("[data-testid=lot-check-wrap]")) {
-               toast.info(tooShort ? `Write ${view.min_words - wordCount} more words, then press Check.` : `Shorten your answer to ${view.max_words} words, then press Check.`);
+               toast.info(tooShort ? `Write ${view.min_words - wordCount} more words, then press Submit.` : `Shorten your answer to ${view.max_words} words, then press Submit.`);
                document.getElementById("written-answer")?.focus();
              }
            }}>
@@ -312,15 +312,15 @@ export default function WrittenTaskPanel({
             <span data-testid="lot-check-wrap">
               <Button onClick={submit} disabled={busy || loadingAnswer || !!done || checksLeft < 1 || tooShort || tooLong || !answer.trim()}
                       data-testid="lot-check">
-                {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
-                {busy ? "Checking..." : `Check (${checksLeft} left)`}
+                {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                {busy ? "Submitting..." : `Submit (${checksLeft} ${checksLeft === 1 ? "try" : "tries"} left)`}
               </Button>
             </span>
           </>
         ) : (
           <Button onClick={submit} disabled={busy || loadingAnswer || done || tooShort || tooLong || !answer.trim()}>
             {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            {busy ? "Checking..." : "Submit"}
+            {busy ? "Submitting..." : "Submit"}
           </Button>
         )}
       </div>
@@ -335,8 +335,8 @@ export default function WrittenTaskPanel({
       {daily && !lot?.submitted && !result && (
         <p className="text-xs text-muted-foreground">
           {strict
-            ? "Press Check to have your answer marked. You have one check - its score is final, then you explain it out loud."
-            : `Press Check to have your answer marked. You have ${checksLeft} ${checksLeft === 1 ? "check" : "checks"} - your best one counts.`}
+            ? "Press Submit to have your answer marked. You have one try - its score is final, then you explain it out loud."
+            : `Press Submit to have your answer marked. You have ${checksLeft} ${checksLeft === 1 ? "try" : "tries"} - your best one counts.`}
         </p>
       )}
 

@@ -36,6 +36,18 @@ import { Code2, PenLine } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
+// Where each task came from, in the student's words (the hook's labels are short codes).
+// Module scope: the source-chip filter (useMemo) calls this during render, before any const below it exists.
+const SOURCE_LABEL: Record<string, string> = {
+  "From your test": "From your onboarding test",
+  "Track proof": "From a track lesson",
+  "College": "From your college",
+  "Admin": "From ProofLab admin",
+  "Company": "From a company",
+  "Company Lot": "Set by a company",
+};
+const sourceLabel = (source: string) => SOURCE_LABEL[source] ?? (source || "Task");
+
 const StudentAssignedTasksPage = () => {
   const navigate = useNavigate();
   const { tasks: allTasks, loading, startTask, refetch: refetchTasks } = useAllStudentTasks();
@@ -200,16 +212,6 @@ const StudentAssignedTasksPage = () => {
     );
   }
 
-  // Where each task came from, in the student's words (the hook's labels are short codes).
-  const SOURCE_LABEL: Record<string, string> = {
-    "From your test": "From your onboarding test",
-    "Track proof": "From a track lesson",
-    "College": "From your college",
-    "Admin": "From ProofLab admin",
-    "Company": "From a company",
-    "Company Lot": "Set by a company",
-  };
-  const sourceLabel = (source: string) => SOURCE_LABEL[source] ?? (source || "Task");
   // Owner E2E S4: the task window says who set the task and when it is due.
   const originOf = (taskId: string) => {
     const t = allTasks.find((x) => x.id === taskId);

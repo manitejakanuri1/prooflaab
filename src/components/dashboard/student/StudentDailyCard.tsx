@@ -491,7 +491,7 @@ const StudentDailyCard = () => {
               <p className="mt-2 rounded-md border border-compete/40 bg-compete/10 px-3 py-2 text-xs font-medium text-[#191b1f]"
                  data-testid="lot-closes-tonight">
                 <Clock className="mr-1 inline h-3.5 w-3.5" />
-                {isDueToday ? CLOSES_TONIGHT : `Due ${fmtDay(lot.due_date)}. Do it to keep your streak.`}
+                {isDueToday ? CLOSES_TONIGHT : "Do it before it is due to keep your streak."}
               </p>
             )}
             {/* Why it was chosen is written when the Lot is made, so it is only true until the first try. */}

@@ -1,4 +1,5 @@
 import { rankText } from '@/lib/rankText';
+import { companyVoiceText } from '@/lib/companyVoiceStatus';
 import { of10 } from "@/lib/lotMarks";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,15 +25,21 @@ function Avatar({ initials, color }: { initials: string; color: string }) {
 
 function ScorePill({ label, score, proof, verified }: { label: string; score: number | null; proof: ProofItem[]; verified?: boolean }) {
   const [open, setOpen] = useState(false)
+  const isVoice = label.toLowerCase() === 'voice';
   const tone = score == null ? 'text-muted-foreground' : score >= 85 ? 'text-verified' : score >= 75 ? 'text-compete' : 'text-muted-foreground'
   return (
     <div>
       <button onClick={() => setOpen(v => !v)} className='rounded-lg border border-border bg-secondary/70 px-2.5 py-1 text-left text-xs font-mono hover:border-primary/50'>
-        <span className='text-muted-foreground'>{label} </span><span className={tone}>{score == null ? 'not tested' : of10(score)}</span>{verified ? <span className='ml-1 text-primary'>•</span> : null}
+        {isVoice ? (
+          <span className={tone}>{companyVoiceText(score, proof.length)}</span>
+        ) : (
+          <><span className='text-muted-foreground'>{label} </span><span className={tone}>{score == null ? 'not tested' : of10(score)}</span></>
+        )}
+        {verified ? <span className='ml-1 text-primary'>•</span> : null}
       </button>
       {open && (
         <div className='mt-2 rounded-lg border border-border bg-secondary/40 p-3 animate-slide-down'>
-          <div className='mb-2 flex items-center justify-between'><span className='section-label'>proof · {label}</span><span className='text-xs font-mono tabular text-primary'>{of10(score)}</span></div>
+          <div className='mb-2 flex items-center justify-between'><span className='section-label'>proof · {label}</span><span className='text-xs font-mono tabular text-primary'>{isVoice ? companyVoiceText(score, proof.length) : of10(score)}</span></div>
           <div className='space-y-2'>
             {proof.map((item, i) => (
               <div key={i} className='rounded-lg border border-border bg-card/80 p-3'>

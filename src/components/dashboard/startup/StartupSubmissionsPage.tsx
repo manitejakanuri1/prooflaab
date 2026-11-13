@@ -16,6 +16,7 @@ import {
 } from "@/hooks/useStartupSubmissions";
 import { useStartupProfile } from "@/hooks/useStartupProfile";
 import { passedLabel } from "@/lib/passedNote";
+import { companyVoiceText } from "@/lib/companyVoiceStatus";
 import { plural } from "@/lib/utils";
 
 const DECISION_LABEL: Record<ReviewDecision, string> = {
@@ -154,7 +155,7 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
                   <Mic className="mt-0.5 h-4 w-4 text-muted-foreground" />
                   {s.voice_status === "scored" ? (
                     <div>
-                      <span className="font-medium">Voice: {of10(s.voice_score)}.</span>{" "}
+                      <span className="font-medium">{companyVoiceText(s.voice_score)}.</span>{" "}
                       {s.voice_notes && <span className="text-muted-foreground">{s.voice_notes}</span>}
                       {s.voice_transcript && (
                         <details className="mt-1">
@@ -165,9 +166,7 @@ export function StartupSubmissionsPage({ initialFilter = "all" }: { initialFilte
                     </div>
                   ) : (
                     <span className="text-muted-foreground">
-                      {s.voice_status === "pending" ? "Spoken explanation is being processed." :
-                       s.voice_status === "failed" ? "Spoken explanation not scored (the recording could not be marked)." :
-                       "No spoken explanation yet."}
+                      {companyVoiceText(null, s.voice_status === "pending" || s.voice_status === "failed" ? 1 : 0)}
                     </span>
                   )}
                 </div>

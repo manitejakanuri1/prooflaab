@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Input } from "@/components/ui/input";
+import { useInfiniteQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ interface BankItem {
   page_title: string | null; page_url: string | null;
 }
 interface Bank {
-  counts: { draft: number; approved: number; hidden: number; untagged: number };
+  counts: { draft: number; approved: number; hidden: number; untagged: number; matching: number };
   items: BankItem[];
 }
 
@@ -38,15 +39,27 @@ const QuestionBank = () => {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [status, setStatus] = useState<Status>("approved");
+  const [search, setSearch] = useState("");
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["admin-question-bank", status],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("admin_question_bank" as never, { _status: status, _limit: 100 } as never);
+  // A6 (migration 541): search and "Load more" pages of 100, newest first, on a (created_at, id) cursor.
+  const { data: pages, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ["admin-question-bank", status, search.trim()],
+    initialPageParam: null as { ts: string; id: string } | null,
+    queryFn: async ({ pageParam }) => {
+      const { data, error } = await supabase.rpc("admin_question_bank_page" as never, {
+        _status: status, _q: search.trim() || null, _limit: 100,
+        _after_ts: pageParam?.ts ?? null, _after_id: pageParam?.id ?? null,
+      } as never);
       if (error) throw error;
       return data as unknown as Bank;
     },
+    getNextPageParam: (last) => {
+      const end = last.items[last.items.length - 1];
+      return last.items.length === 100 && end ? { ts: end.created_at, id: end.id } : undefined;
+    },
+    placeholderData: keepPreviousData,
   });
+  const data = pages && { counts: pages.pages[0].counts, items: pages.pages.flatMap((p) => p.items) };
 
   const move = async (item: BankItem, to: Status) => {
     const { error } = await supabase.rpc("admin_set_question_status" as never, { _id: item.id, _status: to } as never);
@@ -65,9 +78,12 @@ const QuestionBank = () => {
         <p className="text-sm text-muted-foreground">
           Questions written from crawled pages and from added material. They are live straight away and become
           Daily Lots from a student's second week, picked for their weak skills. Hide any you do not want used.
-          {data.counts.untagged > 0 && ` ${data.counts.untagged} match no listed skill.`}
         </p>
+        <p className="text-sm text-muted-foreground" data-testid="qb-untagged">Untagged (no listed skill): {data.counts.untagged}</p>
       </div>
+
+      <Input className="max-w-md" placeholder="Search questions, topics or skills…" value={search}
+        onChange={(e) => setSearch(e.target.value)} aria-label="Search questions" />
 
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Question status">
         {TABS.map((t) => (
@@ -80,7 +96,7 @@ const QuestionBank = () => {
 
       {data.items.length === 0 ? (
         <Card><CardContent className="p-6 text-sm text-muted-foreground">
-          {status === "approved"
+          {search.trim() ? "No question matches that search." : status === "approved"
             ? "No questions yet. They appear here after the Sunday crawl, or straight away when material is added in Resources."
             : "Nothing hidden."}
         </CardContent></Card>
@@ -115,6 +131,14 @@ const QuestionBank = () => {
               </CardContent>
             </Card>
           ))}
+          <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground" data-testid="qb-range">
+            <span>Showing 1-{data.items.length} of {data.counts.matching}</span>
+            {hasNextPage && (
+              <Button size="sm" variant="outline" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>
+                {isFetchingNextPage ? "Loading…" : "Load more"}
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </div>

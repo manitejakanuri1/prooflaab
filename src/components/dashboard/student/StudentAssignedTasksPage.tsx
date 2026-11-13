@@ -146,7 +146,7 @@ const StudentAssignedTasksPage = () => {
     }
 
     return sortedTasks;
-  }, [assignedTasks, searchQuery, statusFilter, sortBy]);
+  }, [assignedTasks, searchQuery, sourceFilter, statusFilter, sortBy]);
 
   // "Start" on the Roadmap sends the student here with ?open=<task id>: start that task and open
   // its writing (or coding) box straight away, instead of leaving them in the list to find it.

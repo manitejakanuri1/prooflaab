@@ -24,7 +24,7 @@ export default function AnnouncementBanner() {
     if (!wanted) return;
     const hit = items.find((a) => a.id === wanted);
     if (hit) { setOpen(hit); return; }
-    supabase.from("notifications").select("title, message").like("link", `%announcement=${wanted}%`)
+    supabase.from("notifications").select("title, message").or(`dedupe_key.eq.announcement-${wanted},link.like.*announcement=${wanted}*`)
       .order("created_at", { ascending: false }).limit(1).maybeSingle()
       .then(({ data }) => {
         const n = data as { title: string; message: string | null } | null;

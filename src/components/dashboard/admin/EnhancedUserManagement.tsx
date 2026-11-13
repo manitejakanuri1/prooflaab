@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Search, Users, Building2, Rocket, Ban, CheckCircle, AlertTriangle,
-  Eye, Download, MoreHorizontal, Trash2, UserX, UserCheck, Filter, Plus
+  Eye, Download, MoreHorizontal, Trash2, UserX, UserCheck, Filter, Plus, ArrowUpDown
 } from "lucide-react";
 import { ADMIN_LIST_CAP } from "@/lib/listCaps";
 import { fmtDay, fmtIST } from "@/lib/ist";
@@ -75,6 +75,8 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
   const { userType } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(initialTab);
+  // S9: the Last Active header sorts the loaded rows (newest first, then oldest first, then back to Created order).
+  const [lastActiveSort, setLastActiveSort] = useState<"desc" | "asc" | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
@@ -635,17 +637,32 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                            <TableHead className="hidden md:table-cell">Source</TableHead>
                            <TableHead className="hidden lg:table-cell">XP</TableHead>
                            <TableHead className="hidden xl:table-cell">Submissions</TableHead>
-                           <TableHead className="hidden md:table-cell">Last Active</TableHead>
+                           <TableHead className="hidden md:table-cell" aria-sort={lastActiveSort === "desc" ? "descending" : lastActiveSort === "asc" ? "ascending" : "none"}>
+                            <button type="button" className="inline-flex items-center gap-1 hover:text-foreground"
+                              onClick={() => setLastActiveSort((s) => (s === null ? "desc" : s === "desc" ? "asc" : null))}>
+                              Last Active <ArrowUpDown className="h-3.5 w-3.5" />
+                            </button>
+                          </TableHead>
                          </>
                        )}
                       {tab === 'startups' && (
                         <>
-                          <TableHead className="hidden md:table-cell">Last Active</TableHead>
+                          <TableHead className="hidden md:table-cell" aria-sort={lastActiveSort === "desc" ? "descending" : lastActiveSort === "asc" ? "ascending" : "none"}>
+                            <button type="button" className="inline-flex items-center gap-1 hover:text-foreground"
+                              onClick={() => setLastActiveSort((s) => (s === null ? "desc" : s === "desc" ? "asc" : null))}>
+                              Last Active <ArrowUpDown className="h-3.5 w-3.5" />
+                            </button>
+                          </TableHead>
                         </>
                       )}
                       {tab === 'colleges' && (
                         <>
-                          <TableHead className="hidden md:table-cell">Last Active</TableHead>
+                          <TableHead className="hidden md:table-cell" aria-sort={lastActiveSort === "desc" ? "descending" : lastActiveSort === "asc" ? "ascending" : "none"}>
+                            <button type="button" className="inline-flex items-center gap-1 hover:text-foreground"
+                              onClick={() => setLastActiveSort((s) => (s === null ? "desc" : s === "desc" ? "asc" : null))}>
+                              Last Active <ArrowUpDown className="h-3.5 w-3.5" />
+                            </button>
+                          </TableHead>
                           <TableHead className="hidden md:table-cell">Students Count</TableHead>
                           <TableHead className="hidden lg:table-cell">Tasks Assigned</TableHead>
                         </>
@@ -656,7 +673,12 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
                     </TableRow>
                   </TableHeader>
                     <TableBody>
-                      {users?.map((user) => (
+                      {(lastActiveSort && users
+                        ? [...users].sort((a, b) => {
+                            const t = (u: typeof a) => (u.last_active ? new Date(u.last_active).getTime() : 0);
+                            return lastActiveSort === "desc" ? t(b) - t(a) : t(a) - t(b);
+                          })
+                        : users)?.map((user) => (
                         <TableRow key={user.id} className="hover:bg-muted/30">
                           <TableCell className="font-medium">
                             {tab === 'students' ? user.full_name : user.name}
@@ -922,9 +944,10 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
       <Sheet open={!!viewUserSheet} onOpenChange={() => setViewUserSheet(null)}>
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>User Details</SheetTitle>
+            {/* S9: say what it is - "Company details" / "this company", never "startup". */}
+            <SheetTitle>{activeTab === 'startups' ? 'Company' : activeTab === 'colleges' ? 'College' : 'Student'} details</SheetTitle>
             <SheetDescription>
-              View comprehensive information about this {activeTab.slice(0, -1)}
+              Everything about this {activeTab === 'startups' ? 'company' : activeTab === 'colleges' ? 'college' : 'student'}
             </SheetDescription>
           </SheetHeader>
           {viewUserSheet && (
@@ -975,7 +998,7 @@ const EnhancedUserManagement = ({ initialTab = "students", hideTabList = false }
           <DialogHeader>
             <DialogTitle>Confirm Action</DialogTitle>
             <DialogDescription>
-              Are you sure you want to {actionType} this {activeTab.slice(0, -1)}? 
+              Are you sure you want to {actionType} this {activeTab === 'startups' ? 'company' : activeTab.slice(0, -1)}? 
               {actionType === 'delete' && ' This action cannot be undone.'}
             </DialogDescription>
           </DialogHeader>

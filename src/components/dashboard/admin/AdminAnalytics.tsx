@@ -64,30 +64,38 @@ const AdminAnalytics = () => {
   const { data: weeklyProofs } = useQuery({
     queryKey: ['weekly-proof-uploads', dateRange],
     queryFn: async () => {
-      // The chart shows the last 7 days whatever the range (as before), so only those 7 days are counted.
-      // Sweep S30: India days. Local date + toISOString (UTC) could repeat one day and skip the next (Mon 9 Nov).
+      // N12: the chart follows the range - Weekly: 7 days, one bar per day; Monthly: the last 4 weeks, one per
+      // week; Yearly: the last 12 months, one per month. India days (Sweep S30): buckets are India dates.
       const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-      const days = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(`${today}T00:00:00Z`);
-        d.setUTCDate(d.getUTCDate() - (6 - i));
-        return d.toISOString().slice(0, 10);
-      });
-      const counts = await Promise.all(days.map((day) => {
-        const start = new Date(`${day}T00:00:00+05:30`);
-        const end = new Date(start.getTime() + 86_400_000);
-        return count(supabase.from('task_submissions').select('id', { count: 'exact', head: true })
-          .gte('created_at', start.toISOString()).lt('created_at', end.toISOString()));
-      }));
+      const ymd = (d: Date) => d.toISOString().slice(0, 10);
+      const addDays = (day: string, n: number) => { const d = new Date(`${day}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return ymd(d); };
+      const label = (day: string, opts: Intl.DateTimeFormatOptions) => new Date(`${day}T00:00:00Z`).toLocaleDateString('en-GB', { timeZone: 'UTC', ...opts });
+      let buckets: { start: string; end: string; date: string }[];
+      if (dateRange === "weekly") {
+        buckets = Array.from({ length: 7 }, (_, i) => {
+          const day = addDays(today, i - 6);
+          return { start: day, end: addDays(day, 1), date: label(day, { weekday: 'short', day: 'numeric', month: 'short' }) };
+        });
+      } else if (dateRange === "monthly") {
+        buckets = Array.from({ length: 4 }, (_, i) => {
+          const start = addDays(today, 7 * i - 27);
+          return { start, end: addDays(start, 7), date: `${label(start, { day: 'numeric', month: 'short' })}-${label(addDays(start, 6), { day: 'numeric', month: 'short' })}` };
+        });
+      } else {
+        buckets = Array.from({ length: 12 }, (_, i) => {
+          const d = new Date(`${today.slice(0, 7)}-01T00:00:00Z`);
+          d.setUTCMonth(d.getUTCMonth() + i - 11);
+          const start = ymd(d);
+          d.setUTCMonth(d.getUTCMonth() + 1);
+          return { start, end: ymd(d), date: label(start, { month: 'short', year: '2-digit' }) };
+        });
+      }
+      const counts = await Promise.all(buckets.map(({ start, end }) =>
+        count(supabase.from('task_submissions').select('id', { count: 'exact', head: true })
+          .gte('created_at', new Date(`${start}T00:00:00+05:30`).toISOString())
+          .lt('created_at', new Date(`${end}T00:00:00+05:30`).toISOString()))));
 
-      return days.map((day, i) => ({
-        date: new Date(`${day}T00:00:00Z`).toLocaleDateString('en-GB', {
-          timeZone: 'UTC',
-          weekday: dateRange === "weekly" ? 'short' : undefined,
-          month: 'short',
-          day: 'numeric'
-        }),
-        uploads: counts[i]
-      }));
+      return buckets.map((b, i) => ({ date: b.date, uploads: counts[i] }));
     }
   });
 
@@ -232,7 +240,9 @@ const AdminAnalytics = () => {
           <CardHeader className="p-4 md:pb-4">
             <CardTitle className="flex items-center gap-2 text-base md:text-lg">
               <Activity className="h-4 w-4 md:h-5 md:w-5 text-primary" />
-              Answers sent per day (last 7 days)
+              {dateRange === "weekly" ? "Answers sent per day (last 7 days)"
+                : dateRange === "monthly" ? "Answers sent per week (last 4 weeks)"
+                : "Answers sent per month (last 12 months)"}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">

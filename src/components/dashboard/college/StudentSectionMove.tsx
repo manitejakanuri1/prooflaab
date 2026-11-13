@@ -20,7 +20,8 @@ const StudentSectionMove = ({ studentId, onMoved }: { studentId: string; onMoved
 
   const load = useCallback(async () => {
     const [{ data: s }, { data: p }] = await Promise.all([
-      supabase.rpc("tpo_sections" as never),
+      // N13 (migration 540): pass the student so an admin gets that student's college sections (was a 400).
+      supabase.rpc("tpo_sections" as never, { _student_id: studentId } as never),
       supabase.from("student_profiles").select("cohort").eq("id", studentId).maybeSingle(),
     ]);
     setSections(Array.isArray(s) ? (s as unknown as Section[]) : []);

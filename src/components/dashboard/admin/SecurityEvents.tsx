@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, ShieldAlert, KeyRound, Gauge } from "lucide-react";
-import { maskAll } from "@/lib/mask";
+import { maskAll, maskEmail, maskIp } from "@/lib/mask";
 
 interface EventRow {
   id: string;
@@ -49,7 +49,8 @@ const SecurityEvents = () => {
   const [rows, setRows] = useState<EventRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("all");
-  // F14: emails and IPs masked unless the admin asks for the technical details.
+  // F14 / S10: emails and IPs are always partly masked (v***@gmail.com, 203.0.113.*); the technical details add the
+  // full ids and raw detail words, never a full email or IP.
   const [tech, setTech] = useState(false);
   // MF-034: the two counts come from the database for the last 24 hours, not from the rows on screen (which
   // stop at the newest 200 and were mostly successful sign-ins), and only from server-written events.
@@ -155,7 +156,7 @@ const SecurityEvents = () => {
             </p>
             {repeatedFailures.map(([email, n]) => (
               <div key={email} className="flex justify-between text-sm border-b py-2 last:border-0">
-                <span className="font-medium">{tech ? email : maskAll(email)}</span>
+                <span className="font-medium">{tech ? maskIp(maskEmail(email)) : maskAll(email)}</span>
                 <span className="text-muted-foreground">{n} attempts</span>
               </div>
             ))}
@@ -219,14 +220,14 @@ const SecurityEvents = () => {
                           {LABEL[r.event_type] ?? r.event_type}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-medium">{r.email ? (tech ? r.email : maskAll(r.email)) : "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">{r.ip ? (tech ? r.ip : maskAll(r.ip)) : "—"}</TableCell>
+                      <TableCell className="font-medium">{r.email ? (tech ? maskIp(maskEmail(r.email)) : maskAll(r.email)) : "—"}</TableCell>
+                      <TableCell className="text-muted-foreground">{r.ip ? (tech ? maskIp(r.ip) : maskAll(r.ip)) : "—"}</TableCell>
                       <TableCell className="text-muted-foreground text-xs">
                         {r.source === "client"
                           ? "reported by a browser (before 28 Oct)"
                           : Object.entries(r.detail ?? {}).filter(([k]) => k !== "forwarded")
                             // P7f: the database role word "startup" is shown as "Company".
-                            .map(([k, v]) => `${k}: ${k === "role" && v === "startup" ? "Company" : tech ? String(v) : maskAll(String(v).replace(/_/g, " "))}`).join(", ") || "—"}
+                            .map(([k, v]) => `${k}: ${k === "role" && v === "startup" ? "Company" : tech ? maskIp(maskEmail(String(v))) : maskAll(String(v).replace(/_/g, " "))}`).join(", ") || "—"}
                       </TableCell>
                     </TableRow>
                   ))}

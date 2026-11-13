@@ -557,7 +557,7 @@ ${college.name}`);
                     onClick={() => handleSort('students_count')}
                   >
                     <div className="flex items-center gap-1">
-                      Students Count
+                      Students
                       <ArrowUpDown className="h-4 w-4" />
                     </div>
                   </TableHead>
@@ -732,7 +732,7 @@ ${college.name}`);
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Students Count</label>
+                    <label className="text-sm font-medium mb-2 block">Students</label>
                     <Badge variant="outline" className="font-mono text-base">
                       {selectedCollege.students_count || 0}
                     </Badge>

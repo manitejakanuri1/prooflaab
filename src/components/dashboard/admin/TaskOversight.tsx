@@ -1,7 +1,7 @@
 import { fmtDay, istDueWindow } from "@/lib/ist";
 import { useState } from "react";
 import React from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ import { ViewAssignedStudentsModal } from "./ViewAssignedStudentsModal";
 import { EditTaskModal } from "./EditTaskModal";
 import { ReassignTaskModal } from "./ReassignTaskModal";
 import { TaskDetailsModal } from "./TaskDetailsModal";
-import { systemCreatorLabel } from "./systemCreatorLabel";
+import { categoryLabel, systemCreatorLabel } from "./systemCreatorLabel";
 import { ADMIN_LIST_CAP } from "@/lib/listCaps";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -44,7 +44,23 @@ type AdminTask = Tables<"tasks"> & {
   submissions: Submission[];
 };
 
+// N11: one place for what each Status option means, used by the list filter and by the counts line.
+// F25: the options are exactly the badges getStatusBadge shows. A row past its due date that is not
+// completed shows "Overdue", so Pending / Active leave those out.
+const STATUS_BUCKETS = ['pending', 'active', 'completed', 'overdue'] as const;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const applyStatus = (query: any, statusFilter: string) => {
+  const notOverdue = `due_date.is.null,due_date.gte.${new Date().toISOString()}`;
+  if (statusFilter === 'pending') return query.in('status', ['pending', 'Pending', 'pending_voice']).or(notOverdue);
+  if (statusFilter === 'active') return query.in('status', ['In Progress', 'Assigned']).or(notOverdue);
+  if (statusFilter === 'completed') return query.in('status', ['completed', 'Completed']);
+  if (statusFilter === 'overdue') return query.lt('due_date', new Date().toISOString()).not('status', 'in', '(completed,Completed)');
+  return query;
+};
+
 const TaskOversight = () => {
+  // N11: the list shows the newest `shown` tasks; "Load more" adds another ADMIN_LIST_CAP.
+  const [shown, setShown] = useState(ADMIN_LIST_CAP);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [creatorFilter, setCreatorFilter] = useState("all");
@@ -67,31 +83,20 @@ const TaskOversight = () => {
     },
   });
 
-  const { data: tasks, isLoading, error } = useQuery({
-    queryKey: ['admin-tasks', searchTerm, statusFilter, creatorFilter, categoryFilter, dueDateFilter],
+  const { data: taskPage, isLoading, isFetching, error } = useQuery({
+    queryKey: ['admin-tasks', searchTerm, statusFilter, creatorFilter, categoryFilter, dueDateFilter, shown],
+    // N11: keep the rows on screen while "Load more" fetches, instead of the loading skeleton.
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       let query = supabase
         .from('tasks')
-        .select('*');
+        .select('*', { count: 'exact' });
 
       if (searchTerm) {
         query = query.ilike('title', `%${searchTerm}%`);
       }
 
-      if (statusFilter !== 'all') {
-        // F25: the options are exactly the badges getStatusBadge shows. A row past its due date that is not
-        // completed shows "Overdue", so Pending / Active leave those out.
-        const notOverdue = `due_date.is.null,due_date.gte.${new Date().toISOString()}`;
-        if (statusFilter === 'pending') {
-          query = query.in('status', ['pending', 'Pending', 'pending_voice']).or(notOverdue);
-        } else if (statusFilter === 'active') {
-          query = query.in('status', ['In Progress', 'Assigned']).or(notOverdue);
-        } else if (statusFilter === 'completed') {
-          query = query.in('status', ['completed', 'Completed']);
-        } else if (statusFilter === 'overdue') {
-          query = query.lt('due_date', new Date().toISOString()).not('status', 'in', '(completed,Completed)');
-        }
-      }
+      query = applyStatus(query, statusFilter);
 
       if (creatorFilter !== 'all') {
         if (creatorFilter === 'college') {
@@ -118,7 +123,7 @@ const TaskOversight = () => {
         query = query.gte('due_date', from).lt('due_date', to);
       }
 
-      const { data: tasksData, error: tasksError } = await query.order('created_at', { ascending: false }).limit(ADMIN_LIST_CAP);
+      const { data: tasksData, error: tasksError, count: total } = await query.order('created_at', { ascending: false }).range(0, shown - 1);
       if (tasksError) {
         throw tasksError;
       }
@@ -179,7 +184,7 @@ const TaskOversight = () => {
       const assignmentsByTask = group(assignments);
       const submissionsByTask = group(submissions);
 
-      return rows.map((task): AdminTask => {
+      const list = rows.map((task): AdminTask => {
         const student = task.student_id ? studentById.get(task.student_id) ?? null : undefined;
         return {
           ...task,
@@ -195,7 +200,25 @@ const TaskOversight = () => {
           submissions: submissionsByTask.get(task.id) || [],
         };
       });
+      return { list, total: total ?? list.length };
     }
+  });
+  const tasks = taskPage?.list;
+  const totalTasks = taskPage?.total ?? 0;
+
+  // N11: how many tasks each Status option holds, platform-wide. "Other" is whatever no option covers
+  // (e.g. Flagged, or no status), so the numbers always add up to the total.
+  const { data: statusCounts } = useQuery({
+    queryKey: ['admin-tasks', 'status-counts'], // under 'admin-tasks' so Flag / Remove / Edit refresh it too
+    queryFn: async () => {
+      const head = () => supabase.from('tasks').select('id', { count: 'exact', head: true });
+      const res = await Promise.all([head(), ...STATUS_BUCKETS.map((b) => applyStatus(head(), b))]);
+      const bad = res.find((r) => r.error);
+      if (bad) throw bad.error;
+      const [all, ...parts] = res.map((r) => r.count ?? 0);
+      const byBucket = Object.fromEntries(STATUS_BUCKETS.map((b, i) => [b, parts[i]])) as Record<typeof STATUS_BUCKETS[number], number>;
+      return { all, ...byBucket, other: all - parts.reduce((a, b) => a + b, 0) };
+    },
   });
 
   const toggleVisibilityMutation = useMutation({
@@ -431,6 +454,12 @@ const TaskOversight = () => {
         <div>
           <h2 className="text-2xl md:text-3xl font-bold">Task Oversight</h2>
           <p className="text-muted-foreground mt-1 text-sm md:text-base">Monitor and manage all tasks across the platform</p>
+          {statusCounts && (
+            <p className="text-xs text-muted-foreground mt-1" data-testid="task-status-counts">
+              All tasks: {statusCounts.all} · Pending {statusCounts.pending} · Active {statusCounts.active} · Completed {statusCounts.completed} · Overdue {statusCounts.overdue}
+{" · "}<span title="Tasks no Status option covers, e.g. Flagged or no status">Other {statusCounts.other}</span>
+            </p>
+          )}
         </div>
 
         {/* Search & Filters */}
@@ -478,7 +507,7 @@ const TaskOversight = () => {
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
                 {/* F25: the categories tasks really have, not a fixed guess. */}
-                {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                {categories.map((c) => <SelectItem key={c} value={c}>{categoryLabel(c)}</SelectItem>)}
               </SelectContent>
             </Select>
 
@@ -551,7 +580,7 @@ const TaskOversight = () => {
                     </TableCell>
                     <TableCell>{getCreatorBadge(task)}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{task.category || 'General'}</Badge>
+                      <Badge variant="outline">{categoryLabel(task.category)}</Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {fmtDay(task.due_date)}
@@ -677,7 +706,7 @@ const TaskOversight = () => {
                     {/* Creator & Category */}
                     <div className="flex flex-wrap gap-2 text-xs">
                       {getCreatorBadge(task)}
-                      <Badge variant="outline" className="text-xs">{task.category || 'General'}</Badge>
+                      <Badge variant="outline" className="text-xs">{categoryLabel(task.category)}</Badge>
                     </div>
 
                     {/* Due Date & XP */}
@@ -758,6 +787,16 @@ const TaskOversight = () => {
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* N11: say how many of the matching tasks are on screen, and fetch the next batch on request. */}
+            <div className="flex items-center justify-between gap-3 px-4 pb-4 text-sm text-muted-foreground" data-testid="task-list-range">
+              <span>Showing 1-{tasks.length} of {totalTasks}</span>
+              {tasks.length < totalTasks && (
+                <Button variant="outline" size="sm" disabled={isFetching} onClick={() => setShown((n) => n + ADMIN_LIST_CAP)}>
+                  {isFetching ? "Loading…" : `Load ${Math.min(ADMIN_LIST_CAP, totalTasks - tasks.length)} more`}
+                </Button>
+              )}
             </div>
           </div>
         )}

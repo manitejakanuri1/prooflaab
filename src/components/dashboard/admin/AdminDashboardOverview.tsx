@@ -130,7 +130,7 @@ const AdminDashboardOverview = ({
     color: "text-primary",
     onClick: () => onNavigate?.("students")
   }, {
-    title: "Active Colleges",
+    title: "Active colleges",
     help: "Colleges whose account is approved, out of all colleges that signed up.",
     value: stats?.activeColleges || 0,
     subtitle: `${stats?.totalColleges || 0} total`,
@@ -160,7 +160,7 @@ const AdminDashboardOverview = ({
     title: "Answers sent (all tries)",
     help: "Every answer or code hand-in ever, each retry counted. Reports shows the same count for one period only; the chart below shows it per day.",
     value: stats?.totalProofs || 0,
-    subtitle: "all time, every retry counted",
+    subtitle: "all time, every retry counted, voice not counted",
     icon: ClipboardCheck,
     color: "text-primary",
     onClick: () => onNavigate?.("submissions")
@@ -192,8 +192,7 @@ const AdminDashboardOverview = ({
   return <div className="space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-compete/10 to-compete/10 p-6 rounded-2xl border border-compete/30">
-        <h1 className="text-2xl font-bold text-foreground mb-2">Welcome to the admin dashboard</h1>
-        <p className="text-muted-foreground">Welcome to the ProofLab administration panel</p>
+        <h1 className="text-2xl font-bold text-foreground">Welcome to the admin dashboard</h1>
       </div>
 
       {/* KPI Cards */}

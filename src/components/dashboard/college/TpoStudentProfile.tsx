@@ -219,7 +219,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
                   hot: data.days_quiet >= 7 },
                 { k: "Total XP", v: data.total_xp ?? 0 },
                 // Item 6: "Lots passed" means the same as the Students list column; finished = answer + voice.
-                { k: "Lots passed", v: `${data.tasks.auto_graded_passed ?? 0}/${data.tasks.assigned} · ${data.tasks.completed} finished${data.tasks.voice_owed ? ` · ${data.tasks.voice_owed} voice owed` : ""}`, // M8: migration 220
+                { k: "Lots passed", v: `${data.tasks.auto_graded_passed ?? 0}/${data.tasks.assigned} · ${data.tasks.completed} finished${data.tasks.voice_owed ? ` · ${data.tasks.voice_owed} voice owed (all time)` : ""}`, // M8: migration 220
                   help: "Lots passed (the answer or code passed) / every Lot this student has been given so far - the same count as the Students list. Finished = passed and the voice is done. Each student joined on a different day, so the second number differs." },
                 ...(data.streak !== undefined ? [
                   { k: "Streak", v: data.streak ? `${data.streak.current}d · best ${data.streak.longest}d` : "0d" },

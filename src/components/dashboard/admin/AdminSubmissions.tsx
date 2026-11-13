@@ -138,8 +138,9 @@ const AdminSubmissions = () => {
           {/* Retest H3: say what the rows are, so this list and the Overview count are not compared as one number. */}
           {!isLoading && !error && (
             <p className="mt-1 text-xs text-muted-foreground" data-testid="submissions-what">
-              Newest {data.length}{data.length >= 200 ? " - the list stops at 200, so older tries are not shown here (the Overview counts them all)" : ""}: {data.filter((r) => !r.voice).length} answer/code tries
-              and {data.filter((r) => r.voice).length} voice recordings, retries included.
+              {/* S11: this list is the newest rows only; Overview "Answers sent" is all time and has no voice. */}
+              Newest {data.length} rows, not all time{data.length >= 200 ? " (the list stops at 200)" : ""}: {data.filter((r) => !r.voice).length} answer/code tries
+              and {data.filter((r) => r.voice).length} voice recordings, retries included. Overview "Answers sent" counts every answer/code try ever (no voice).
             </p>
           )}
         </div>

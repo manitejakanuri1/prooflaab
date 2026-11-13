@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Bell, Users } from "lucide-react";
 import { format } from "date-fns";
 import StudentSectionMove from "./StudentSectionMove";
+import { useLocation } from "react-router-dom";
 import ResendInviteButton from "./ResendInviteButton";
 import FinishedWork from "../FinishedWork";
 import type { FinishedWorkItem } from "@/recruiter/types";
@@ -104,6 +105,8 @@ const EVENT_LABEL: Record<string, string> = {
  * table cannot.
  */
 const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props) => {
+  // Owner 13 Nov (option A): sections belong to the college; the admin view of this drawer has no Move.
+  const isAdminView = useLocation().pathname.startsWith("/admin");
   const { toast } = useToast();
   const [data, setData] = useState<Profile | null>(null);
   const [paths, setPaths] = useState<LearningPath[]>([]);
@@ -247,7 +250,7 @@ const TpoStudentProfile = ({ studentId, onClose, onOpenSquad, onChanged }: Props
               ))}
             </div>
 
-            <StudentSectionMove studentId={data.id} onMoved={() => { void load(); onChanged?.(); }} />
+            {!isAdminView && <StudentSectionMove studentId={data.id} onMoved={() => { void load(); onChanged?.(); }} />}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <section>

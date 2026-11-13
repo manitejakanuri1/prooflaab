@@ -1,4 +1,4 @@
-import { fmtDay } from "@/lib/ist";
+import { fmtDay, istDueWindow } from "@/lib/ist";
 import { useState } from "react";
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -111,18 +111,11 @@ const TaskOversight = () => {
         query = query.eq('category', categoryFilter);
       }
 
-      if (dueDateFilter !== 'all') {
-        const now = new Date();
-        if (dueDateFilter === 'today') {
-          const endOfDay = new Date(now.setHours(23, 59, 59, 999));
-          query = query.lte('due_date', endOfDay.toISOString());
-        } else if (dueDateFilter === 'week') {
-          const weekFromNow = new Date(now.setDate(now.getDate() + 7));
-          query = query.lte('due_date', weekFromNow.toISOString());
-        } else if (dueDateFilter === 'month') {
-          const monthFromNow = new Date(now.setMonth(now.getMonth() + 1));
-          query = query.lte('due_date', monthFromNow.toISOString());
-        }
+      if (dueDateFilter === 'today' || dueDateFilter === 'week' || dueDateFilter === 'month') {
+        // N10: India days from the start of today to the end of today / Sunday / the month. Had no lower bound
+        // (Due Today listed 491 tasks back to 4 Oct); past-due tasks are under Status = Overdue.
+        const { from, to } = istDueWindow(dueDateFilter);
+        query = query.gte('due_date', from).lt('due_date', to);
       }
 
       const { data: tasksData, error: tasksError } = await query.order('created_at', { ascending: false }).limit(ADMIN_LIST_CAP);

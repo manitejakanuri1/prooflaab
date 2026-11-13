@@ -52,3 +52,11 @@ export function istDayEnd(day: string | Date): string {
   return new Date(`${ymd}T23:59:59+05:30`).toISOString();
 }
 
+/** N10: [from, to) instants of "due today / this week (to Sunday) / this month" in India time, from the start of today. */
+export function istDueWindow(kind: "today" | "week" | "month", now: Date = new Date()): { from: string; to: string } {
+  const [y, m, d] = istYmd(now).split("-").map(Number);
+  const IST_MS = 330 * 60_000;
+  const wd = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  const endUtc = kind === "month" ? Date.UTC(y, m, 1) : Date.UTC(y, m - 1, d + (kind === "today" ? 1 : (8 - wd) % 7 || 7));
+  return { from: new Date(Date.UTC(y, m - 1, d) - IST_MS).toISOString(), to: new Date(endUtc - IST_MS).toISOString() };
+}

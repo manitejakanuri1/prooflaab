@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fmtDay, fmtDayTime, istDayEnd, istWall, istYmd, pastDueIST } from "./ist.ts";
+import { fmtDay, fmtDayTime, istDayEnd, istDueWindow, istWall, istYmd, pastDueIST } from "./ist.ts";
 
 test("sweep M12/M13: India time and one date format, whatever the device clock", () => {
   assert.equal(fmtDay("2026-11-10T19:22:49Z"), "11 Nov 2026"); // 00:52 IST next day
@@ -31,3 +31,12 @@ test("N2: India day, not the UTC day; a picked day is due 11:59:59 PM India time
   assert.equal(fmtDay(istDayEnd("2026-11-15")), "15 Nov 2026");
 });
 
+test("N10: due windows start today (India) and stop at the end of the day / Sunday / month", () => {
+  const now = new Date("2026-11-12T20:30:00Z"); // Fri 13 Nov, 2 AM IST
+  assert.deepEqual(istDueWindow("today", now), { from: "2026-11-12T18:30:00.000Z", to: "2026-11-13T18:30:00.000Z" });
+  assert.deepEqual(istDueWindow("week", now), { from: "2026-11-12T18:30:00.000Z", to: "2026-11-15T18:30:00.000Z" }); // to Sun 15 Nov
+  assert.deepEqual(istDueWindow("month", now), { from: "2026-11-12T18:30:00.000Z", to: "2026-11-30T18:30:00.000Z" });
+  const sun = new Date("2026-11-15T10:00:00Z"); // Sunday 15 Nov: this week is just today
+  assert.equal(istDueWindow("week", sun).to, "2026-11-15T18:30:00.000Z");
+  assert.equal(istDueWindow("month", new Date("2026-12-31T19:00:00Z")).to, "2027-01-31T18:30:00.000Z"); // 1 Jan IST
+});
